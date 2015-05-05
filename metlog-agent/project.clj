@@ -8,7 +8,9 @@
                  [org.clojure/tools.logging "0.3.1"]
                  [ch.qos.logback/logback-classic "1.1.2"]
                  [clj-http "1.0.1"
-                  :exclusions [com.fasterxml.jackson.core/jackson-core]]]
+                  :exclusions [com.fasterxml.jackson.core/jackson-core]]
+                 [overtone/at-at "1.2.0"]]
+  
   :main ^:skip-aot metlog-agent.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}}
