@@ -1,9 +1,17 @@
 (defproject metlog-agent "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+  :description "Metlog agent - polls data sources for upload to vault."
+  
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.6.0"]]
+  
+  :dependencies [[org.clojure/clojure "1.6.0"]
+                 [org.clojure/tools.logging "0.3.1"]
+                 [ch.qos.logback/logback-classic "1.1.2"]
+                 [clj-http "1.0.1"
+                  :exclusions [com.fasterxml.jackson.core/jackson-core]]]
   :main ^:skip-aot metlog-agent.core
   :target-path "target/%s"
-  :profiles {:uberjar {:aot :all}})
+  :profiles {:uberjar {:aot :all}}
+  
+  :jar-name "metlog-agent.jar"
+  :uberjar-name "metlog-agent-standalone.jar")
