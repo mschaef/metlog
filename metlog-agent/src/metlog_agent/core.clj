@@ -2,7 +2,8 @@
   (:gen-class)
   (:use metlog-common.core)
   (:require [clojure.tools.logging :as log]
-            [overtone.at-at :as at-at]))
+            [overtone.at-at :as at-at]
+            [clj-http.client :as client]))
 
 (def my-pool (at-at/mk-pool))
 
@@ -17,13 +18,21 @@
   (locking sensor-result-queue
     (.add sensor-result-queue (poll-sensor))))
 
+(defn do-update [ snapshot ]
+  (log/info "Starting update.")
+  (doseq [ item (seq snapshot)]
+    (log/info item))
+  (client/post "http://localhost:8080/data"
+               { :body "Hello World"})
+  (log/info "Done with update.")
+  )
+
 (defn update-vault []
   (log/info "update-vault")
   (let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
     (locking sensor-result-queue
       (.drainTo sensor-result-queue snapshot))
-    (doseq [ item (seq snapshot)]
-      (log/info item))))
+    (do-update snapshot)))
 
 (defn -main
   "I don't do a whole lot ... yet."

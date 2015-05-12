@@ -9,7 +9,12 @@
             [compojure.handler :as handler]))
 
 (defroutes all-routes
-  (GET "/" []   "Hello World!"))
+  (GET "/heartbeat" [ ]
+    "heartbeat")
+
+  (POST "/data" req 
+    (log/debug "Post to data: " req)
+    "post accepted"))
 
 (def site-routes
   (routes all-routes
