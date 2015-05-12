@@ -1,6 +1,6 @@
 (ns metlog-agent.core
   (:gen-class)
-  (:use metlog-agent.util)
+  (:use metlog-common.core)
   (:require [clojure.tools.logging :as log]
             [overtone.at-at :as at-at]))
 
