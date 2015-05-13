@@ -6,14 +6,16 @@
             [ring.adapter.jetty :as jetty]
             [ring.middleware.resource :as ring-resource]
             [compojure.route :as route]
-            [compojure.handler :as handler]))
+            [compojure.handler :as handler]
+            [clojure.edn :as edn]))
 
 (defroutes all-routes
   (GET "/heartbeat" [ ]
     "heartbeat")
 
   (POST "/data" req 
-    (log/debug "Post to data: " req)
+    (log/debug "Incoming POST: " req)
+    (log/debug "Data" (edn/read-string (log/spy :error (slurp (:body req)))))
     "post accepted"))
 
 (def site-routes

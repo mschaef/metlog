@@ -20,12 +20,12 @@
 
 (defn do-update [ snapshot ]
   (log/info "Starting update.")
-  (doseq [ item (seq snapshot)]
-    (log/info item))
-  (client/post "http://localhost:8080/data"
-               { :body "Hello World"})
-  (log/info "Done with update.")
-  )
+  (let [ snapshot (seq snapshot) ]
+    (doseq [ item  snapshot ]
+      (log/info item))
+    (client/post "http://localhost:8080/data"
+                 { :body (pr-str snapshot)}))
+  (log/info "Done with update."))
 
 (defn update-vault []
   (log/info "update-vault")
