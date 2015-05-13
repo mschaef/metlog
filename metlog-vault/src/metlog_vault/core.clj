@@ -14,17 +14,22 @@
     "heartbeat")
 
   (POST "/data" req 
-    (log/debug "Incoming POST: " req)
-    (log/debug "Data" (edn/read-string (log/spy :error (slurp (:body req)))))
-    "post accepted"))
+    (log/debug "Data" (edn/read-string (slurp (:body req))))
+    "post accepted")
+  
+  (route/resources "/")
+  (route/not-found "Resource Not Found"))
 
-(def site-routes
-  (routes all-routes
-          (route/resources "/")
-          (route/not-found "Resource Not Found")))
+(defn wrap-request-logging [ app ]
+  (fn [req]
+    (log/debug 'REQUEST (:request-method req) (:uri req))
+    (let [resp (app req)]
+      (log/trace 'RESPONSE (:status resp))
+      resp)))
 
-(def handler (-> site-routes
+(def handler (-> all-routes
                  (ring-resource/wrap-resource "public")
+                 (wrap-request-logging)
                  (handler/api)))
 
 (defn start-webserver [ http-port ]

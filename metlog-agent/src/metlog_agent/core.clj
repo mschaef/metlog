@@ -20,11 +20,10 @@
 
 (defn do-update [ snapshot ]
   (log/info "Starting update.")
-  (let [ snapshot (seq snapshot) ]
-    (doseq [ item  snapshot ]
-      (log/info item))
-    (client/post "http://localhost:8080/data"
-                 { :body (pr-str snapshot)}))
+  (doseq [ item  snapshot ]
+    (log/info item))
+  (client/post "http://localhost:8080/data"
+               { :body (pr-str snapshot)})
   (log/info "Done with update."))
 
 (defn update-vault []
@@ -32,7 +31,7 @@
   (let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
     (locking sensor-result-queue
       (.drainTo sensor-result-queue snapshot))
-    (do-update snapshot)))
+    (do-update (seq snapshot))))
 
 (defn -main
   "I don't do a whole lot ... yet."
