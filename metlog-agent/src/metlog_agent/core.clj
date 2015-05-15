@@ -9,6 +9,7 @@
 
 (defn poll-sensor []
   {:t (java.util.Date.)
+   :series_name "test"
    :val 42})
 
 (def sensor-result-queue (java.util.concurrent.LinkedBlockingQueue.))
