@@ -5,6 +5,7 @@
   (:require [clojure.tools.logging :as log]
             [ring.adapter.jetty :as jetty]
             [ring.middleware.resource :as ring-resource]
+            [ring.util.response :as ring]
             [compojure.route :as route]
             [compojure.handler :as handler]
             [clojure.edn :as edn]
@@ -83,6 +84,7 @@
     "Incoming data accepted.")
   
   (route/resources "/")
+  (GET "/" [] (ring/redirect "/index.html"))
   (route/not-found "Resource Not Found"))
 
 (defn wrap-request-logging [ app ]
