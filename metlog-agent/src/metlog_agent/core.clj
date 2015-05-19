@@ -7,28 +7,31 @@
 
 (def my-pool (at-at/mk-pool))
 
-(defn poll-sensor []
+(def start-t (System/currentTimeMillis))
+
+(defn poll-sensor-1 []
   {:t (java.util.Date.)
-   :series_name "test"
-   :val 42})
+   :series_name "sine"
+   :val (Math/sin (/ (- (System/currentTimeMillis) start-t) 250.0))})
+
+(defn poll-sensor-2 []
+  {:t (java.util.Date.)
+   :series_name "cosine"
+   :val (Math/cos (/ (- (System/currentTimeMillis) start-t) 250.0))})
 
 (def sensor-result-queue (java.util.concurrent.LinkedBlockingQueue.))
 
 (defn poll-sensors []
-  (log/info "poll-sensors")
+  (log/debug "poll-sensors")
   (locking sensor-result-queue
-    (.add sensor-result-queue (poll-sensor))))
+    (.add sensor-result-queue (poll-sensor-1))
+    (.add sensor-result-queue (poll-sensor-2))))
 
 (defn do-update [ snapshot ]
-  (log/info "Starting update.")
-  (doseq [ item  snapshot ]
-    (log/info item))
-  (client/post "http://localhost:8080/data"
-               { :body (pr-str snapshot)})
-  (log/info "Done with update."))
+  (client/post "http://localhost:8080/data" { :body (pr-str snapshot)}))
 
 (defn update-vault []
-  (log/info "update-vault")
+  (log/debug "update-vault")
   (let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
     (locking sensor-result-queue
       (.drainTo sensor-result-queue snapshot))
