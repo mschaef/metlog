@@ -54,8 +54,13 @@
                    :t (java.util.Date.)
                    :val (:val sample)})))
 
+(defn edn-response [data & [status]]
+  {:status (or status 200)
+   :headers {"Content-Type" "application/edn"}
+   :body (pr-str data)})
+
 (defn get-data-for-series-name [ series-name ]
-  (pr-str
+  (edn-response
    (query-all *db* [(str "SELECT sample.t, sample.val"
                          " FROM sample, series"
                          " WHERE sample.series_id = series.series_id"
@@ -64,7 +69,7 @@
                     series-name])))
 
 (defn get-series-names [ ]
-  (pr-str
+  (edn-response
    (map :series_name
         (query-all *db* [(str "SELECT series_name"
                               " FROM series")]))))
