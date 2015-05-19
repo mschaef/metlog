@@ -15,7 +15,8 @@
                  [compojure "1.3.4"]
                  [com.ksmpartners/sql-file "0.1.0"]
                  [metlog-common "0.1.0-SNAPSHOT"]
-                 [org.omcljs/om "0.8.8"]]
+                 [org.omcljs/om "0.8.8"]
+                 [cljs-ajax "0.3.11"]]
 
   :main ^:skip-aot metlog-vault.core
   :target-path "target/%s"
