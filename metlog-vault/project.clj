@@ -4,8 +4,9 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :plugins [[lein-cljsbuild "1.0.6"]]
-  :hooks [leiningen.cljsbuild]
+  :plugins [[lein-cljsbuild "1.0.6"]
+            [lein-cooper "1.1.1"]]
+  
   :source-paths ["src-server"]
   
   :dependencies [[org.clojure/clojure "1.7.0-beta2"]

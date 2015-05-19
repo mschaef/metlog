@@ -8,5 +8,5 @@
     (render [this]
       (dom/h1 nil (:text data)))))
 
-(om/root widget {:text "Hello world!"}
+(om/root widget {:text "Hello world!!!"}
   {:target (. js/document (getElementById "metlog"))})
