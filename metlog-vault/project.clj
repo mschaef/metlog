@@ -4,19 +4,21 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :plugins [[lein-cljsbuild "1.0.6"]
+  :plugins [[lein-cljsbuild "1.0.6"
+             :exclusions [org.clojure/clojure]]
             [lein-cooper "1.1.1"]]
   
   :source-paths ["src-server"]
   
   :dependencies [[org.clojure/clojure "1.7.0-beta2"]
                  [org.clojure/clojurescript "0.0-3269"]
+                 [com.ksmpartners/sql-file "0.1.0"]                 
                  [ring/ring-jetty-adapter "1.3.2"]
                  [compojure "1.3.4"]
-                 [com.ksmpartners/sql-file "0.1.0"]
-                 [metlog-common "0.1.0-SNAPSHOT"]
+                 [cljs-ajax "0.3.11"]
+                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [org.omcljs/om "0.8.8"]
-                 [cljs-ajax "0.3.11"]]
+                 [metlog-common "0.1.0-SNAPSHOT"]]
 
   :main ^:skip-aot metlog-vault.core
   :target-path "target/%s"
