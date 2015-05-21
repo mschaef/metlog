@@ -75,8 +75,8 @@
                               " FROM series")]))))
 
 (defroutes all-routes
-  (GET "/heartbeat" [ ]
-    "heartbeat")
+  (GET "/server-time" [ ]
+    (edn-response (java.util.Date.)))
 
   (GET "/series-names" []
     (get-series-names))
