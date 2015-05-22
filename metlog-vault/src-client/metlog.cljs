@@ -4,7 +4,10 @@
             [om.dom :as dom]
             [ajax.core :refer [GET]]
             [cljs.reader :as reader]
-            [cljs.core.async :refer [put! chan <!]]))
+            [cljs.core.async :refer [put! close! chan <!]]))
+
+(def dashboard-state (atom {:server-time nil
+                            :series-names []}))
 
 (defn <<< [f & args]
   (let [c (chan)]
@@ -33,40 +36,34 @@
 (defn fetch-server-time [ cb ]
   (ajax-get "/server-time" cb))
 
-(def dashboard-state (atom {:count 0
-                            :series-names []}))
-
-
 (defn item-list [ items owner ]
   (om/component
    (apply dom/ul nil
           (map (fn [text] (dom/li nil text))
                items))))
 
-(defn counter [ state owner ]
+(defn server-time [ state owner ]
   (reify
     om/IWillMount
     (will-mount [ this ]
       (js/setInterval
        (fn []
-         (om/transact! state :count #(+ 1 %)))
+         (go
+           (om/update! state :server-time (<! (<<< fetch-server-time)))))
        1000))
 
     om/IRender
     (render [ this ]
       (dom/div nil
-               (dom/h1 nil (:count state))))))
+               (dom/h1 nil (str "[" (:server-time state) "]"))))))
 
 (defn dashboard [ state owner ]
   (om/component
       (dom/div nil
-            (om/build counter state)
+            (om/build server-time state)
             (om/build item-list (:series-names state)))))
 
 (om/root dashboard dashboard-state
   {:target (. js/document (getElementById "metlog"))})
 
 (fetch-series-names)
-
-(go
-  (js/console.log (<! (<<< fetch-server-time))))
