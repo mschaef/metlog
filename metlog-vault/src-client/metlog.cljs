@@ -55,7 +55,9 @@
     om/IRender
     (render [ this ]
       (dom/div nil
-               (dom/h1 nil (str "[" (:server-time state) "]"))))))
+               (let [ server-time (:server-time state)]
+                 (if (not (nil? server-time))
+                   (str (.toLocaleDateString server-time) " " (.toLocaleTimeString server-time))))))))
 
 (defn dashboard [ state owner ]
   (om/component
