@@ -21,26 +21,32 @@
 (defn error-handler [{:keys [status status-text]}]
   (.log js/console (str "something bad happened: " status " " status-text)))
 
-(defn update-series-names [ response ]
-  (let [ series-names (reader/read-string (str response))]
-    (.log js/console series-names)
-    (swap! dashboard-state assoc :series-names series-names)))
-
 (defn ajax-get [ url callback ]
   (GET url {:handler callback
             :error-handler error-handler}))
 
-(defn fetch-series-names []
-  (ajax-get "/series-names" update-series-names))
+(defn fetch-series-names [ cb ]
+  (ajax-get "/series-names" cb))
 
 (defn fetch-server-time [ cb ]
   (ajax-get "/server-time" cb))
 
-(defn item-list [ items owner ]
+(defn series-pane [ state owner ]
   (om/component
-   (apply dom/ul nil
-          (map (fn [text] (dom/li nil text))
-               items))))
+   (dom/div nil state)))
+
+(defn series-list [ state owner ]
+  (reify
+    om/IWillMount
+    (will-mount [ this ]
+      (go
+        (om/update! state :series-names (<! (<<< fetch-series-names)))))
+
+    om/IRender
+    (render [ this ]
+      (apply dom/div nil
+             (map #(om/build series-pane %)
+                  (:series-names state))))))
 
 (defn server-time [ state owner ]
   (reify
@@ -63,9 +69,8 @@
   (om/component
       (dom/div nil
             (om/build server-time state)
-            (om/build item-list (:series-names state)))))
+            (om/build series-list state))))
 
 (om/root dashboard dashboard-state
   {:target (. js/document (getElementById "metlog"))})
 
-(fetch-series-names)
