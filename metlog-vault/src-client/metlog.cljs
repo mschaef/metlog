@@ -60,15 +60,24 @@
 
     om/IRender
     (render [ this ]
-      (dom/div nil
-               (let [ server-time (:server-time state)]
-                 (if (not (nil? server-time))
-                   (str (.toLocaleDateString server-time) " " (.toLocaleTimeString server-time))))))))
+      (dom/span nil
+                (let [ server-time (:server-time state)]
+                  (if (nil? server-time)
+                    ""
+                    (str (.toLocaleDateString server-time) " "
+                         (.toLocaleTimeString server-time))))))))
+
+(defn header [ state owner ]
+  (om/component
+   (dom/div #js { :className "header"}
+            (dom/span #js { :className "left" } "Metlog")
+            (dom/span #js { :className "right" }
+                      (om/build server-time state)))))
 
 (defn dashboard [ state owner ]
   (om/component
       (dom/div nil
-            (om/build server-time state)
+            (om/build header state)
             (om/build series-list state))))
 
 (om/root dashboard dashboard-state
