@@ -7,7 +7,7 @@
             [cljs.core.async :refer [put! close! chan <!]]))
 
 (def dashboard-state (atom {:server-time nil
-                            :series-names []}))
+                            :series []}))
 
 (defn <<< [f & args]
   (let [c (chan)]
@@ -18,12 +18,10 @@
                                    (put! c x)))]))
     c))
 
-(defn error-handler [{:keys [status status-text]}]
-  (.log js/console (str "something bad happened: " status " " status-text)))
-
 (defn ajax-get [ url callback ]
   (GET url {:handler callback
-            :error-handler error-handler}))
+            :error-handler (fn [ resp ]
+                             (.log js/console (str "HTTP error, url: " url " resp: " resp)))}))
 
 (defn fetch-series-names [ cb ]
   (ajax-get "/series-names" cb))
@@ -31,22 +29,30 @@
 (defn fetch-server-time [ cb ]
   (ajax-get "/server-time" cb))
 
-(defn series-pane [ state owner ]
-  (om/component
-   (dom/div nil state)))
+(defn fetch-latest-series-data [ series-name cb ]
+  (ajax-get (str "/latest/" series-name) cb))
 
-(defn series-list [ state owner ]
+(defn series-pane [ state owner ]
   (reify
     om/IWillMount
     (will-mount [ this ]
-      (go
-        (om/update! state :series-names (<! (<<< fetch-series-names)))))
+      (js/setInterval
+       (fn []
+         (go
+           (let [ resp (<! (<<< fetch-latest-series-data (:name state)))]
+             (om/update! state :val (:val resp)))))
+       15000))
+    
+    om/IRender
+    (render [ this ]
+      (dom/div nil (:name state) " - " (:val state)))))
 
+(defn series-list [ state owner ]
+  (reify    
     om/IRender
     (render [ this ]
       (apply dom/div nil
-             (map #(om/build series-pane %)
-                  (:series-names state))))))
+             (om/build-all series-pane (:series state))))))
 
 (defn server-time [ state owner ]
   (reify
@@ -56,7 +62,7 @@
        (fn []
          (go
            (om/update! state :server-time (<! (<<< fetch-server-time)))))
-       1000))
+       15000))
 
     om/IRender
     (render [ this ]
@@ -83,3 +89,12 @@
 (om/root dashboard dashboard-state
   {:target (. js/document (getElementById "metlog"))})
 
+
+
+(defn load-series-names []
+  (go
+    (swap! dashboard-state assoc :series
+           (vec (map (fn [ series-name ] { :name series-name })
+                     (<! (<<< fetch-series-names)))))))
+
+(load-series-names)
