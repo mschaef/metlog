@@ -51,7 +51,7 @@
     (log/debug "Inserting sample: " sample)
     (jdbc/insert! *db* :sample
                   {:series_id (intern-series-name (:series_name sample))
-                   :t (java.util.Date.)
+                   :t (:t sample)
                    :val (:val sample)})))
 
 (defn edn-response [data & [status]]
@@ -67,12 +67,12 @@
 
 (defn get-latest-data-for-series-name [ series-name ]
   (let [ series-id (get-series-id series-name) ]
-    (edn-response
-     (query-all *db* [(str "SELECT sample.series_id, sample.t, sample.val"
-                           " FROM sample"
-                           " WHERE sample.series_id = ?"
-                           "   AND sample.t = (SELECT MAX(t) FROM sample WHERE series_id=?)")
-                      series-id series-id]))))
+    (if-let [ val (query-first *db* [(str "SELECT sample.series_id, sample.t, sample.val"
+                                          " FROM sample"
+                                          " WHERE sample.series_id = ?"
+                                          "   AND sample.t = (SELECT MAX(t) FROM sample WHERE series_id=?)")
+                                     series-id series-id])]
+      (edn-response val))))
 
 (defn get-data-for-series-name [ series-name ]
   (edn-response
