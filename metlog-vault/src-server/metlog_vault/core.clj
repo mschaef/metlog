@@ -59,6 +59,21 @@
    :headers {"Content-Type" "application/edn"}
    :body (pr-str data)})
 
+(defn get-series-id [ series-name ]
+  (query-scalar *db* [(str "SELECT series_id"
+                           " FROM series"
+                           " WHERE series_name=?")
+                      series-name]))
+
+(defn get-latest-data-for-series-name [ series-name ]
+  (let [ series-id (get-series-id series-name) ]
+    (edn-response
+     (query-all *db* [(str "SELECT sample.series_id, sample.t, sample.val"
+                           " FROM sample"
+                           " WHERE sample.series_id = ?"
+                           "   AND sample.t = (SELECT MAX(t) FROM sample WHERE series_id=?)")
+                      series-id series-id]))))
+
 (defn get-data-for-series-name [ series-name ]
   (edn-response
    (query-all *db* [(str "SELECT sample.t, sample.val"
@@ -84,6 +99,9 @@
   (GET "/data/:series-name" [ series-name ]
     (get-data-for-series-name series-name))
 
+  (GET "/latest/:series-name" [ series-name ]
+    (get-latest-data-for-series-name series-name))
+  
   (POST "/data" req
     (store-data-samples (edn/read-string (slurp (:body req))))
     "Incoming data accepted.")
