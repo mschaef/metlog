@@ -42,7 +42,7 @@
     om/IInitState
     (init-state [_]
       
-      {:width 200 :height 150})
+      {:width 800 :height 150})
     
     om/IDidMount
     (did-mount [_]
