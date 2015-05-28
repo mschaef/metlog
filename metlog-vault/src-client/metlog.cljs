@@ -32,6 +32,10 @@
 (defn fetch-latest-series-data [ series-name cb ]
   (ajax-get (str "/latest/" series-name) cb))
 
+(defn series-tsplot [ state owner ]
+  (om/component
+   (dom/canvas #js {:width 500 :height 200})))
+
 (defn series-pane [ state owner ]
   (reify
     om/IWillMount
@@ -46,10 +50,10 @@
     om/IRender
     (render [ this ]
       (dom/div #js { :className "series-pane"}
-               (dom/span #js { :className "series-name"} (:name state))
-               (dom/span nil " - ")
-               (dom/span #js { :className "series-value" } (:val state))
-               #_(dom/canvas #js {:width 500 :height 200})))))
+               (dom/div #js { :className "series-pane-header "}
+                        (dom/span #js { :className "series-name"} (:name state))
+                        (dom/span #js { :className "series-value" } (:val state)))
+               (om/build series-tsplot state)))))
 
 (defn series-list [ state owner ]
   (reify    
@@ -87,8 +91,9 @@
 (defn dashboard [ state owner ]
   (om/component
       (dom/div nil
-            (om/build header state)
-            (om/build series-list state))))
+               (om/build header state)
+               (dom/div #js { :className "content" }
+                (om/build series-list state)))))
 
 (om/root dashboard dashboard-state
   {:target (. js/document (getElementById "metlog"))})

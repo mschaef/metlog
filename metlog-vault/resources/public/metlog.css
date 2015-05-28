@@ -4,10 +4,27 @@ h1 {
 
 /* series-pane series-name series-value */
 
+div.content {
+    padding-top: 35px;
+}
+
 div.header {
     background-color: black;
-    color: white;
+    color: #f0f0f0;
     padding: 0.25em;
+    font-size: 150%;
+    top: 0px;
+    left: 0px;
+    position: fixed;
+    width: 100%;
+    
+    -webkit-box-shadow: 2px 2px 3px 0px rgba(0,0,0,0.75);
+    -moz-box-shadow: 2px 2px 3px 0px rgba(0,0,0,0.75);
+    box-shadow: 2px 2px 3px 0px rgba(0,0,0,0.75);
+}
+
+div.header span.left {
+    font-weight: bold;
 }
 
 div.header span.right {
@@ -18,13 +35,24 @@ div.series-pane {
     background-color: #f0f0f0;
     color: #101010;
 
-    margin: 0.5em;
+    margin: 0.75em;
+    
+    -webkit-box-shadow: 2px 2px 3px 0px rgba(0,0,0,0.75);
+    -moz-box-shadow: 2px 2px 3px 0px rgba(0,0,0,0.75);
+    box-shadow: 2px 2px 3px 0px rgba(0,0,0,0.75);
 }
 
-div.series-pane div.series-value {
-    color: red;
+div.series-pane div.series-pane-header {
+    background-color: #e0e0e0;
+    margin: 0.25em;
+    padding: 0.25em;
 }
 
+div.series-pane div.series-pane-header span.series-name {
+    font-weight: bold;
+    padding-right: 0.33em;
+}
+    
 body {
     margin: 0;
     font-family:Helvetica,Arial,Verdana,sans-serif;
