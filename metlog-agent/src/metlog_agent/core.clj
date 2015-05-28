@@ -11,51 +11,44 @@
 
 (def sensor-result-queue (java.util.concurrent.LinkedBlockingQueue.))
 
-(defn sensor-reading [ series-name val ]
-  {:t (java.util.Date.)
-   :series_name series-name
-   :val val})
-
-(defn enqueue-sensor-reading [ reading ]
-  (log/info "enquing sensor reading" reading)
-  (.add sensor-result-queue reading))
+(defn enqueue-sensor-reading [ series-name val ]
+  (let [ reading {:t (java.util.Date.)
+                  :series_name series-name
+                  :val val}]
+    (log/info "enquing sensor reading" reading)
+    (.add sensor-result-queue  reading)))
 
 (defn poll-sensor-1 []
-  (enqueue-sensor-reading
-   (sensor-reading "sine" (Math/sin (/ (- (System/currentTimeMillis) start-t) 60000.0)))))
+  (enqueue-sensor-reading "sine" (Math/sin (/ (- (System/currentTimeMillis) start-t) 60000.0))))
 
 (defn poll-sensor-2 []
-  (enqueue-sensor-reading
-   (sensor-reading "cosine" (Math/cos (/ (- (System/currentTimeMillis) start-t) 60000.0)))))
+  (enqueue-sensor-reading "cosine" (Math/cos (/ (- (System/currentTimeMillis) start-t) 60000.0))))
 
-(defn poll-w1-sensor [ path]
+(defn poll-w1-sensor [ path ]
   (with-open [rdr (clojure.java.io/reader path)]
-  (let [ line (second (line-seq rdr)) ]
-    (if (not (nil? line))
-      (enqueue-sensor-reading
-       (sensor-reading "basement-temp"
-        (/ (Double/valueOf (.substring line 29)) 1000.0)))))))
+    (let [ line (second (line-seq rdr)) ]
+      (if (not (nil? line))
+        (enqueue-sensor-reading "basement-temp" (/ (Double/valueOf (.substring line 29)) 1000.0))))))
 
 (defn poll-sensors []
   (log/debug "poll-sensors")
-  (locking sensor-result-queue
-    (poll-sensor-1)
-    (poll-sensor-2)
-    (if-let [ sensor-path (config-property "sensor.path") ]
-      (poll-w1-sensor sensor-path))))
+  (poll-sensor-1)
+  (poll-sensor-2)
+  (if-let [ sensor-path (config-property "sensor.path") ]
+    (poll-w1-sensor sensor-path)))
 
-(defn do-update [ snapshot ]
-  (let [url (config-property "vault.url" "http://localhost:8080/data")
-        data { :body (pr-str snapshot)}]
-    (log/info "Posting" data " to " url)
-    (client/post url data)))
-
-(defn update-vault []
-  (log/debug "update-vault")
+(defn take-result-queue-snapshot []
   (let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
     (locking sensor-result-queue
       (.drainTo sensor-result-queue snapshot))
-    (do-update (seq snapshot))))
+    (seq snapshot)))
+
+(defn update-vault []
+  (log/debug "update-vault")
+  (let [url (config-property "vault.url" "http://localhost:8080/data")
+        data { :body (pr-str (take-result-queue-snapshot))}]
+    (log/info "Posting" data " to " url)
+    (client/post url data)))
 
 (defn -main
   "I don't do a whole lot ... yet."
