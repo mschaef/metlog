@@ -1,3 +1,33 @@
 h1 {
     color: red;
 }
+
+/* series-pane series-name series-value */
+
+div.header {
+    background-color: black;
+    color: white;
+    padding: 0.25em;
+}
+
+div.header span.right {
+    float: right;
+}
+
+div.series-pane {
+    background-color: #f0f0f0;
+    color: #101010;
+
+    margin: 0.5em;
+}
+
+div.series-pane div.series-value {
+    color: red;
+}
+
+body {
+    margin: 0;
+    font-family:Helvetica,Arial,Verdana,sans-serif;
+    font-size: 13px;
+    line-height:1.2;
+}

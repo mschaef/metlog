@@ -45,7 +45,11 @@
     
     om/IRender
     (render [ this ]
-      (dom/div nil (:name state) " - " (:val state)))))
+      (dom/div #js { :className "series-pane"}
+               (dom/span #js { :className "series-name"} (:name state))
+               (dom/span nil " - ")
+               (dom/span #js { :className "series-value" } (:val state))
+               #_(dom/canvas #js {:width 500 :height 200})))))
 
 (defn series-list [ state owner ]
   (reify    
@@ -94,7 +98,7 @@
 (defn load-series-names []
   (go
     (swap! dashboard-state assoc :series
-           (vec (map (fn [ series-name ] { :name series-name })
+           (vec (map (fn [ series-name ] {:name series-name})
                      (<! (<<< fetch-series-names)))))))
 
 (load-series-names)
