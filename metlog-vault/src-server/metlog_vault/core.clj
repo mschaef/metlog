@@ -76,13 +76,15 @@
 
 (defn get-data-for-series-name [ series-name ]
   (edn-response
-   (query-all *db* [(str "SELECT sample.t, sample.val"
-                         " FROM sample, series"
-                         " WHERE sample.series_id = series.series_id"
-                         "   AND series.series_name=?"
-                         "   AND t > TIMESTAMPADD(SQL_TSI_DAY, -1, CURRENT_TIMESTAMP)"
-                         " ORDER BY t")
-                    series-name])))
+   (merge {}
+          {:data
+           (query-all *db* [(str "SELECT sample.t, sample.val"
+                                 " FROM sample, series"
+                                 " WHERE sample.series_id = series.series_id"
+                                 "   AND series.series_name=?"
+                                 "   AND t > TIMESTAMPADD(SQL_TSI_DAY, -1, CURRENT_TIMESTAMP)"
+                                 " ORDER BY t")
+                            series-name])})))
 
 (defn get-series-names [ ]
   (edn-response

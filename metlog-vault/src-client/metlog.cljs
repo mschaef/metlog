@@ -32,10 +32,38 @@
 (defn fetch-latest-series-data [ series-name cb ]
   (ajax-get (str "/latest/" series-name) cb))
 
+(defn fetch-series-data [ series-name cb ]
+  (ajax-get (str "/data/" series-name) cb))
 
-(defn draw-tsplot [ ctx ]
-;  (aset ctx "fillStyle" "rgb(255,255,255)")
-  (.fillRect ctx 10 10 100 100))
+
+(defn s-yrange [ samples ]
+  (let [ vals (map :val samples) ]
+    {:max (apply Math/max vals)
+     :min (apply Math/min vals)}))
+
+(defn s-xrange [ samples ]
+  (let [ ts (map :t samples) ]
+    {:max (apply Math/max ts)
+     :min (apply Math/min ts)}))
+
+(defn range-scale [ range val ]
+  (/ (- val (:min range))
+     (- (:max range) (:min range))))
+
+(defn draw-tsplot [ ctx w h sinfo ]
+  (let [data (:data sinfo)
+        x-range (s-xrange data)
+        y-range (s-yrange data)]
+;    (.fillRect ctx 0 0 w h)
+    (when (> (count data) 0)
+      (.moveTo ctx
+               (* w (range-scale x-range (:t (first data))))
+               (- h (* h (range-scale y-range (:val (first data))))))
+      (doseq [ pt (rest data) ]
+        (.lineTo ctx
+                 (* w (range-scale x-range (:t pt)))
+                 (- h (* h (range-scale y-range (:val pt))))))
+      (.stroke ctx))))
 
 (defn series-tsplot [ app-state owner ]
   (reify
@@ -51,7 +79,11 @@
                           (om/set-state! owner :width (.-offsetWidth (.-parentNode dom-element))))]
  ;     (resize-func)
       (aset js/window "onresize" resize-func)
-      (draw-tsplot (.getContext dom-element "2d"))))
+
+      (go
+        (draw-tsplot (.getContext dom-element "2d")
+                     800 150
+                     (<! (<<< fetch-series-data (:name app-state)))))))
     
     om/IRenderState
     (render-state [ this state ]
