@@ -32,9 +32,31 @@
 (defn fetch-latest-series-data [ series-name cb ]
   (ajax-get (str "/latest/" series-name) cb))
 
-(defn series-tsplot [ state owner ]
-  (om/component
-   (dom/canvas #js {:width 500 :height 200})))
+
+(defn draw-tsplot [ ctx ]
+;  (aset ctx "fillStyle" "rgb(255,255,255)")
+  (.fillRect ctx 10 10 100 100))
+
+(defn series-tsplot [ app-state owner ]
+  (reify
+    om/IInitState
+    (init-state [_]
+      
+      {:width 200 :height 150})
+    
+    om/IDidMount
+    (did-mount [_]
+      (let [dom-element (om/get-node owner)
+            resize-func (fn []
+                          (om/set-state! owner :width (.-offsetWidth (.-parentNode dom-element))))]
+ ;     (resize-func)
+      (aset js/window "onresize" resize-func)
+      (draw-tsplot (.getContext dom-element "2d"))))
+    
+    om/IRenderState
+    (render-state [ this state ]
+      (dom/canvas #js {:width (str (:width state) "px")
+                       :height (str (:height state) "px")}))))
 
 (defn series-pane [ state owner ]
   (reify
