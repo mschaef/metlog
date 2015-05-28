@@ -80,6 +80,7 @@
                          " FROM sample, series"
                          " WHERE sample.series_id = series.series_id"
                          "   AND series.series_name=?"
+                         "   AND t > TIMESTAMPADD(SQL_TSI_DAY, -1, CURRENT_TIMESTAMP)"
                          " ORDER BY t")
                     series-name])))
 
