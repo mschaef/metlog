@@ -1,5 +1,6 @@
 (ns metlog.metlog
-  (:require-macros [cljs.core.async.macros :refer [go]])
+  (:require-macros [cljs.core.async.macros :refer [ go ]]
+                   [metlog.macros :refer [ with-preserved-ctx ]])
   (:require [om.core :as om]
             [om.dom :as dom]
             [ajax.core :refer [GET]]
@@ -67,57 +68,52 @@
 (def dtf-header (time-format/formatter "yyyy-MM-dd HH:mm"))
 
 (defn draw-tsplot-series [ ctx w h data ]
-  (.save ctx)
-  (.beginPath ctx)
-  (.rect ctx 0 0 w h)
-  (.clip ctx)
-  (.beginPath ctx)
-  (aset ctx "strokeStyle" "#0000FF")
-  (aset ctx "font" "12px Arial")
-  (let [x-range (s-xrange data)
-        y-range (s-yrange data)]
-    (when (> (count data) 0)
-      (.moveTo ctx
-               (* w (range-scale x-range (:t (first data))))
-               (- h (* h (range-scale y-range (:val (first data))))))
-      (doseq [ pt (rest data) ]
-        (.lineTo ctx
-                 (* w (range-scale x-range (:t pt)))
-                 (- h (* h (range-scale y-range (:val pt))))))
-      (.stroke ctx)
-      (draw-tsplot-ylabel ctx (.toFixed (:max y-range) 2) -2 8)
-      (draw-tsplot-ylabel ctx (.toFixed (:min y-range) 2) -2 (- h 8))
-      (draw-tsplot-xlabel ctx (time-format/unparse dtf-axis-label (time-coerce/from-long (:min x-range))) 0 h)
-      (draw-tsplot-xlabel ctx (time-format/unparse dtf-axis-label (time-coerce/from-long (:max x-range))) w h))
-    (.restore ctx)))
+  (with-preserved-ctx ctx
+    (aset ctx "strokeStyle" "#0000FF")
+    (aset ctx "font" "12px Arial")
+    (let [x-range (s-xrange data)
+          y-range (s-yrange data)]
+      (when (> (count data) 0)
+        (with-preserved-ctx ctx
+          (.beginPath ctx)
+          (.rect ctx 0 0 w h)
+          (.clip ctx)
+          (.beginPath ctx)
+          (.moveTo ctx
+                   (* w (range-scale x-range (:t (first data))))
+                   (- h (* h (range-scale y-range (:val (first data))))))
+          (doseq [ pt (rest data) ]
+            (.lineTo ctx
+                     (* w (range-scale x-range (:t pt)))
+                     (- h (* h (range-scale y-range (:val pt))))))
+          (.stroke ctx))
+        (draw-tsplot-ylabel ctx (.toFixed (:max y-range) 2) -2 8)
+        (draw-tsplot-ylabel ctx (.toFixed (:min y-range) 2) -2 (- h 8))
+        (draw-tsplot-xlabel ctx (time-format/unparse dtf-axis-label (time-coerce/from-long (:min x-range))) 0 h)
+        (draw-tsplot-xlabel ctx (time-format/unparse dtf-axis-label (time-coerce/from-long (:max x-range))) w h)))))
 
 (defn draw-tsplot-bg [ ctx w h ]
-  (.save ctx)
-  (aset ctx "fillStyle" "#FFFFFF")
-  (.fillRect ctx 0 0 w h)
-  (.restore ctx))
+  (with-preserved-ctx ctx
+    (aset ctx "fillStyle" "#FFFFFF")
+    (.fillRect ctx 0 0 w h)))
 
 (defn draw-tsplot-frame [ ctx w h ]
-  (.save ctx)
-  (.beginPath ctx)
-  (aset ctx "lineWidth" 1)
-  (aset ctx "strokeStyle" "#000000")
-  (.moveTo ctx 0.5 0.5)
-  (.lineTo ctx 0.5 (- h 0.5))
-  (.lineTo ctx (- w 0.5) (- h 0.5))
-  (.stroke ctx)
-  (.restore ctx))
+  (with-preserved-ctx ctx
+    (.beginPath ctx)
+    (aset ctx "lineWidth" 1)
+    (aset ctx "strokeStyle" "#000000")
+    (.moveTo ctx 0.5 0.5)
+    (.lineTo ctx 0.5 (- h 0.5))
+    (.lineTo ctx (- w 0.5) (- h 0.5))
+    (.stroke ctx)))
 
 (defn draw-tsplot [ ctx w h sinfo ]
   (let [ w (- w 30) ]
-    (.save ctx)
-    (.translate ctx 50 0)
-
-    (draw-tsplot-bg ctx (- w 50) (- h 30))
-    (draw-tsplot-series ctx (- w 50) (- h 30) (:data sinfo))
-    (draw-tsplot-frame ctx (- w 50) (- h 30))
-    
-    (.restore ctx)))
+    (with-preserved-ctx ctx
+      (.translate ctx 50 0)
+      (draw-tsplot-bg ctx (- w 50) (- h 30))
+      (draw-tsplot-series ctx (- w 50) (- h 30) (:data sinfo))
+      (draw-tsplot-frame ctx (- w 50) (- h 30)))))
 
 (defn series-tsplot [ app-state owner ]
   (reify
