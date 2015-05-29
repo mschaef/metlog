@@ -4,6 +4,8 @@
             [om.dom :as dom]
             [ajax.core :refer [GET]]
             [cljs.reader :as reader]
+            [cljs-time.core :as time]
+            [cljs-time.format :as time-format]
             [cljs.core.async :refer [put! close! chan <!]]))
 
 (def dashboard-state (atom {:server-time nil
@@ -35,7 +37,6 @@
 (defn fetch-series-data [ series-name cb ]
   (ajax-get (str "/data/" series-name) cb))
 
-
 (defn s-yrange [ samples ]
   (let [ vals (map :val samples) ]
     {:max (apply Math/max vals)
@@ -53,7 +54,6 @@
 (defn draw-tsplot-xlabel [ ctx text x y ]
   (let [mt (.measureText ctx text)
         w (.-width mt)]
-    (.log js/console (str [ w h]))
     (.fillText ctx text (- x (/ w 2)) (+ 16 y))))
 
 (defn draw-tsplot-series [ ctx w h data ]
@@ -157,6 +157,8 @@
     (render [ this ]
       (apply dom/div nil
              (om/build-all series-pane (:series state))))))
+
+(def header-date-format (time-format/formatter "yyyyMMdd HH:mm"))
 
 (defn server-time [ state owner ]
   (reify
