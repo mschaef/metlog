@@ -8,3 +8,5 @@ CREATE CACHED TABLE sample (
        t TIMESTAMP NOT NULL,
        val DOUBLE NOT NULL
 )
+
+

@@ -69,6 +69,9 @@
 (defn draw-tsplot-series [ ctx w h data ]
   (.save ctx)
   (.beginPath ctx)
+  (.rect ctx 0 0 w h)
+  (.clip ctx)
+  (.beginPath ctx)
   (aset ctx "strokeStyle" "#0000FF")
   (aset ctx "font" "12px Arial")
   (let [x-range (s-xrange data)
@@ -184,10 +187,7 @@
                 (let [ server-time (:server-time state)]
                   (if (nil? server-time)
                     ""
-                    (time-format/unparse dtf-header (time-coerce/to-date-time server-time)) 
-
-                    #_(str (.toLocaleDateString server-time) " "
-                         (.toLocaleTimeString server-time))))))))
+                    (time-format/unparse dtf-header (time-coerce/to-date-time server-time)) ))))))
 
 (defn header [ state owner ]
   (om/component
