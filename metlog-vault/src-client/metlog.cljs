@@ -50,11 +50,18 @@
   (/ (- val (:min range))
      (- (:max range) (:min range))))
 
-(defn draw-tsplot [ ctx w h sinfo ]
-  (let [data (:data sinfo)
-        x-range (s-xrange data)
+(defn draw-tsplot-xlabel [ ctx text x y ]
+  (let [mt (.measureText ctx text)
+        w (.-width mt)]
+    (.log js/console (str [ w h]))
+    (.fillText ctx text (- x (/ w 2)) (+ 16 y))))
+
+(defn draw-tsplot-series [ ctx w h data ]
+  (.save ctx)
+  (.beginPath ctx)
+  (aset ctx "strokeStyle" "#0000FF")
+  (let [x-range (s-xrange data)
         y-range (s-yrange data)]
-;    (.fillRect ctx 0 0 w h)
     (when (> (count data) 0)
       (.moveTo ctx
                (* w (range-scale x-range (:t (first data))))
@@ -63,14 +70,49 @@
         (.lineTo ctx
                  (* w (range-scale x-range (:t pt)))
                  (- h (* h (range-scale y-range (:val pt))))))
-      (.stroke ctx))))
+      (.stroke ctx))
+    (.restore ctx)
+    (.save ctx)
+    (aset ctx "font" "16px Arial")
+    (draw-tsplot-xlabel ctx "min" 0 h)
+    (draw-tsplot-xlabel ctx "max" w h)
+    (.restore ctx)
+    ))
+
+(defn draw-tsplot-bg [ ctx w h ]
+  (.save ctx)
+  (aset ctx "fillStyle" "#FFFFFF")
+  (.fillRect ctx 0 0 w h)
+  (.restore ctx))
+
+(defn draw-tsplot-frame [ ctx w h ]
+  (.save ctx)
+  (.beginPath ctx)
+  (aset ctx "lineWidth" 2)
+  (aset ctx "strokeStyle" "#000000")
+  (.moveTo ctx 0 0)
+  (.lineTo ctx 0 h)
+  (.lineTo ctx w h)
+  (.stroke ctx)
+  (.restore ctx))
+
+(defn draw-tsplot [ ctx w h sinfo ]
+  (let [ w (- w 30) ]
+    (.save ctx)
+    (.translate ctx 50 0)
+
+    (draw-tsplot-bg ctx (- w 50) (- h 30))
+    (draw-tsplot-series ctx (- w 50) (- h 30) (:data sinfo))
+    (draw-tsplot-frame ctx (- w 50) (- h 30))
+    
+    (.restore ctx)))
 
 (defn series-tsplot [ app-state owner ]
   (reify
     om/IInitState
     (init-state [_]
       
-      {:width 800 :height 150})
+      {:width 1024 :height 150})
     
     om/IDidMount
     (did-mount [_]
@@ -82,7 +124,7 @@
 
       (go
         (draw-tsplot (.getContext dom-element "2d")
-                     800 150
+                     1024 150
                      (<! (<<< fetch-series-data (:name app-state)))))))
     
     om/IRenderState
