@@ -18,9 +18,9 @@ div.header {
     position: fixed;
     width: 100%;
     
-    -webkit-box-shadow: 2px 2px 3px 0px rgba(0,0,0,0.75);
-    -moz-box-shadow: 2px 2px 3px 0px rgba(0,0,0,0.75);
-    box-shadow: 2px 2px 3px 0px rgba(0,0,0,0.75);
+    -webkit-box-shadow: 1px 1px 2px 0px rgba(0,0,0,0.5);
+    -moz-box-shadow: 1px 1px 2px 0px rgba(0,0,0,0.5);
+    box-shadow: 1px 1px 2px 0px rgba(0,0,0,0.5);
 }
 
 div.header span.left {
@@ -29,17 +29,18 @@ div.header span.left {
 
 div.header span.right {
     float: right;
+    padding-right: 20px;
 }
 
 div.series-pane {
     background-color: #f0f0f0;
     color: #101010;
 
-    margin: 0.75em;
+    margin: 0.5em;
     
-    -webkit-box-shadow: 2px 2px 3px 0px rgba(0,0,0,0.75);
-    -moz-box-shadow: 2px 2px 3px 0px rgba(0,0,0,0.75);
-    box-shadow: 2px 2px 3px 0px rgba(0,0,0,0.75);
+    -webkit-box-shadow: 1px 1px 2px 0px rgba(0,0,0,0.5);
+    -moz-box-shadow: 1px 1px 2px 0px rgba(0,0,0,0.5);
+    box-shadow: 1px 1px 2px 0px rgba(0,0,0,0.5);
 }
 
 div.series-pane div.series-pane-header {

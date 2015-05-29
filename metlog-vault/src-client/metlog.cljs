@@ -6,6 +6,7 @@
             [cljs.reader :as reader]
             [cljs-time.core :as time]
             [cljs-time.format :as time-format]
+            [cljs-time.coerce :as time-coerce]
             [cljs.core.async :refer [put! close! chan <!]]))
 
 (def dashboard-state (atom {:server-time nil
@@ -54,12 +55,22 @@
 (defn draw-tsplot-xlabel [ ctx text x y ]
   (let [mt (.measureText ctx text)
         w (.-width mt)]
-    (.fillText ctx text (- x (/ w 2)) (+ 16 y))))
+    (.fillText ctx text (- x (/ w 2)) (+ 12 y))))
+
+(defn draw-tsplot-ylabel [ ctx text x y ]
+  (let [mt (.measureText ctx text)
+        w (.-width mt)]
+    (.fillText ctx text (- x w) (+ y 8))))
+
+(def dtf-axis-label (time-format/formatter "MM-dd HH"))
+
+(def dtf-header (time-format/formatter "yyyy-MM-dd HH:mm"))
 
 (defn draw-tsplot-series [ ctx w h data ]
   (.save ctx)
   (.beginPath ctx)
   (aset ctx "strokeStyle" "#0000FF")
+  (aset ctx "font" "12px Arial")
   (let [x-range (s-xrange data)
         y-range (s-yrange data)]
     (when (> (count data) 0)
@@ -70,14 +81,12 @@
         (.lineTo ctx
                  (* w (range-scale x-range (:t pt)))
                  (- h (* h (range-scale y-range (:val pt))))))
-      (.stroke ctx))
-    (.restore ctx)
-    (.save ctx)
-    (aset ctx "font" "16px Arial")
-    (draw-tsplot-xlabel ctx "min" 0 h)
-    (draw-tsplot-xlabel ctx "max" w h)
-    (.restore ctx)
-    ))
+      (.stroke ctx)
+      (draw-tsplot-ylabel ctx (.toFixed (:max y-range) 2) -2 8)
+      (draw-tsplot-ylabel ctx (.toFixed (:min y-range) 2) -2 (- h 8))
+      (draw-tsplot-xlabel ctx (time-format/unparse dtf-axis-label (time-coerce/from-long (:min x-range))) 0 h)
+      (draw-tsplot-xlabel ctx (time-format/unparse dtf-axis-label (time-coerce/from-long (:max x-range))) w h))
+    (.restore ctx)))
 
 (defn draw-tsplot-bg [ ctx w h ]
   (.save ctx)
@@ -88,11 +97,11 @@
 (defn draw-tsplot-frame [ ctx w h ]
   (.save ctx)
   (.beginPath ctx)
-  (aset ctx "lineWidth" 2)
+  (aset ctx "lineWidth" 1)
   (aset ctx "strokeStyle" "#000000")
-  (.moveTo ctx 0 0)
-  (.lineTo ctx 0 h)
-  (.lineTo ctx w h)
+  (.moveTo ctx 0.5 0.5)
+  (.lineTo ctx 0.5 (- h 0.5))
+  (.lineTo ctx (- w 0.5) (- h 0.5))
   (.stroke ctx)
   (.restore ctx))
 
@@ -158,7 +167,6 @@
       (apply dom/div nil
              (om/build-all series-pane (:series state))))))
 
-(def header-date-format (time-format/formatter "yyyyMMdd HH:mm"))
 
 (defn server-time [ state owner ]
   (reify
@@ -176,7 +184,9 @@
                 (let [ server-time (:server-time state)]
                   (if (nil? server-time)
                     ""
-                    (str (.toLocaleDateString server-time) " "
+                    (time-format/unparse dtf-header (time-coerce/to-date-time server-time)) 
+
+                    #_(str (.toLocaleDateString server-time) " "
                          (.toLocaleTimeString server-time))))))))
 
 (defn header [ state owner ]
