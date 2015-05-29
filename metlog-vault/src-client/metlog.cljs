@@ -49,6 +49,11 @@
     {:max (apply Math/max ts)
      :min (apply Math/min ts)}))
 
+(defn rescale-range [ range factor ]
+  (let [ scaled-delta (* (/ (- factor 1) 2) (- (:max range) (:min range) )) ]
+    {:max (+ (:max range) scaled-delta)
+     :min (- (:min range) scaled-delta)}))
+
 (defn range-scale [ range val ]
   (/ (- val (:min range))
      (- (:max range) (:min range))))
@@ -67,25 +72,31 @@
 
 (def dtf-header (time-format/formatter "yyyy-MM-dd HH:mm"))
 
+(defn translate-point [ pt x-range y-range w h ]
+  [(* w (range-scale x-range (:t pt)))
+   (- h (* h (range-scale y-range (:val pt))))])
+
+(defn move-to [ ctx [ x y ] ] (.moveTo ctx x y))
+(defn line-to [ ctx [ x y ] ] (.lineTo ctx x y))
+
+(defn clip-rect [ ctx x y w h ]
+  (.beginPath ctx)
+  (.rect ctx x y w h)
+  (.clip ctx))
+
 (defn draw-tsplot-series [ ctx w h data ]
   (with-preserved-ctx ctx
     (aset ctx "strokeStyle" "#0000FF")
     (aset ctx "font" "12px Arial")
     (let [x-range (s-xrange data)
-          y-range (s-yrange data)]
+          y-range (rescale-range (s-yrange data) 1.2)]
       (when (> (count data) 0)
         (with-preserved-ctx ctx
+          (clip-rect ctx 0 0 w h)
           (.beginPath ctx)
-          (.rect ctx 0 0 w h)
-          (.clip ctx)
-          (.beginPath ctx)
-          (.moveTo ctx
-                   (* w (range-scale x-range (:t (first data))))
-                   (- h (* h (range-scale y-range (:val (first data))))))
+          (move-to ctx (translate-point (first data) x-range y-range w h))
           (doseq [ pt (rest data) ]
-            (.lineTo ctx
-                     (* w (range-scale x-range (:t pt)))
-                     (- h (* h (range-scale y-range (:val pt))))))
+            (line-to ctx (translate-point pt x-range y-range w h)))
           (.stroke ctx))
         (draw-tsplot-ylabel ctx (.toFixed (:max y-range) 2) -2 8)
         (draw-tsplot-ylabel ctx (.toFixed (:min y-range) 2) -2 (- h 8))
