@@ -74,7 +74,7 @@
                                      series-id series-id])]
       (edn-response val))))
 
-(defn get-data-for-series-name [ series-name ]
+(defn get-data-for-series-name [ series-name window-size-secs ]
   (edn-response
    (merge {}
           {:data
@@ -82,9 +82,10 @@
                                  " FROM sample, series"
                                  " WHERE sample.series_id = series.series_id"
                                  "   AND series.series_name=?"
-                                 "   AND t > TIMESTAMPADD(SQL_TSI_DAY, -1, CURRENT_TIMESTAMP)"
+                                 "   AND t > TIMESTAMPADD(SQL_TSI_SECOND, ?, CURRENT_TIMESTAMP)"
                                  " ORDER BY t")
-                            series-name])})))
+                            series-name
+                            (- window-size-secs)])})))
 
 (defn get-series-names [ ]
   (edn-response
@@ -99,8 +100,10 @@
   (GET "/series-names" []
     (get-series-names))
 
-  (GET "/data/:series-name" [ series-name ]
-    (get-data-for-series-name series-name))
+  (GET "/data/:series-name" {{series-name :series-name
+                              window-secs :window-secs}
+                             :params}
+    (get-data-for-series-name series-name (or (parsable-integer? window-secs) 86400)))
 
   (GET "/latest/:series-name" [ series-name ]
     (get-latest-data-for-series-name series-name))
