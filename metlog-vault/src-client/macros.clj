@@ -6,3 +6,7 @@
      (let [ rc# (do ~@body) ]
        (.restore ctx#)
        rc#)))
+
+(defmacro unless [ condition & body ]
+  `(when (not ~condition)
+     ~@body))

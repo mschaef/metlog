@@ -1,6 +1,6 @@
 (ns metlog.metlog
   (:require-macros [cljs.core.async.macros :refer [ go ]]
-                   [metlog.macros :refer [ with-preserved-ctx ]])
+                   [metlog.macros :refer [ with-preserved-ctx unless ]])
   (:require [om.core :as om]
             [om.dom :as dom]
             [ajax.core :refer [GET]]
@@ -76,13 +76,19 @@
   [(* w (range-scale x-range (:t pt)))
    (- h (* h (range-scale y-range (:val pt))))])
 
-(defn move-to [ ctx [ x y ] ] (.moveTo ctx x y))
-(defn line-to [ ctx [ x y ] ] (.lineTo ctx x y))
-
 (defn clip-rect [ ctx x y w h ]
   (.beginPath ctx)
   (.rect ctx x y w h)
   (.clip ctx))
+
+(defn draw-tsplot-series-line [ ctx data x-range y-range w h ]
+  (.beginPath ctx)
+  (let [ data-scaled (map #(translate-point % x-range y-range w h) data) ]
+    (let [ [ pt-x pt-y ] (first data-scaled)]
+      (.moveTo ctx pt-x pt-y))
+    (doseq [ [ pt-x pt-y ] (rest data-scaled) ]
+      (.lineTo ctx pt-x pt-y)))
+  (.stroke ctx))
 
 (defn draw-tsplot-series [ ctx w h data ]
   (with-preserved-ctx ctx
@@ -90,14 +96,10 @@
     (aset ctx "font" "12px Arial")
     (let [x-range (s-xrange data)
           y-range (rescale-range (s-yrange data) 1.2)]
-      (when (> (count data) 0)
+      (unless (empty? data)
         (with-preserved-ctx ctx
           (clip-rect ctx 0 0 w h)
-          (.beginPath ctx)
-          (move-to ctx (translate-point (first data) x-range y-range w h))
-          (doseq [ pt (rest data) ]
-            (line-to ctx (translate-point pt x-range y-range w h)))
-          (.stroke ctx))
+          (draw-tsplot-series-line ctx data x-range y-range w h))
         (draw-tsplot-ylabel ctx (.toFixed (:max y-range) 2) -2 8)
         (draw-tsplot-ylabel ctx (.toFixed (:min y-range) 2) -2 (- h 8))
         (draw-tsplot-xlabel ctx (time-format/unparse dtf-axis-label (time-coerce/from-long (:min x-range))) 0 h)
@@ -118,32 +120,34 @@
     (.lineTo ctx (- w 0.5) (- h 0.5))
     (.stroke ctx)))
 
+(def x-axis-space 20)
+(def y-axis-space 40)
+
 (defn draw-tsplot [ ctx w h sinfo ]
-  (let [ w (- w 30) ]
+  (let [ w (- w x-axis-space) ]
     (with-preserved-ctx ctx
-      (.translate ctx 50 0)
-      (draw-tsplot-bg ctx (- w 50) (- h 30))
-      (draw-tsplot-series ctx (- w 50) (- h 30) (:data sinfo))
-      (draw-tsplot-frame ctx (- w 50) (- h 30)))))
+      (.translate ctx y-axis-space 0)
+      (draw-tsplot-bg ctx (- w y-axis-space) (- h x-axis-space))
+      (draw-tsplot-series ctx (- w y-axis-space) (- h x-axis-space) (:data sinfo))
+      (draw-tsplot-frame ctx (- w y-axis-space) (- h x-axis-space)))))
 
 (defn series-tsplot [ app-state owner ]
   (reify
     om/IInitState
     (init-state [_]
       
-      {:width 1024 :height 150})
+      {:width 1024 :height 180})
     
     om/IDidMount
-    (did-mount [_]
+    (did-mount [ state ]
       (let [dom-element (om/get-node owner)
             resize-func (fn []
                           (om/set-state! owner :width (.-offsetWidth (.-parentNode dom-element))))]
- ;     (resize-func)
+        (resize-func)
       (aset js/window "onresize" resize-func)
-
       (go
         (draw-tsplot (.getContext dom-element "2d")
-                     1024 150
+                     (om/get-state owner :width) (om/get-state owner :height)
                      (<! (<<< fetch-series-data (:name app-state)))))))
     
     om/IRenderState
