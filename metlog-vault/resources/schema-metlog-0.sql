@@ -9,4 +9,4 @@ CREATE CACHED TABLE sample (
        val DOUBLE NOT NULL
 )
 
-
+CREATE INDEX idx_sample_t ON sample(t);
