@@ -92,6 +92,7 @@
 
 (defn draw-tsplot-series [ ctx w h data ]
   (with-preserved-ctx ctx
+    (aset ctx "lineWidth" 0)
     (aset ctx "strokeStyle" "#0000FF")
     (aset ctx "font" "12px Arial")
     (let [x-range (s-xrange data)
@@ -135,8 +136,7 @@
   (reify
     om/IInitState
     (init-state [_]
-      
-      {:width 1024 :height 180})
+      {:width 1024 :height 180 :data nil :name (:name app-state)})
     
     om/IDidMount
     (did-mount [ state ]
@@ -144,16 +144,20 @@
             resize-func (fn []
                           (om/set-state! owner :width (.-offsetWidth (.-parentNode dom-element))))]
         (resize-func)
-      (aset js/window "onresize" resize-func)
-      (go
-        (draw-tsplot (.getContext dom-element "2d")
-                     (om/get-state owner :width) (om/get-state owner :height)
-                     (<! (<<< fetch-series-data (:name app-state)))))))
+        (aset js/window "onresize" resize-func)
+        (go
+          (om/set-state! owner :data (<! (<<< fetch-series-data (om/get-state owner :name)))))))
+    
+    om/IDidUpdate
+    (did-update [this prev-props prev-state]
+      (draw-tsplot (.getContext (om/get-node owner) "2d")
+                   (om/get-state owner :width) (om/get-state owner :height)
+                   (om/get-state owner :data)))
     
     om/IRenderState
     (render-state [ this state ]
-      (dom/canvas #js {:width (str (:width state) "px")
-                       :height (str (:height state) "px")}))))
+      (dom/canvas #js {:width (str (om/get-state owner :width) "px")
+                       :height (str (om/get-state owner :height) "px")}))))
 
 (defn series-pane [ state owner ]
   (reify
