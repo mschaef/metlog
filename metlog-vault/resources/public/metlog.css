@@ -45,8 +45,11 @@ div.series-pane {
 
 div.series-pane div.series-pane-header {
     background-color: #e0e0e0;
-    margin: 0.25em;
-    padding: 0.25em;
+    padding-left: 0.25em;
+    padding-top: 0.25em;
+    padding-bottom: 0.25em;
+    margin-bottom: 0.25em;
+
 }
 
 div.series-pane div.series-pane-header span.series-name {

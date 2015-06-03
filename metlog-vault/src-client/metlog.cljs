@@ -58,17 +58,17 @@
   (/ (- val (:min range))
      (- (:max range) (:min range))))
 
-(defn draw-tsplot-xlabel [ ctx text x y ]
+(defn draw-tsplot-xlabel [ ctx text x y left? ]
   (let [mt (.measureText ctx text)
         w (.-width mt)]
-    (.fillText ctx text (- x (/ w 2)) (+ 12 y))))
+    (.fillText ctx text (if left? x (- x w)) (+ 12 y))))
 
 (defn draw-tsplot-ylabel [ ctx text x y ]
   (let [mt (.measureText ctx text)
         w (.-width mt)]
     (.fillText ctx text (- x w) (+ y 8))))
 
-(def dtf-axis-label (time-format/formatter "MM-dd HH"))
+(def dtf-axis-label (time-format/formatter "MM-dd HH:mm"))
 
 (def dtf-header (time-format/formatter "yyyy-MM-dd HH:mm"))
 
@@ -90,7 +90,14 @@
       (.lineTo ctx pt-x pt-y)))
   (.stroke ctx))
 
+(defn format-xlabel [ val ]
+  (time-format/unparse dtf-axis-label (time-coerce/from-long val)))
+
+(defn format-ylabel [ val ]
+  (.toFixed val 2))
+
 (defn draw-tsplot-series [ ctx w h data ]
+  (.log js/console (pr-str [ w h ]))
   (with-preserved-ctx ctx
     (aset ctx "lineWidth" 0)
     (aset ctx "strokeStyle" "#0000FF")
@@ -101,10 +108,10 @@
         (with-preserved-ctx ctx
           (clip-rect ctx 0 0 w h)
           (draw-tsplot-series-line ctx data x-range y-range w h))
-        (draw-tsplot-ylabel ctx (.toFixed (:max y-range) 2) -2 8)
-        (draw-tsplot-ylabel ctx (.toFixed (:min y-range) 2) -2 (- h 8))
-        (draw-tsplot-xlabel ctx (time-format/unparse dtf-axis-label (time-coerce/from-long (:min x-range))) 0 h)
-        (draw-tsplot-xlabel ctx (time-format/unparse dtf-axis-label (time-coerce/from-long (:max x-range))) w h)))))
+        (draw-tsplot-ylabel ctx (format-ylabel (:min y-range)) -2 (- h 8))
+        (draw-tsplot-ylabel ctx (format-ylabel (:max y-range)) -2 8)
+        (draw-tsplot-xlabel ctx (format-xlabel (:min x-range)) 0 h true)
+        (draw-tsplot-xlabel ctx (format-xlabel (:max x-range)) w h false)))))
 
 (defn draw-tsplot-bg [ ctx w h ]
   (with-preserved-ctx ctx
@@ -122,15 +129,17 @@
     (.stroke ctx)))
 
 (def x-axis-space 20)
+(def tsplot-right-margin 5)
 (def y-axis-space 40)
 
 (defn draw-tsplot [ ctx w h sinfo ]
-  (let [ w (- w x-axis-space) ]
+  (let [w (- w y-axis-space tsplot-right-margin)
+        h (- h x-axis-space)]
     (with-preserved-ctx ctx
       (.translate ctx y-axis-space 0)
-      (draw-tsplot-bg ctx (- w y-axis-space) (- h x-axis-space))
-      (draw-tsplot-series ctx (- w y-axis-space) (- h x-axis-space) (:data sinfo))
-      (draw-tsplot-frame ctx (- w y-axis-space) (- h x-axis-space)))))
+      (draw-tsplot-bg ctx w h)
+      (draw-tsplot-series ctx w h (:data sinfo))
+      (draw-tsplot-frame ctx w h))))
 
 (defn series-tsplot [ app-state owner ]
   (reify
