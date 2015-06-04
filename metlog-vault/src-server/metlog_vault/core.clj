@@ -101,9 +101,9 @@
     (get-series-names))
 
   (GET "/data/:series-name" {{series-name :series-name
-                              window-secs :window-secs}
+                              query-window-secs :query-window-secs}
                              :params}
-    (get-data-for-series-name series-name (or (parsable-integer? window-secs) 86400)))
+    (get-data-for-series-name series-name (or (parsable-integer? query-window-secs) 86400)))
 
   (GET "/latest/:series-name" [ series-name ]
     (get-latest-data-for-series-name series-name))

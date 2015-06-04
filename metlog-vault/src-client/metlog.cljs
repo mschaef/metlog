@@ -10,8 +10,7 @@
             [cljs-time.coerce :as time-coerce]
             [cljs.core.async :refer [put! close! chan <!]]))
 
-(def dashboard-state (atom {:server-time nil
-                            :series []}))
+(def dashboard-state (atom {:series [] :query-window-secs (* 3600 4)}))
 
 (defn <<< [f & args]
   (let [c (chan)]
@@ -30,14 +29,11 @@
 (defn fetch-series-names [ cb ]
   (ajax-get "/series-names" cb))
 
-(defn fetch-server-time [ cb ]
-  (ajax-get "/server-time" cb))
-
 (defn fetch-latest-series-data [ series-name cb ]
   (ajax-get (str "/latest/" series-name) cb))
 
-(defn fetch-series-data [ series-name cb ]
-  (ajax-get (str "/data/" series-name) cb))
+(defn fetch-series-data [ series-name query-window-secs cb ]
+  (ajax-get (str "/data/" series-name "?query-window-secs=" query-window-secs) cb))
 
 (defn s-yrange [ samples ]
   (let [ vals (map :val samples) ]
@@ -84,7 +80,7 @@
 (defn draw-tsplot-series-line [ ctx data x-range y-range w h ]
   (.beginPath ctx)
   (let [ data-scaled (map #(translate-point % x-range y-range w h) data) ]
-    (let [ [ pt-x pt-y ] (first data-scaled)]
+    (let [ [ pt-x pt-y ] (first data-scaled) ]
       (.moveTo ctx pt-x pt-y))
     (doseq [ [ pt-x pt-y ] (rest data-scaled) ]
       (.lineTo ctx pt-x pt-y)))
@@ -97,7 +93,6 @@
   (.toFixed val 2))
 
 (defn draw-tsplot-series [ ctx w h data ]
-  (.log js/console (pr-str [ w h ]))
   (with-preserved-ctx ctx
     (aset ctx "lineWidth" 0)
     (aset ctx "strokeStyle" "#0000FF")
@@ -149,43 +144,39 @@
     
     om/IDidMount
     (did-mount [ state ]
+      (.log js/console "did-mount")
       (let [dom-element (om/get-node owner)
             resize-func (fn []
                           (om/set-state! owner :width (.-offsetWidth (.-parentNode dom-element))))]
         (resize-func)
         (aset js/window "onresize" resize-func)
         (go
-          (om/set-state! owner :data (<! (<<< fetch-series-data (om/get-state owner :name)))))))
+          (om/set-state! owner :data (<! (<<< fetch-series-data
+                                              (om/get-state owner :name)
+                                              (or (om/get-state owner :query-window-secs) 86400)))))))
+    om/IWillReceiveProps
+    (will-receive-props [ this next-props ]
+      (.log js/console "will-receive-props"))
     
     om/IDidUpdate
     (did-update [this prev-props prev-state]
+      (.log js/console "did-update")
       (draw-tsplot (.getContext (om/get-node owner) "2d")
                    (om/get-state owner :width) (om/get-state owner :height)
                    (om/get-state owner :data)))
     
     om/IRenderState
     (render-state [ this state ]
+      (.log js/console "render-state")
       (dom/canvas #js {:width (str (om/get-state owner :width) "px")
                        :height (str (om/get-state owner :height) "px")}))))
 
 (defn series-pane [ state owner ]
-  (reify
-    om/IWillMount
-    (will-mount [ this ]
-      (js/setInterval
-       (fn []
-         (go
-           (let [ resp (<! (<<< fetch-latest-series-data (:name state)))]
-             (om/update! state :val (:val resp)))))
-       15000))
-    
-    om/IRender
-    (render [ this ]
-      (dom/div #js { :className "series-pane"}
-               (dom/div #js { :className "series-pane-header "}
-                        (dom/span #js { :className "series-name"} (:name state))
-                        (dom/span #js { :className "series-value" } (:val state)))
-               (om/build series-tsplot state)))))
+  (om/component
+   (dom/div #js { :className "series-pane"}
+            (dom/div #js { :className "series-pane-header "}
+                     (dom/span #js { :className "series-name"} (:name state)))
+            (om/build series-tsplot state))))
 
 (defn series-list [ state owner ]
   (reify    
@@ -194,34 +185,30 @@
       (apply dom/div nil
              (om/build-all series-pane (:series state))))))
 
+(defn handle-change [ evt owner state app-state]
+  (om/set-state! owner :text (.. evt -target -value)))
 
-(defn server-time [ state owner ]
+(defn end-edit [ text app-state ]
+  (let [ qws (js/parseInt text) ]
+    (om/update! app-state [:query-window-secs] qws)))
+
+(defn header [ app-state owner ]
   (reify
-    om/IWillMount
-    (will-mount [ this ]
-      (js/setInterval
-       (fn []
-         (go
-           (om/update! state :server-time (<! (<<< fetch-server-time)))))
-       15000))
-
-    om/IRender
-    (render [ this ]
-      (dom/span nil
-                (let [ server-time (:server-time state)]
-                  (if (nil? server-time)
-                    ""
-                    (time-format/unparse dtf-header (time-coerce/to-date-time server-time)) ))))))
-
-(defn header [ state owner ]
-  (om/component
-   (dom/div #js { :className "header"}
-            (dom/span #js { :className "left" } "Metlog")
-            (dom/span #js { :className "right" }
-                      (om/build server-time state)))))
+    om/IRenderState
+    (render-state [ this state ]
+      (dom/div #js { :className "header"}
+               (dom/span #js { :className "left" }
+                         "Metlog"
+                         (dom/input #js {:value (:text state)
+                                         :onChange #(handle-change % owner state app-state)
+                                         :onKeyDown #(when (= (.-key %) "Enter")
+                                                       (end-edit (:text state) app-state))})
+               (dom/span #js { :className "right" }
+                         "&nbsp;"))))))
 
 (defn dashboard [ state owner ]
   (om/component
+   (.log js/console "re-render dashboard")
       (dom/div nil
                (om/build header state)
                (dom/div #js { :className "content" }
