@@ -171,8 +171,9 @@
       (dom/canvas #js {:width (str (om/get-state owner :width) "px")
                        :height (str (om/get-state owner :height) "px")}))))
 
-(defn series-pane [ state owner ]
+(defn series-pane [ { state :series-cursor app :app-cursor} owner ]
   (om/component
+   (.log js/console "re-render series-pane")
    (dom/div #js { :className "series-pane"}
             (dom/div #js { :className "series-pane-header "}
                      (dom/span #js { :className "series-name"} (:name state)))
@@ -182,8 +183,9 @@
   (reify    
     om/IRender
     (render [ this ]
+      (.log js/console "re-render series-list")
       (apply dom/div nil
-             (om/build-all series-pane (:series state))))))
+             (map #(om/build series-pane { :series-cursor % :app-cursor state}) (:series state))))))
 
 (defn handle-change [ evt owner state app-state]
   (om/set-state! owner :text (.. evt -target -value)))
@@ -196,6 +198,7 @@
   (reify
     om/IRenderState
     (render-state [ this state ]
+      (.log js/console "re-render header")
       (dom/div #js { :className "header"}
                (dom/span #js { :className "left" }
                          "Metlog"
