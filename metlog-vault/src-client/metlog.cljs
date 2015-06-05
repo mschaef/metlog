@@ -33,6 +33,7 @@
   (ajax-get (str "/latest/" series-name) cb))
 
 (defn fetch-series-data [ series-name query-window-secs cb ]
+  (.log js/console "fsd: " (pr-str [ series-name query-window-secs ]))
   (ajax-get (str "/data/" series-name "?query-window-secs=" query-window-secs) cb))
 
 (defn s-yrange [ samples ]
@@ -136,48 +137,55 @@
       (draw-tsplot-series ctx w h (:data sinfo))
       (draw-tsplot-frame ctx w h))))
 
-(defn series-tsplot [ app-state owner ]
+(defn schedule-tsplot-for-data [ owner query-window-secs ]
+  (.log js/console "stfd: " (pr-str query-window-secs))
+  (go
+    (om/set-state! owner :data (<! (<<< fetch-series-data
+                                        (om/get-state owner :name)
+                                        query-window-secs)))))
+
+(defn series-tsplot [ { state :series-cursor app :app-cursor } owner ]
   (reify
     om/IInitState
     (init-state [_]
-      {:width 1024 :height 180 :data nil :name (:name app-state)})
+      {:width 1024 :height 180 :data nil :name (:name state)})
     
     om/IDidMount
     (did-mount [ state ]
-      (.log js/console "did-mount")
+      (.log js/console "series-tsplot-did-mount")
       (let [dom-element (om/get-node owner)
             resize-func (fn []
                           (om/set-state! owner :width (.-offsetWidth (.-parentNode dom-element))))]
         (resize-func)
         (aset js/window "onresize" resize-func)
-        (go
-          (om/set-state! owner :data (<! (<<< fetch-series-data
-                                              (om/get-state owner :name)
-                                              (or (om/get-state owner :query-window-secs) 86400)))))))
+        (schedule-tsplot-for-data owner (or (om/get-state owner :query-window-secs) 86400))))
+    
     om/IWillReceiveProps
     (will-receive-props [ this next-props ]
-      (.log js/console "will-receive-props"))
+      (.log js/console "np: " (pr-str next-props))
+      (schedule-tsplot-for-data owner (:query-window-secs (:app-cursor next-props))))
     
     om/IDidUpdate
     (did-update [this prev-props prev-state]
-      (.log js/console "did-update")
+      (.log js/console "series-tsplot-did-update")
+
       (draw-tsplot (.getContext (om/get-node owner) "2d")
                    (om/get-state owner :width) (om/get-state owner :height)
                    (om/get-state owner :data)))
     
     om/IRenderState
     (render-state [ this state ]
-      (.log js/console "render-state")
+      (.log js/console "series-tsplot-render-state")
       (dom/canvas #js {:width (str (om/get-state owner :width) "px")
                        :height (str (om/get-state owner :height) "px")}))))
 
-(defn series-pane [ { state :series-cursor app :app-cursor} owner ]
+(defn series-pane [ { state :series-cursor app :app-cursor } owner ]
   (om/component
    (.log js/console "re-render series-pane")
    (dom/div #js { :className "series-pane"}
             (dom/div #js { :className "series-pane-header "}
                      (dom/span #js { :className "series-name"} (:name state)))
-            (om/build series-tsplot state))))
+            (om/build series-tsplot { :series-cursor state :app-cursor app }))))
 
 (defn series-list [ state owner ]
   (reify    
@@ -187,7 +195,7 @@
       (apply dom/div nil
              (map #(om/build series-pane { :series-cursor % :app-cursor state}) (:series state))))))
 
-(defn handle-change [ evt owner state app-state]
+(defn handle-change [ evt owner state app-state ]
   (om/set-state! owner :text (.. evt -target -value)))
 
 (defn end-edit [ text app-state ]
