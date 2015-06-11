@@ -7,6 +7,6 @@ CREATE CACHED TABLE sample (
        series_id INTEGER NOT NULL REFERENCES series(series_id),       
        t TIMESTAMP NOT NULL,
        val DOUBLE NOT NULL
-)
+);
 
 CREATE INDEX idx_sample_t ON sample(t);
