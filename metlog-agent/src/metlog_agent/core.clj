@@ -16,26 +16,35 @@
                   :series_name series-name
                   :val val}]
     (log/info "enquing sensor reading" reading)
-    (.add sensor-result-queue  reading)))
+    (.add sensor-result-queue reading)))
 
-(defn poll-sensor-1 []
-  (enqueue-sensor-reading "sine" (Math/sin (/ (- (System/currentTimeMillis) start-t) 60000.0))))
+(def sensor-defs (atom {}))
 
-(defn poll-sensor-2 []
-  (enqueue-sensor-reading "cosine" (Math/cos (/ (- (System/currentTimeMillis) start-t) 60000.0))))
+(defn add-sensor-def [ sensor-name sensor-fn ]
+  (swap! sensor-defs assoc sensor-name sensor-fn))
 
-(defn poll-w1-sensor [ path ]
-  (with-open [rdr (clojure.java.io/reader path)]
+(defmacro defsensor [ name & body ]
+  `(add-sensor-def ~name (fn [] ~@body)))
+
+(defsensor "sine" (Math/sin (/ (- (System/currentTimeMillis) start-t) 60000.0)))
+(defsensor "cosine" (Math/cos (/ (- (System/currentTimeMillis) start-t) 60000.0)))
+
+(defn read-w1-sensor-at-path [ sensor-path ]
+  (with-open [rdr (clojure.java.io/reader sensor-path)]
     (let [ line (second (line-seq rdr)) ]
-      (if (not (nil? line))
-        (enqueue-sensor-reading "basement-temp" (/ (Double/valueOf (.substring line 29)) 1000.0))))))
+      (and (not (nil? line))
+           (/ (Double/valueOf (.substring line 29)) 1000.0)))))
+
+(if-let [ sensor-path (config-property "sensor.path") ]
+  (defsensor "basement-temp"
+    (read-w1-sensor-at-path sensor-path)))
 
 (defn poll-sensors []
   (log/debug "poll-sensors")
-  (poll-sensor-1)
-  (poll-sensor-2)
-  (if-let [ sensor-path (config-property "sensor.path") ]
-    (poll-w1-sensor sensor-path)))
+  (let [ current-sensor-defs @sensor-defs ]
+    (doseq [ sensor-name (keys current-sensor-defs) ]
+      (if-let [ sensor-value ((get current-sensor-defs sensor-name)) ]
+        (enqueue-sensor-reading sensor-name sensor-value)))))
 
 (defn take-result-queue-snapshot []
   (let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
