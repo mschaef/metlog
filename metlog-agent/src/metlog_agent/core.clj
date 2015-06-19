@@ -52,12 +52,17 @@
       (.drainTo sensor-result-queue snapshot))
     (seq snapshot)))
 
+(def update-queue (java.util.concurrent.LinkedBlockingQueue.))
+
 (defn update-vault []
-  (log/debug "update-vault")
-  (let [url (config-property "vault.url" "http://localhost:8080/data")
-        data { :body (pr-str (take-result-queue-snapshot))}]
-    (log/info "Posting" data " to " url)
-    (client/post url data)))
+  (locking update-queue
+    (.addAll update-queue (take-result-queue-snapshot))
+    (let [url (config-property "vault.url" "http://localhost:8080/data")
+          data { :body (pr-str (seq update-queue))}]
+      (log/debug "Posting" data " to " url)
+      (let [ post-response (client/post url data) ]
+        (when (= (:status post-response) 200)
+          (.clear update-queue))))))
 
 (defn -main
   "I don't do a whole lot ... yet."
