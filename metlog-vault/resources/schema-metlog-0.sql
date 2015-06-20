@@ -10,3 +10,9 @@ CREATE CACHED TABLE sample (
 );
 
 CREATE INDEX idx_sample_t ON sample(t);
+
+CREATE CACHED TABLE dual (
+       x INTEGER
+);
+
+INSERT INTO dual(x) values(1);

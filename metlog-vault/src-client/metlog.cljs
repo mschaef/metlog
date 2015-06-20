@@ -93,13 +93,12 @@
 (defn format-ylabel [ val ]
   (.toFixed val 2))
 
-(defn draw-tsplot-series [ ctx w h data ]
+(defn draw-tsplot-series [ ctx w h data x-range ]
   (with-preserved-ctx ctx
     (aset ctx "lineWidth" 0)
     (aset ctx "strokeStyle" "#0000FF")
     (aset ctx "font" "12px Arial")
-    (let [x-range (s-xrange data)
-          y-range (rescale-range (s-yrange data) 1.2)]
+    (let [y-range (rescale-range (s-yrange data) 1.2)]
       (unless (empty? data)
         (with-preserved-ctx ctx
           (clip-rect ctx 0 0 w h)
@@ -129,16 +128,16 @@
 (def y-axis-space 40)
 
 (defn draw-tsplot [ ctx w h sinfo ]
+  (.log js/console "range: " (pr-str (dissoc sinfo :data)))
   (let [w (- w y-axis-space tsplot-right-margin)
         h (- h x-axis-space)]
     (with-preserved-ctx ctx
       (.translate ctx y-axis-space 0)
       (draw-tsplot-bg ctx w h)
-      (draw-tsplot-series ctx w h (:data sinfo))
+      (draw-tsplot-series ctx w h (:data sinfo) {:min (:begin sinfo) :max (:end sinfo)})
       (draw-tsplot-frame ctx w h))))
 
 (defn schedule-tsplot-for-data [ owner query-window-secs ]
-  (.log js/console "stfd: " (pr-str query-window-secs))
   (go
     (om/set-state! owner :data (<! (<<< fetch-series-data
                                         (om/get-state owner :name)
@@ -152,7 +151,6 @@
     
     om/IDidMount
     (did-mount [ state ]
-      (.log js/console "series-tsplot-did-mount")
       (let [dom-element (om/get-node owner)
             resize-func (fn []
                           (om/set-state! owner :width (.-offsetWidth (.-parentNode dom-element))))]
@@ -162,26 +160,21 @@
     
     om/IWillReceiveProps
     (will-receive-props [ this next-props ]
-      (.log js/console "np: " (pr-str next-props))
       (schedule-tsplot-for-data owner (:query-window-secs (:app-cursor next-props))))
     
     om/IDidUpdate
     (did-update [this prev-props prev-state]
-      (.log js/console "series-tsplot-did-update")
-
       (draw-tsplot (.getContext (om/get-node owner) "2d")
                    (om/get-state owner :width) (om/get-state owner :height)
                    (om/get-state owner :data)))
     
     om/IRenderState
     (render-state [ this state ]
-      (.log js/console "series-tsplot-render-state")
       (dom/canvas #js {:width (str (om/get-state owner :width) "px")
                        :height (str (om/get-state owner :height) "px")}))))
 
 (defn series-pane [ { state :series-cursor app :app-cursor } owner ]
   (om/component
-   (.log js/console "re-render series-pane")
    (dom/div #js { :className "series-pane"}
             (dom/div #js { :className "series-pane-header "}
                      (dom/span #js { :className "series-name"} (:name state)))
@@ -191,7 +184,6 @@
   (reify    
     om/IRender
     (render [ this ]
-      (.log js/console "re-render series-list")
       (apply dom/div nil
              (map #(om/build series-pane { :series-cursor % :app-cursor state}) (:series state))))))
 
@@ -206,7 +198,6 @@
   (reify
     om/IRenderState
     (render-state [ this state ]
-      (.log js/console "re-render header")
       (dom/div #js { :className "header"}
                (dom/span #js { :className "left" }
                          "Metlog"
@@ -219,16 +210,13 @@
 
 (defn dashboard [ state owner ]
   (om/component
-   (.log js/console "re-render dashboard")
-      (dom/div nil
-               (om/build header state)
-               (dom/div #js { :className "content" }
-                (om/build series-list state)))))
+   (dom/div nil
+            (om/build header state)
+            (dom/div #js { :className "content" }
+                     (om/build series-list state)))))
 
 (om/root dashboard dashboard-state
   {:target (. js/document (getElementById "metlog"))})
-
-
 
 (defn load-series-names []
   (go

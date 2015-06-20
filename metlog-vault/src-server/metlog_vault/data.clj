@@ -54,7 +54,6 @@
                    :t (:t sample)
                    :val (:val sample)})))
 
-
 (defn get-series-id [ series-name ]
   (query-scalar *db* [(str "SELECT series_id"
                            " FROM series"
@@ -66,6 +65,10 @@
        (query-all *db* [(str "SELECT series_name"
                              " FROM series")])))
 
+(defn get-time-range [ window-size-secs ]
+  (query-first *db* [(str "SELECT CURRENT_TIMESTAMP AS begin, TIMESTAMPADD(SQL_TSI_SECOND, ?, CURRENT_TIMESTAMP) AS end"
+                          " FROM dual")
+                     (- window-size-secs)]))
 
 (defn get-data-for-series-name [ series-name window-size-secs ]
   (query-all *db* [(str "SELECT sample.t, sample.val"

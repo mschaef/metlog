@@ -18,7 +18,8 @@
 
 (defn get-data-for-series-name [ series-name window-size-secs ]
   (edn-response
-   {:data (data/get-data-for-series-name series-name window-size-secs)}))
+   (merge {:data (data/get-data-for-series-name series-name window-size-secs)}
+          (data/get-time-range window-size-secs))))
 
 (defroutes all-routes
   (GET "/series-names" []
