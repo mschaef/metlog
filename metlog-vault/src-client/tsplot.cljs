@@ -57,8 +57,11 @@
       (.lineTo ctx pt-x pt-y)))
   (.stroke ctx))
 
+(defn long-to-local-date-time [ val ]
+  (time/to-default-time-zone (time-coerce/from-long val)))
+
 (defn format-xlabel [ val ]
-  (time-format/unparse dtf-axis-label (time-coerce/from-long val)))
+  (time-format/unparse dtf-axis-label (long-to-local-date-time val)))
 
 (defn format-ylabel [ val ]
   (.toFixed val 2))
@@ -99,13 +102,19 @@
     (.stroke ctx)))
 
 (defn draw [ ctx w h sinfo ]
-  (.log js/console "range: " (pr-str (dissoc sinfo :data)))
+  (.log js/console (:end sinfo))
+  (.log js/console "query-range: " (pr-str (dissoc sinfo :data)))
   (draw-background ctx w h)
   (let [w (- w y-axis-space tsplot-right-margin)
         h (- h x-axis-space)]
     (with-preserved-ctx ctx
       (.translate ctx y-axis-space 0)
       (draw-series-background ctx w h)
+      (.log js/console "data-range:" (let [ sxr (s-xrange (:data sinfo)) ]
+                                       (.log js/console (time-coerce/from-long (:max sxr)))
+                                       (pr-str {:max (time-coerce/from-long (:max sxr))
+                                                :min (time-coerce/from-long (:min sxr))})))
+
       (draw-series ctx w h (:data sinfo) {:min (:begin sinfo) :max (:end sinfo)})
       (draw-frame ctx w h))))
 

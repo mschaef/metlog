@@ -66,18 +66,21 @@
                              " FROM series")])))
 
 (defn get-time-range [ window-size-secs ]
-  (query-first *db* [(str "SELECT CURRENT_TIMESTAMP AS begin, TIMESTAMPADD(SQL_TSI_SECOND, ?, CURRENT_TIMESTAMP) AS end"
-                          " FROM dual")
-                     (- window-size-secs)]))
+  (let [ range (query-first *db* [(str "SELECT CURRENT_TIMESTAMP AS end, TIMESTAMPADD(SQL_TSI_SECOND, ?, CURRENT_TIMESTAMP) AS begin"
+                                       " FROM dual")
+                                  (- window-size-secs)])]
+    {:begin (.getTime (:begin range))
+     :end (.getTime (:end range))}))
 
 (defn get-data-for-series-name [ series-name window-size-secs ]
-  (query-all *db* [(str "SELECT sample.t, sample.val"
-                        " FROM sample, series"
-                        " WHERE sample.series_id = series.series_id"
-                        "   AND series.series_name=?"
-                        "   AND t > TIMESTAMPADD(SQL_TSI_SECOND, ?, CURRENT_TIMESTAMP)"
-                        " ORDER BY t")
-                   series-name
-                   (- window-size-secs)]))
+  (map #(assoc % :t (.getTime (:t %)))
+   (query-all *db* [(str "SELECT sample.t, sample.val"
+                         " FROM sample, series"
+                         " WHERE sample.series_id = series.series_id"
+                         "   AND series.series_name=?"
+                         "   AND t > TIMESTAMPADD(SQL_TSI_SECOND, ?, CURRENT_TIMESTAMP)"
+                         " ORDER BY t")
+                    series-name
+                    (- window-size-secs)])))
 
 

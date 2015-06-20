@@ -31,7 +31,6 @@
   (ajax-get (str "/latest/" series-name) cb))
 
 (defn fetch-series-data [ series-name query-window-secs cb ]
-  (.log js/console "fsd: " (pr-str [ series-name query-window-secs ]))
   (ajax-get (str "/data/" series-name "?query-window-secs=" query-window-secs) cb))
 
 (defn schedule-tsplot-for-data [ owner query-window-secs ]
@@ -101,9 +100,7 @@
                          (dom/input #js {:value (:text state)
                                          :onChange #(handle-change % owner state app-state)
                                          :onKeyDown #(when (= (.-key %) "Enter")
-                                                       (end-edit (:text state) app-state))})
-               (dom/span #js { :className "right" }
-                         "&nbsp;"))))))
+                                                       (end-edit (:text state) app-state))}))))))
 
 (defn dashboard [ state owner ]
   (om/component
