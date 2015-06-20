@@ -110,6 +110,11 @@
 
 (defn draw-tsplot-bg [ ctx w h ]
   (with-preserved-ctx ctx
+    (aset ctx "fillStyle" "#e0e0e0")
+    (.fillRect ctx 0 0 w h)))
+
+(defn draw-tsplot-series-bg [ ctx w h ]
+  (with-preserved-ctx ctx
     (aset ctx "fillStyle" "#FFFFFF")
     (.fillRect ctx 0 0 w h)))
 
@@ -129,11 +134,12 @@
 
 (defn draw-tsplot [ ctx w h sinfo ]
   (.log js/console "range: " (pr-str (dissoc sinfo :data)))
+  (draw-tsplot-bg ctx w h)
   (let [w (- w y-axis-space tsplot-right-margin)
         h (- h x-axis-space)]
     (with-preserved-ctx ctx
       (.translate ctx y-axis-space 0)
-      (draw-tsplot-bg ctx w h)
+      (draw-tsplot-series-bg ctx w h)
       (draw-tsplot-series ctx w h (:data sinfo) {:min (:begin sinfo) :max (:end sinfo)})
       (draw-tsplot-frame ctx w h))))
 
