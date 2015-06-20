@@ -10,8 +10,8 @@
   
   :source-paths ["src-server"]
   
-  :dependencies [[org.clojure/clojure "1.7.0-beta2"]
-                 [org.clojure/clojurescript "0.0-3269"]
+  :dependencies [[org.clojure/clojure "1.7.0-RC2"]
+                 [org.clojure/clojurescript "0.0-3308"]
                  [com.ksmpartners/sql-file "0.1.0"]                 
                  [ring/ring-jetty-adapter "1.3.2"]
                  [compojure "1.3.4"]
@@ -27,7 +27,9 @@
 
   :cljsbuild {:builds [{:source-paths ["src-client"]
                         :compiler {:output-to "resources/public/metlog.js"
-                                   :optimizations :advanced}}]}
+                                   :optimizations :advanced
+                                   ; :optimizations :whitespace :pretty-print true
+                                   }}]}
   
   :jar-name "metlog-vault.jar"
   :uberjar-name "metlog-vault-standalone.jar")
