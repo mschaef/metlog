@@ -1,6 +1,5 @@
-(ns metlog.metlog
-  (:require-macros [cljs.core.async.macros :refer [ go ]]
-                   [metlog.macros :refer [ with-preserved-ctx unless ]])
+(ns metlog-client.metlog
+  (:require-macros [cljs.core.async.macros :refer [ go ]])
   (:require [om.core :as om]
             [om.dom :as dom]
             [metlog.tsplot :as tsplot]

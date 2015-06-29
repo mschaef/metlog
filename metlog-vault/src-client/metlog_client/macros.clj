@@ -1,4 +1,4 @@
-(ns metlog.macros)
+(ns metlog-client.macros)
 
 (defmacro with-preserved-ctx [ ctx & body ]
   `(let [ ctx# ~ctx ]

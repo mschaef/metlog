@@ -27,8 +27,8 @@
 
   :cljsbuild {:builds [{:source-paths ["src-client"]
                         :compiler {:output-to "resources/public/metlog.js"
-                                   :optimizations :advanced
-                                   ; :optimizations :whitespace :pretty-print true
+                                   ; :optimizations :advanced
+                                   :optimizations :whitespace :pretty-print true
                                    }}]}
   
   :jar-name "metlog-vault.jar"

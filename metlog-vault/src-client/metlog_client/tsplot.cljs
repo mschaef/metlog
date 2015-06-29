@@ -1,5 +1,5 @@
 (ns metlog.tsplot
-  (:require-macros [metlog.macros :refer [ with-preserved-ctx unless ]])
+  (:require-macros [metlog-client.macros :refer [ with-preserved-ctx unless ]])
   (:require [cljs-time.core :as time]
             [cljs-time.format :as time-format]
             [cljs-time.coerce :as time-coerce]))
