@@ -11,3 +11,11 @@
   `(when (not ~condition)
      ~@body))
 
+
+(defmacro watch [ & exprs ]
+  `(do
+     (.log js/console "== watch ==")
+     ~@(map
+        (fn [ expr ]
+          `(.log js/console ">>" (pr-str '~expr) " => "(pr-str ~expr)))
+        exprs)))

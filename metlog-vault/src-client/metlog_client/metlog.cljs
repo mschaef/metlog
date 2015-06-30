@@ -1,5 +1,6 @@
 (ns metlog-client.metlog
-  (:require-macros [cljs.core.async.macros :refer [ go ]])
+  (:require-macros [cljs.core.async.macros :refer [ go ]]
+                   [metlog-client.macros :refer [ watch ]])
   (:require [om.core :as om]
             [om.dom :as dom]
             [metlog.tsplot :as tsplot]
@@ -45,7 +46,7 @@
       {:width 1024 :height 180 :data nil :name (:name state)})
     
     om/IDidMount
-    (did-mount [ state ]
+    (did-mount [  _ ]
       (let [dom-element (om/get-node owner)
             resize-func (fn []
                           (om/set-state! owner :width (.-offsetWidth (.-parentNode dom-element))))]
