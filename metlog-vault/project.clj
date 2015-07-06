@@ -10,7 +10,7 @@
   
   :source-paths ["src-server"]
   
-  :dependencies [[org.clojure/clojure "1.7.0-RC2"]
+  :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "0.0-3308"]
                  [com.ksmpartners/sql-file "0.1.0"]                 
                  [ring/ring-jetty-adapter "1.3.2"]
