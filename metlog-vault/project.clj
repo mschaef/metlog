@@ -10,7 +10,7 @@
   
   :source-paths ["src-server"]
   
-  :dependencies [[org.clojure/clojure "1.7.0-RC2"]
+  :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "0.0-3308"]
                  [com.ksmpartners/sql-file "0.1.0"]                 
                  [ring/ring-jetty-adapter "1.3.2"]
@@ -18,6 +18,7 @@
                  [cljs-ajax "0.3.11"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [org.omcljs/om "0.8.8"]
+                 [reagent "0.5.0"]
                  [com.andrewmcveigh/cljs-time "0.3.5"]
                  [metlog-common "0.1.0-SNAPSHOT"]]
 
