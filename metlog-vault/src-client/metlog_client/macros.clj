@@ -11,11 +11,15 @@
   `(when (not ~condition)
      ~@body))
 
-
 (defmacro watch [ & exprs ]
   `(do
-     (.log js/console "== watch ==")
      ~@(map
         (fn [ expr ]
-          `(.log js/console ">>" (pr-str '~expr) " => "(pr-str ~expr)))
+          `(.log js/console ">>" (pr-str '~expr) " => "
+                 (let [ obj# ~expr ]
+                   (if (satisfies? cljs.core/IPrintWithWriter obj#)
+                     (pr-str obj#)
+                     obj#))))
         exprs)))
+
+

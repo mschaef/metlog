@@ -8,7 +8,7 @@
             [cljs.reader :as reader]
             [cljs.core.async :refer [put! close! chan <!]]))
 
-(def dashboard-state (atom {:series [] :query-window-secs (* 3600 4)}))
+(def dashboard-state (atom {:series [] :query-window-secs (* 3600 24)}))
 
 (defn <<< [f & args]
   (let [c (chan)]
@@ -39,20 +39,11 @@
                                         (om/get-state owner :name)
                                         query-window-secs)))))
 
-(defn series-tsplot [ { state :series-cursor app :app-cursor } owner ]
+(defn series-tsplot [ { state :series-cursor app :app-cursor width :width } owner ]
   (reify
     om/IInitState
     (init-state [_]
-      {:width 1024 :height 180 :data nil :name (:name state)})
-    
-    om/IDidMount
-    (did-mount [  _ ]
-      (let [dom-element (om/get-node owner)
-            resize-func (fn []
-                          (om/set-state! owner :width (.-offsetWidth (.-parentNode dom-element))))]
-        (resize-func)
-        (aset js/window "onresize" resize-func)
-        (schedule-tsplot-for-data owner (or (om/get-state owner :query-window-secs) 86400))))
+      {:width width :data nil :name (:name state)})
     
     om/IWillReceiveProps
     (will-receive-props [ this next-props ]
@@ -60,21 +51,38 @@
     
     om/IDidUpdate
     (did-update [this prev-props prev-state]
+      (watch [:tsplot-draw (om/get-state owner :width)])
       (tsplot/draw (.getContext (om/get-node owner) "2d")
-                   (om/get-state owner :width) (om/get-state owner :height)
+                   (om/get-state owner :width)
+                   180
                    (om/get-state owner :data)))
     
     om/IRenderState
-    (render-state [ this state ]
-      (dom/canvas #js {:width (str (om/get-state owner :width) "px")
-                       :height (str (om/get-state owner :height) "px")}))))
+    (render-state [ this xyzzy ]
+      (watch (om/get-props owner :width))
+      (dom/canvas #js {:width (str (om/get-props owner :width) "px")
+                       :height "180px"}))))
 
 (defn series-pane [ { state :series-cursor app :app-cursor } owner ]
-  (om/component
-   (dom/div #js { :className "series-pane"}
-            (dom/div #js { :className "series-pane-header "}
-                     (dom/span #js { :className "series-name"} (:name state)))
-            (om/build series-tsplot { :series-cursor state :app-cursor app }))))
+  (reify
+    om/IInitState
+    (init-state [_]
+      {:width 1024})
+    
+    om/IDidMount
+    (did-mount [ _ ]
+      (let [dom-element (om/get-node owner)
+            resize-func (fn []
+                          (om/set-state! owner :width (.-offsetWidth (.-parentNode dom-element))))]
+        (resize-func)
+        (.addEventListener js/window "resize" resize-func)))
+    
+    om/IRender
+    (render [ this ]
+      (dom/div #js { :className "series-pane"}
+               (dom/div #js { :className "series-pane-header "}
+                        (dom/span #js { :className "series-name"} (:name state)))
+               (om/build series-tsplot { :series-cursor state :app-cursor app :width (om/get-state owner :width)})))))
 
 (defn series-list [ state owner ]
   (reify    
