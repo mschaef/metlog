@@ -77,22 +77,24 @@
    (for [ series (:series @dashboard-state)]
      ^{ :key (:name series) } [series-pane series])])
 
-(defn handle-change [ evt state ]
-  (swap! state assoc :text (.. evt -target -value)))
-
 (defn end-edit [ text state ]
   (let [ qws (js/parseInt text) ]
     (swap! state assoc :query-window-secs qws)))
+
+(defn input-field [ on-enter ]
+  (let [ state (atom { :text "" }) ]
+    (fn []
+      [:input {:value (:text @state)
+               :onChange #(swap! state assoc :text (.. % -target -value))
+               :onKeyDown #(when (= (.-key %) "Enter")
+                             (on-enter (:text @state)))} ])))
 
 (defn header [ ]
   (watch :render-header)
   [:div.header
    [:span.left
     "Metlog"
-    [:input {:value (:text @dashboard-state)
-             :onChange #(handle-change % dashboard-state)
-             :onKeyDown #(when (= (.-key %) "Enter")
-                           (end-edit (:text @dashboard-state) dashboard-state))} ]]])
+    [input-field #(end-edit % dashboard-state)]]])
 
 (defn dashboard [ ]
   (watch :render-dashboard)
