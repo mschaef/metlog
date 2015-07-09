@@ -1,4 +1,4 @@
-(ns metlog.tsplot
+(ns metlog-client.tsplot
   (:require-macros [metlog-client.macros :refer [ with-preserved-ctx unless ]])
   (:require [cljs-time.core :as time]
             [cljs-time.format :as time-format]

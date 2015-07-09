@@ -3,10 +3,10 @@
                    [metlog-client.macros :refer [ watch ]])
   (:require [om.core :as om]
             [om.dom :as dom]
-            [metlog.tsplot :as tsplot]
             [ajax.core :refer [GET]]
             [cljs.reader :as reader]
-            [cljs.core.async :refer [put! close! chan <!]]))
+            [cljs.core.async :refer [put! close! chan <!]]
+            [metlog-client.tsplot :as tsplot]))
 
 (def dashboard-state (atom {:series [] :query-window-secs (* 3600 24)}))
 
