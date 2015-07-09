@@ -7,7 +7,9 @@
             [cljs.core.async :refer [put! close! chan <!]]
             [metlog-client.tsplot :as tsplot]))
 
-(def dashboard-state (atom {:series [] :query-window-secs (* 3600 24) :text ""}))
+(defonce query-window-secs (atom (* 3600 24)))
+
+(def dashboard-state (atom {:series []  :text ""}))
 
 (defn <<< [f & args]
   (let [c (chan)]
@@ -36,32 +38,31 @@
               (watch [:response series-name])
               (cb data))))
 
-(defn schedule-data-update [ series-name query-window-secs series-state ]
-  (go
-    (swap! series-state assoc :data (<! (<<< fetch-series-data
-                                             series-name
-                                             query-window-secs)))))
+(defn tsplot-fetch-and-draw [ canvas series-name ]
+  (let [ ctx (.getContext canvas "2d")]
+    (go
+      (tsplot/draw ctx 1024 180 [])
+      (tsplot/draw ctx 1024 180 (<! (<<< fetch-series-data
+                                         series-name
+                                         @query-window-secs))))))
 
 (defn series-tsplot [ series ]
   (let [ series-state (atom { :series-name (:name series)} ) ]
     (reagent/create-class
      {:display-name (str "series-tsplot-" (:name series))
-      :component-did-mount
-      (fn [this]
-        (let [canvas (reagent/dom-node this)]
-          (swap! series-state assoc :canvas canvas)
-          (schedule-data-update (:series-name @series-state) (:query-window-secs @dashboard-state) series-state)))
-      
       :component-did-update
-      (fn [this]
-        (tsplot/draw (.getContext (:canvas @series-state) "2d")
-                     1024
-                     180
-                     (:data @series-state)))
-
+      (fn [ this ]
+        (watch :component-did-update)
+        (tsplot-fetch-and-draw (reagent/dom-node this) (:name series)))
+      
+      :component-did-mount
+      (fn [ this ]
+        (watch :component-did-mount)
+        (tsplot-fetch-and-draw (reagent/dom-node this) (:name series)))
 
       :reagent-render
       (fn []
+        @query-window-secs
         @series-state
         [:canvas { :width 1024 :height 180}])})))
 
@@ -79,15 +80,18 @@
 
 (defn end-edit [ text state ]
   (let [ qws (js/parseInt text) ]
-    (swap! state assoc :query-window-secs qws)))
+    (watch [:update-qws qws])
+    (reset! query-window-secs qws)))
 
 (defn input-field [ on-enter ]
   (let [ state (atom { :text "" }) ]
     (fn []
       [:input {:value (:text @state)
                :onChange #(swap! state assoc :text (.. % -target -value))
-               :onKeyDown #(when (= (.-key %) "Enter")
-                             (on-enter (:text @state)))} ])))
+               :onKeyDown #(do
+                             (watch [:on-key-down (.-key %)])
+                             (when (= (.-key %) "Enter")
+                                 (on-enter (:text @state))))} ])))
 
 (defn header [ ]
   (watch :render-header)
