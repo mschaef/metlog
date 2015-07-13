@@ -1,14 +1,15 @@
 (ns metlog-client.metlog
   (:require-macros [cljs.core.async.macros :refer [ go ]]
                    [metlog-client.macros :refer [ watch ]])
-  (:require [om.core :as om]
-            [om.dom :as dom]
-            [metlog.tsplot :as tsplot]
+  (:require [reagent.core :as reagent :refer [atom]]
             [ajax.core :refer [GET]]
             [cljs.reader :as reader]
-            [cljs.core.async :refer [put! close! chan <!]]))
+            [cljs.core.async :refer [put! close! chan <!]]
+            [metlog-client.tsplot :as tsplot]))
 
-(def dashboard-state (atom {:series [] :query-window-secs (* 3600 24)}))
+(defonce query-window-secs (atom (* 3600 24)))
+
+(def dashboard-state (atom {:series []  :text ""}))
 
 (defn <<< [f & args]
   (let [c (chan)]
@@ -31,99 +32,87 @@
   (ajax-get (str "/latest/" series-name) cb))
 
 (defn fetch-series-data [ series-name query-window-secs cb ]
-  (ajax-get (str "/data/" series-name "?query-window-secs=" query-window-secs) cb))
+  (watch [:fetch series-name])
+  (ajax-get (str "/data/" series-name "?query-window-secs=" query-window-secs)
+            (fn [ data ]
+              (watch [:response series-name])
+              (cb data))))
 
-(defn schedule-tsplot-for-data [ owner query-window-secs ]
-  (go
-    (om/set-state! owner :data (<! (<<< fetch-series-data
-                                        (om/get-state owner :name)
-                                        query-window-secs)))))
+(defn tsplot-fetch-and-draw [ canvas series-name ]
+  (let [ ctx (.getContext canvas "2d")]
+    (go
+      (tsplot/draw ctx 1024 180 [])
+      (tsplot/draw ctx 1024 180 (<! (<<< fetch-series-data
+                                         series-name
+                                         @query-window-secs))))))
 
-(defn series-tsplot [ { state :series-cursor app :app-cursor width :width } owner ]
-  (reify
-    om/IInitState
-    (init-state [_]
-      {:width width :data nil :name (:name state)})
-    
-    om/IWillReceiveProps
-    (will-receive-props [ this next-props ]
-      (schedule-tsplot-for-data owner (:query-window-secs (:app-cursor next-props))))
-    
-    om/IDidUpdate
-    (did-update [this prev-props prev-state]
-      (watch [:tsplot-draw (om/get-state owner :width)])
-      (tsplot/draw (.getContext (om/get-node owner) "2d")
-                   (om/get-state owner :width)
-                   180
-                   (om/get-state owner :data)))
-    
-    om/IRenderState
-    (render-state [ this xyzzy ]
-      (watch (om/get-props owner :width))
-      (dom/canvas #js {:width (str (om/get-props owner :width) "px")
-                       :height "180px"}))))
+(defn series-tsplot [ series ]
+  (let [ series-state (atom { :series-name (:name series)} ) ]
+    (reagent/create-class
+     {:display-name (str "series-tsplot-" (:name series))
+      :component-did-update
+      (fn [ this ]
+        (watch :component-did-update)
+        (tsplot-fetch-and-draw (reagent/dom-node this) (:name series)))
+      
+      :component-did-mount
+      (fn [ this ]
+        (watch :component-did-mount)
+        (tsplot-fetch-and-draw (reagent/dom-node this) (:name series)))
 
-(defn series-pane [ { state :series-cursor app :app-cursor } owner ]
-  (reify
-    om/IInitState
-    (init-state [_]
-      {:width 1024})
-    
-    om/IDidMount
-    (did-mount [ _ ]
-      (let [dom-element (om/get-node owner)
-            resize-func (fn []
-                          (om/set-state! owner :width (.-offsetWidth (.-parentNode dom-element))))]
-        (resize-func)
-        (.addEventListener js/window "resize" resize-func)))
-    
-    om/IRender
-    (render [ this ]
-      (dom/div #js { :className "series-pane"}
-               (dom/div #js { :className "series-pane-header "}
-                        (dom/span #js { :className "series-name"} (:name state)))
-               (om/build series-tsplot { :series-cursor state :app-cursor app :width (om/get-state owner :width)})))))
+      :reagent-render
+      (fn []
+        @query-window-secs
+        @series-state
+        [:canvas { :width 1024 :height 180}])})))
 
-(defn series-list [ state owner ]
-  (reify    
-    om/IRender
-    (render [ this ]
-      (apply dom/div nil
-             (map #(om/build series-pane { :series-cursor % :app-cursor state}) (:series state))))))
+(defn series-pane [ series ]
+  (watch :render-series-pane)
+  [:div.series-pane
+   [:div.series-pane-header
+    [:span.series-name (:name series)]]
+   [series-tsplot series]])
 
-(defn handle-change [ evt owner state app-state ]
-  (om/set-state! owner :text (.. evt -target -value)))
+(defn series-list [ ]
+  [:div
+   (for [ series (:series @dashboard-state)]
+     ^{ :key (:name series) } [series-pane series])])
 
-(defn end-edit [ text app-state ]
+(defn end-edit [ text state ]
   (let [ qws (js/parseInt text) ]
-    (om/update! app-state [:query-window-secs] qws)))
+    (watch [:update-qws qws])
+    (reset! query-window-secs qws)))
 
-(defn header [ app-state owner ]
-  (reify
-    om/IRenderState
-    (render-state [ this state ]
-      (dom/div #js { :className "header"}
-               (dom/span #js { :className "left" }
-                         "Metlog"
-                         (dom/input #js {:value (:text state)
-                                         :onChange #(handle-change % owner state app-state)
-                                         :onKeyDown #(when (= (.-key %) "Enter")
-                                                       (end-edit (:text state) app-state))}))))))
+(defn input-field [ on-enter ]
+  (let [ state (atom { :text "" }) ]
+    (fn []
+      [:input {:value (:text @state)
+               :onChange #(swap! state assoc :text (.. % -target -value))
+               :onKeyDown #(do
+                             (watch [:on-key-down (.-key %)])
+                             (when (= (.-key %) "Enter")
+                                 (on-enter (:text @state))))} ])))
 
-(defn dashboard [ state owner ]
-  (om/component
-   (dom/div nil
-            (om/build header state)
-            (dom/div #js { :className "content" }
-                     (om/build series-list state)))))
+(defn header [ ]
+  (watch :render-header)
+  [:div.header
+   [:span.left
+    "Metlog"
+    [input-field #(end-edit % dashboard-state)]]])
 
-(om/root dashboard dashboard-state
-  {:target (. js/document (getElementById "metlog"))})
+(defn dashboard [ ]
+  (watch :render-dashboard)
+  [:div
+   [header]
+   [:div.content
+    [series-list]]])
 
-(defn load-series-names []
+(defn ^:export run []
+  (reagent/render [dashboard]
+                  (js/document.getElementById "metlog"))
   (go
     (swap! dashboard-state assoc :series
            (vec (map (fn [ series-name ] {:name series-name})
                      (<! (<<< fetch-series-names)))))))
 
-(load-series-names)
+(run)

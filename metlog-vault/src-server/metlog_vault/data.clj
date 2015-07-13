@@ -78,7 +78,7 @@
                          " FROM sample, series"
                          " WHERE sample.series_id = series.series_id"
                          "   AND series.series_name=?"
-                         "   AND t > TIMESTAMPADD(SQL_TSI_SECOND, ?, CURRENT_TIMESTAMP)"
+                         "   AND t > TIMESTAMPADD(SQL_TSI_SECOND, ?, NOW)"
                          " ORDER BY t")
                     series-name
                     (- window-size-secs)])))
