@@ -9,7 +9,9 @@
 
 (defonce query-window-secs (atom (* 3600 24)))
 
-(def dashboard-state (atom {:series []  :text ""}))
+(def dashboard-state (atom {:series [] :text ""}))
+
+(def window-width (atom 1024))
 
 (defn <<< [f & args]
   (let [c (chan)]
@@ -38,40 +40,58 @@
               (watch [:response series-name])
               (cb data))))
 
-(defn tsplot-fetch-and-draw [ canvas series-name ]
+(defn tsplot-fetch-and-draw [ canvas series-name width ]
   (let [ ctx (.getContext canvas "2d")]
     (go
-      (tsplot/draw ctx 1024 180 [])
-      (tsplot/draw ctx 1024 180 (<! (<<< fetch-series-data
+      (tsplot/draw ctx width 180 [])
+#_      (tsplot/draw ctx width 180 (<! (<<< fetch-series-data
                                          series-name
                                          @query-window-secs))))))
 
-(defn series-tsplot [ series ]
+(defn dom-width [ node ]
+  (if node
+    (.-clientWidth node)
+    1024))
+
+(defn series-tsplot [ series initial-width ]
+  (watch [:series-tsplot series initial-width ])
   (let [ series-state (atom { :series-name (:name series)} ) ]
     (reagent/create-class
      {:display-name (str "series-tsplot-" (:name series))
       :component-did-update
       (fn [ this ]
-        (watch :component-did-update)
-        (tsplot-fetch-and-draw (reagent/dom-node this) (:name series)))
+        (watch [:update (dom-width (reagent/dom-node this))])
+        (tsplot-fetch-and-draw (reagent/dom-node this) (:name series) initial-width))
       
       :component-did-mount
       (fn [ this ]
-        (watch :component-did-mount)
-        (tsplot-fetch-and-draw (reagent/dom-node this) (:name series)))
+        (watch [:mount (dom-width (reagent/dom-node this))])
+        (tsplot-fetch-and-draw (reagent/dom-node this) (:name series) initial-width))
+
+      :reagent-render
+      (fn [ width ]
+        (watch [:tsplot-render width :args args])
+        @query-window-secs
+        @series-state
+                @window-width
+        [:canvas { :width width :height 180}])})))
+
+(defn series-pane [ series ]
+  (let [ pane-state (atom {})]
+    (reagent/create-class
+
+     {:component-did-mount
+      (fn [ this ]
+        (swap! pane-state assoc :dom-node (reagent/dom-node this)))
 
       :reagent-render
       (fn []
-        @query-window-secs
-        @series-state
-        [:canvas { :width 1024 :height 180}])})))
-
-(defn series-pane [ series ]
-  (watch :render-series-pane)
-  [:div.series-pane
-   [:div.series-pane-header
-    [:span.series-name (:name series)]]
-   [series-tsplot series]])
+        (watch :series-pane-reagent-render (dom-width (:dom-node @pane-state)))
+        @window-width
+        [:div.series-pane
+         [:div.series-pane-header
+          [:span.series-name (:name series)]]
+         [series-tsplot series (dom-width (:dom-node @pane-state))]])})))
 
 (defn series-list [ ]
   [:div
@@ -80,7 +100,6 @@
 
 (defn end-edit [ text state ]
   (let [ qws (js/parseInt text) ]
-    (watch [:update-qws qws])
     (reset! query-window-secs qws)))
 
 (defn input-field [ on-enter ]
@@ -89,27 +108,30 @@
       [:input {:value (:text @state)
                :onChange #(swap! state assoc :text (.. % -target -value))
                :onKeyDown #(do
-                             (watch [:on-key-down (.-key %)])
                              (when (= (.-key %) "Enter")
                                  (on-enter (:text @state))))} ])))
 
 (defn header [ ]
-  (watch :render-header)
   [:div.header
    [:span.left
     "Metlog"
     [input-field #(end-edit % dashboard-state)]]])
 
 (defn dashboard [ ]
-  (watch :render-dashboard)
   [:div
    [header]
    [:div.content
     [series-list]]])
 
+
+(defn on-window-resize [ evt ]
+  (reset! window-width (.-innerWidth js/window)))
+
 (defn ^:export run []
   (reagent/render [dashboard]
                   (js/document.getElementById "metlog"))
+  (.addEventListener js/window "resize" on-window-resize)
+  (on-window-resize nil)
   (go
     (swap! dashboard-state assoc :series
            (vec (map (fn [ series-name ] {:name series-name})
