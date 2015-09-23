@@ -26,8 +26,8 @@
 (defmacro defsensor [ name & body ]
   `(add-sensor-def ~name (fn [] ~@body)))
 
-(defsensor "sine" (Math/sin (/ (- (System/currentTimeMillis) start-t) 60000.0)))
-(defsensor "cosine" (Math/cos (/ (- (System/currentTimeMillis) start-t) 60000.0)))
+;; (defsensor "sine" (Math/sin (/ (- (System/currentTimeMillis) start-t) 60000.0)))
+;; (defsensor "cosine" (Math/cos (/ (- (System/currentTimeMillis) start-t) 60000.0)))
 
 (defn read-w1-sensor-at-path [ sensor-path ]
   (with-open [rdr (clojure.java.io/reader sensor-path)]
