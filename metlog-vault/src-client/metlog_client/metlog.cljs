@@ -43,8 +43,7 @@
 (defn tsplot-fetch-and-draw [ canvas series-name width ]
   (let [ ctx (.getContext canvas "2d")]
     (go
-      (tsplot/draw ctx width 180 [])
-#_      (tsplot/draw ctx width 180 (<! (<<< fetch-series-data
+      (tsplot/draw ctx width 180 (<! (<<< fetch-series-data
                                          series-name
                                          @query-window-secs))))))
 
@@ -54,27 +53,23 @@
     1024))
 
 (defn series-tsplot [ series initial-width ]
-  (watch [:series-tsplot series initial-width ])
   (let [ series-state (atom { :series-name (:name series)} ) ]
     (reagent/create-class
      {:display-name (str "series-tsplot-" (:name series))
       :component-did-update
       (fn [ this ]
-        (watch [:update (dom-width (reagent/dom-node this))])
         (tsplot-fetch-and-draw (reagent/dom-node this) (:name series) initial-width))
       
       :component-did-mount
       (fn [ this ]
-        (watch [:mount (dom-width (reagent/dom-node this))])
         (tsplot-fetch-and-draw (reagent/dom-node this) (:name series) initial-width))
 
       :reagent-render
       (fn [ width ]
-        (watch [:tsplot-render width :args args])
         @query-window-secs
         @series-state
-                @window-width
-        [:canvas { :width width :height 180}])})))
+        @window-width
+        [:canvas { :width 1024 :height 180}])})))
 
 (defn series-pane [ series ]
   (let [ pane-state (atom {})]
