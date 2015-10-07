@@ -34,18 +34,16 @@
   (ajax-get (str "/latest/" series-name) cb))
 
 (defn fetch-series-data [ series-name query-window-secs cb ]
-  (watch [:fetch series-name])
   (ajax-get (str "/data/" series-name "?query-window-secs=" query-window-secs)
             (fn [ data ]
-              (watch [:response series-name])
               (cb data))))
 
 (defn tsplot-fetch-and-draw [ canvas series-name width ]
   (let [ ctx (.getContext canvas "2d")]
     (go
-      (tsplot/draw ctx width 180 (<! (<<< fetch-series-data
-                                         series-name
-                                         @query-window-secs))))))
+      (tsplot/draw ctx width 180  (<! (<<< fetch-series-data
+                                           series-name
+                                           @query-window-secs))))))
 
 (defn dom-width [ node ]
   (if node
@@ -58,18 +56,17 @@
      {:display-name (str "series-tsplot-" (:name series))
       :component-did-update
       (fn [ this ]
-        (tsplot-fetch-and-draw (reagent/dom-node this) (:name series) initial-width))
+        (tsplot-fetch-and-draw (reagent/dom-node this) (:name series) (dom-width (:dom-node @series-state))))
       
       :component-did-mount
       (fn [ this ]
-        (tsplot-fetch-and-draw (reagent/dom-node this) (:name series) initial-width))
+        (swap! series-state assoc :dom-node (.-parentNode (reagent/dom-node this)))        
+        (tsplot-fetch-and-draw (reagent/dom-node this) (:name series) (dom-width (.-parentNode (reagent/dom-node this)))))
 
       :reagent-render
       (fn [ width ]
-        @query-window-secs
-        @series-state
         @window-width
-        [:canvas { :width 1024 :height 180}])})))
+        [:canvas { :width (dom-width (:dom-node @series-state)) :height 180}])})))
 
 (defn series-pane [ series ]
   (let [ pane-state (atom {})]
@@ -81,7 +78,6 @@
 
       :reagent-render
       (fn []
-        (watch :series-pane-reagent-render (dom-width (:dom-node @pane-state)))
         @window-width
         [:div.series-pane
          [:div.series-pane-header
@@ -117,7 +113,6 @@
    [header]
    [:div.content
     [series-list]]])
-
 
 (defn on-window-resize [ evt ]
   (reset! window-width (.-innerWidth js/window)))
