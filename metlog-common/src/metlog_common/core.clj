@@ -55,7 +55,7 @@
   #(try
      (fn)
      (catch Exception ex
-         (log/error "Uncaught exception" ex))))
+       (log/error ex "Uncaught exception"))))
 
 (defn query-all [ db-connection query-spec ]
   (log/debug "query-all:" query-spec)
