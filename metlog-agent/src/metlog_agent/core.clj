@@ -8,8 +8,6 @@
 
 (def my-pool (at-at/mk-pool))
 
-(def start-t (System/currentTimeMillis))
-
 (def sensor-result-queue (java.util.concurrent.LinkedBlockingQueue.))
 
 (defn enqueue-sensor-reading [ series-name val ]
@@ -25,7 +23,7 @@
   (swap! sensor-defs assoc sensor-name sensor-fn))
 
 (defmacro defsensor [ name & body ]
-  `(add-sensor-def ~name (fn [] ~@body)))
+  `(add-sensor-def '~name (fn [] ~@body)))
 
 (defn read-w1-sensor-at-path [ sensor-path ]
   (with-open [rdr (clojure.java.io/reader sensor-path)]
@@ -54,17 +52,20 @@
 
 (defn update-vault []
   (locking update-queue
-    (.addAll update-queue (take-result-queue-snapshot))
-    (let [url (config-property "vault.url" "http://localhost:8080/data")
-          data { :body (pr-str (seq update-queue))}]
-      (log/debug "Posting" data " to " url)
-      (let [ post-response (client/post url data) ]
-        (when (= (:status post-response) 200)
-          (.clear update-queue))))))
+    (when-let [ snapshot (take-result-queue-snapshot) ]
+      (.addAll update-queue snapshot))
+    (unless (.isEmpty update-queue)
+      (let [url (config-property "vault.url" "http://localhost:8080/data")
+            data { :body (pr-str (seq update-queue))}]
+        (log/debug "Posting" data " to " url)
+        (let [ post-response (client/post url data) ]
+          (when (= (:status post-response) 200)
+            (.clear update-queue)))))))
 
 (defn maybe-load-config-file [ filename ]
   (binding [ *ns* (find-ns 'metlog-agent.core)]
     (when (.exists (jio/as-file filename))
+      (log/info "Loading configuration file:" filename)
       (load-file filename))))
 
 (defn seconds [ seconds ] (* 1000 seconds))
