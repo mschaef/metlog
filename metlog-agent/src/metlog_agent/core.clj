@@ -3,7 +3,8 @@
   (:use metlog-common.core)
   (:require [clojure.tools.logging :as log]
             [overtone.at-at :as at-at]
-            [clj-http.client :as client]))
+            [clj-http.client :as client]
+            [clojure.java.io :as jio]))
 
 (def my-pool (at-at/mk-pool))
 
@@ -25,9 +26,6 @@
 
 (defmacro defsensor [ name & body ]
   `(add-sensor-def ~name (fn [] ~@body)))
-
-;; (defsensor "sine" (Math/sin (/ (- (System/currentTimeMillis) start-t) 60000.0)))
-;; (defsensor "cosine" (Math/cos (/ (- (System/currentTimeMillis) start-t) 60000.0)))
 
 (defn read-w1-sensor-at-path [ sensor-path ]
   (with-open [rdr (clojure.java.io/reader sensor-path)]
@@ -67,6 +65,9 @@
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
+  (binding [ *ns* (find-ns 'metlog-agent.core)]
+    (when (.exists (jio/as-file "config.clj"))
+      (load-file "config.clj")))
   (at-at/every 15000 (exception-barrier poll-sensors) my-pool)
   (at-at/every 60000 (exception-barrier update-vault) my-pool)
   (println "Running."))
