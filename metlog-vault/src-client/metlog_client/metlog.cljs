@@ -51,7 +51,7 @@
     1024))
 
 (defn series-tsplot [ series ]
-  (let [ series-state (atom { :series-name (:name series)} ) ]
+  (let [ series-state (atom { }) ]
     (reagent/create-class
      {:display-name (str "series-tsplot-" (:name series))
       :component-did-update
@@ -64,7 +64,7 @@
         (tsplot-fetch-and-draw (reagent/dom-node this) (:name series) (dom-width (.-parentNode (reagent/dom-node this)))))
 
       :reagent-render
-      (fn [ width ]
+      (fn [ ]
         @window-width
         [:canvas { :width (dom-width (:dom-node @series-state)) :height 180}])})))
 
