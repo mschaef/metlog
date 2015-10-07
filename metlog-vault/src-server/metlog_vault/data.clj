@@ -39,7 +39,7 @@
 
 
 (defn intern-series-name [ series-name ]
-  (let [ series-name (.trim (or series-name "")) ]
+  (let [ series-name (.trim (name (or series-name ""))) ]
     (if (= 0 (.length series-name))
       nil
       (with-transaction
