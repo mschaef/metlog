@@ -50,7 +50,7 @@
     (.-clientWidth node)
     1024))
 
-(defn series-tsplot [ series initial-width ]
+(defn series-tsplot [ series ]
   (let [ series-state (atom { :series-name (:name series)} ) ]
     (reagent/create-class
      {:display-name (str "series-tsplot-" (:name series))
@@ -69,20 +69,10 @@
         [:canvas { :width (dom-width (:dom-node @series-state)) :height 180}])})))
 
 (defn series-pane [ series ]
-  (let [ pane-state (atom {})]
-    (reagent/create-class
-
-     {:component-did-mount
-      (fn [ this ]
-        (swap! pane-state assoc :dom-node (reagent/dom-node this)))
-
-      :reagent-render
-      (fn []
-        @window-width
-        [:div.series-pane
-         [:div.series-pane-header
-          [:span.series-name (:name series)]]
-         [series-tsplot series (dom-width (:dom-node @pane-state))]])})))
+  [:div.series-pane
+   [:div.series-pane-header
+    [:span.series-name (:name series)]]
+   [series-tsplot series]])
 
 (defn series-list [ ]
   [:div
