@@ -62,14 +62,27 @@
         (when (= (:status post-response) 200)
           (.clear update-queue))))))
 
-(defn -main
-  "I don't do a whole lot ... yet."
-  [& args]
+(defn maybe-load-config-file [ filename ]
   (binding [ *ns* (find-ns 'metlog-agent.core)]
-    (when (.exists (jio/as-file "config.clj"))
-      (load-file "config.clj")))
-  (at-at/every 15000 (exception-barrier poll-sensors) my-pool)
-  (at-at/every 60000 (exception-barrier update-vault) my-pool)
+    (when (.exists (jio/as-file filename))
+      (load-file filename))))
+
+(defn seconds [ seconds ] (* 1000 seconds))
+(defn minutes [ minutes ] (seconds (* 60 minutes)))
+(defn hours [ hours ] (minutes (* 60 hours)))
+(defn days [ days ] (hours (* 24 days)))
+
+(def vault-update-interval (minutes 1))
+(def sensor-poll-interval (seconds 15))
+
+(defn -main
+  "Agent entry point"
+  [& args]
+  (maybe-load-config-file "config.clj")
+
+  (at-at/every sensor-poll-interval (exception-barrier poll-sensors) my-pool)
+  (at-at/every vault-update-interval (exception-barrier update-vault) my-pool)
+  
   (println "Running."))
 
 
