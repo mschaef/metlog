@@ -48,12 +48,17 @@
   (defsensor "basement-temp"
     (read-w1-sensor-at-path sensor-path)))
 
-(defn poll-sensors []
-  (log/debug "poll-sensors")
+(defn all-sensors []
   (let [ current-sensor-defs @sensor-defs ]
-    (doseq [ sensor-name (keys current-sensor-defs) ]
-      (if-let [ sensor-value ((:sensor-fn (get current-sensor-defs sensor-name))) ]
-        (enqueue-sensor-reading sensor-name sensor-value)))))
+    (map (fn [ sensor-name ]
+           (merge (get current-sensor-defs sensor-name) {:sensor-name sensor-name}))
+         (keys current-sensor-defs)))  )
+
+(defn poll-sensors [ sensor-defs ]
+  (log/debug "poll-sensors" sensor-defs)
+  (doseq [ sensor-def sensor-defs]
+    (if-let [ sensor-value ((:sensor-fn sensor-def)) ]
+      (enqueue-sensor-reading (:sensor-name sensor-def) sensor-value))))
 
 (defn take-result-queue-snapshot []
   (let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
@@ -86,7 +91,10 @@
   [& args]
   (maybe-load-config-file "config.clj")
 
-  (at-at/every sensor-poll-interval (exception-barrier poll-sensors) my-pool)
+  (doseq [ [ poll-interval sensors ] (group-by :poll-interval (all-sensors))]
+    (log/info "Scheduling poll job @" poll-interval "msec.")
+    (at-at/every poll-interval (exception-barrier #(poll-sensors sensors)) my-pool))
+
   (at-at/every vault-update-interval (exception-barrier update-vault) my-pool)
   
   (log/info "running."))
