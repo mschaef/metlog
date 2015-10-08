@@ -38,12 +38,14 @@
             (fn [ data ]
               (cb data))))
 
-(defn tsplot-fetch-and-draw [ canvas series-name width ]
+(defn tsplot-draw [ canvas width series-data ]
   (let [ ctx (.getContext canvas "2d")]
-    (go
-      (tsplot/draw ctx width 180  (<! (<<< fetch-series-data
-                                           series-name
-                                           @query-window-secs))))))
+    (tsplot/draw ctx width 180 series-data)))
+
+(defn tsplot-fetch-and-draw [ canvas width series-name ]
+  (go
+    (tsplot-draw canvas width
+                 (<! (<<< fetch-series-data series-name @query-window-secs)))))
 
 (defn dom-width [ node ]
   (if node
@@ -56,16 +58,20 @@
      {:display-name (str "series-tsplot-" (:name series))
       :component-did-update
       (fn [ this ]
-        (tsplot-fetch-and-draw (reagent/dom-node this) (:name series) (dom-width (:dom-node @series-state))))
+        (watch :component-did-update)
+        (tsplot-draw (reagent/dom-node this) (dom-width (:dom-node @series-state)) (:series-data @series-state)))
       
       :component-did-mount
       (fn [ this ]
-        (swap! series-state assoc :dom-node (.-parentNode (reagent/dom-node this)))        
-        (tsplot-fetch-and-draw (reagent/dom-node this) (:name series) (dom-width (.-parentNode (reagent/dom-node this)))))
+        (watch :component-did-mount)
+        (swap! series-state assoc :dom-node (.-parentNode (reagent/dom-node this)))
+        (go
+          (swap! series-state assoc :series-data (<! (<<< fetch-series-data (:name series) @query-window-secs)))))
 
       :reagent-render
       (fn [ ]
         @window-width
+        (watch :reagent-render)
         [:canvas { :width (dom-width (:dom-node @series-state)) :height 180}])})))
 
 (defn series-pane [ series ]
@@ -76,7 +82,7 @@
 
 (defn series-list [ ]
   [:div
-   (for [ series (:series @dashboard-state)]
+   (for [ series (:series @dashboard-state) ]
      ^{ :key (:name series) } [series-pane series])])
 
 (defn end-edit [ text state ]
