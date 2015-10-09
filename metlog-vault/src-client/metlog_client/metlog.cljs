@@ -42,11 +42,6 @@
   (let [ ctx (.getContext canvas "2d")]
     (tsplot/draw ctx width 180 series-data)))
 
-(defn tsplot-fetch-and-draw [ canvas width series-name ]
-  (go
-    (tsplot-draw canvas width
-                 (<! (<<< fetch-series-data series-name @query-window-secs)))))
-
 (defn dom-width [ node ]
   (if node
     (.-clientWidth node)
