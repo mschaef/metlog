@@ -50,7 +50,7 @@
 (defn series-tsplot [ series ]
   (let [ series-state (atom { }) ]
     (reagent/create-class
-     {:display-name (str "series-tsplot-" (:name series))
+     {:display-name (str "series-tsplot-" series)
       :component-did-update
       (fn [ this ]
         (tsplot-draw (reagent/dom-node this) (dom-width (:dom-node @series-state)) (:series-data @series-state)))
@@ -59,7 +59,7 @@
       (fn [ this ]
         (swap! series-state assoc :dom-node (.-parentNode (reagent/dom-node this)))
         (go
-          (swap! series-state assoc :series-data (<! (<<< fetch-series-data (:name series) @query-window-secs)))))
+          (swap! series-state assoc :series-data (<! (<<< fetch-series-data series @query-window-secs)))))
 
       :reagent-render
       (fn [ ]
@@ -69,13 +69,13 @@
 (defn series-pane [ series ]
   [:div.series-pane
    [:div.series-pane-header
-    [:span.series-name (:name series)]]
+    [:span.series-name series]]
    [series-tsplot series]])
 
 (defn series-list [ ]
   [:div
    (for [ series (:series @dashboard-state) ]
-     ^{ :key (:name series) } [series-pane series])])
+     ^{ :key series } [series-pane series])])
 
 (defn end-edit [ text state ]
   (let [ qws (js/parseInt text) ]
@@ -111,8 +111,6 @@
   (.addEventListener js/window "resize" on-window-resize)
   (on-window-resize nil)
   (go
-    (swap! dashboard-state assoc :series
-           (vec (map (fn [ series-name ] {:name series-name})
-                     (<! (<<< fetch-series-names)))))))
+    (swap! dashboard-state assoc :series (<! (<<< fetch-series-names)))))
 
 (run)
