@@ -27,7 +27,7 @@
 
   :cljsbuild {:builds [{:source-paths ["src-client"]
                         :compiler {:output-to "resources/public/metlog.js"
-                                   ; :optimizations :advanced
+                                   ;:optimizations :advanced
                                    :optimizations :whitespace :pretty-print true
                                    }}]}
   

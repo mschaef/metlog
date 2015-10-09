@@ -1,5 +1,5 @@
 (ns metlog-client.tsplot
-  (:require-macros [metlog-client.macros :refer [ with-preserved-ctx unless ]])
+  (:require-macros [metlog-client.macros :refer [ with-preserved-ctx unless watch ]])
   (:require [cljs-time.core :as time]
             [cljs-time.format :as time-format]
             [cljs-time.coerce :as time-coerce]))
@@ -11,23 +11,20 @@
 (def y-axis-space 40)
 
 (defn s-yrange [ samples ]
-  (let [ vals (map :val samples) ]
-    {:max (apply Math/max vals)
-     :min (apply Math/min vals)}))
-
-(defn s-xrange [ samples ]
-  (let [ ts (map :t samples) ]
-    {:max (apply Math/max ts)
-     :min (apply Math/min ts)}))
+  (loop [samples (next samples)
+         min (:val (first samples))
+         max min]
+    (if (empty? samples)
+      {:max max :min min}
+      (let [val (:val (first samples))]
+        (recur (next samples)
+               (if (< val min) val min)
+               (if (> val max) val max))))))
 
 (defn rescale-range [ range factor ]
   (let [ scaled-delta (* (/ (- factor 1) 2) (- (:max range) (:min range) )) ]
     {:max (+ (:max range) scaled-delta)
      :min (- (:min range) scaled-delta)}))
-
-(defn range-scale [ range val ]
-  (/ (- val (:min range))
-     (- (:max range) (:min range))))
 
 (defn draw-xlabel [ ctx text x y left? ]
   (let [mt (.measureText ctx text)
@@ -39,23 +36,23 @@
         w (.-width mt)]
     (.fillText ctx text (- x w) (+ y 8))))
 
-(defn translate-point [ pt x-range y-range w h ]
-  [(* w (range-scale x-range (:t pt)))
-   (- h (* h (range-scale y-range (:val pt))))])
-
-(defn clip-rect [ ctx x y w h ]
-  (.beginPath ctx)
-  (.rect ctx x y w h)
-  (.clip ctx))
+(defn translate-fn [ range size ]
+  (let [min (:min range)
+        max (:max range)]
+    (fn [ val ]
+      (* size
+         (/ (- val min)
+            (- max min))))))
 
 (defn draw-series-line [ ctx data x-range y-range w h ]
-  (.beginPath ctx)
-  (let [ data-scaled (map #(translate-point % x-range y-range w h) data) ]
-    (let [ [ pt-x pt-y ] (first data-scaled) ]
-      (.moveTo ctx pt-x pt-y))
-    (doseq [ [ pt-x pt-y ] (rest data-scaled) ]
-      (.lineTo ctx pt-x pt-y)))
-  (.stroke ctx))
+  (let [tx (translate-fn x-range w)
+        ty (translate-fn y-range h)]
+    (.beginPath ctx)
+    (let [ pt (first data) ]
+      (.moveTo ctx (tx (:t pt)) (ty (:val pt))))
+    (doseq [ pt (rest data) ]
+      (.lineTo ctx (tx (:t pt)) (ty (:val pt))))
+    (.stroke ctx)))
 
 (defn long-to-local-date-time [ val ]
   (time/to-default-time-zone (time-coerce/from-long val)))
@@ -65,6 +62,11 @@
 
 (defn format-ylabel [ val ]
   (.toFixed val 2))
+
+(defn clip-rect [ ctx x y w h ]
+  (.beginPath ctx)
+  (.rect ctx x y w h)
+  (.clip ctx))
 
 (defn draw-series [ ctx w h data x-range ]
   (with-preserved-ctx ctx

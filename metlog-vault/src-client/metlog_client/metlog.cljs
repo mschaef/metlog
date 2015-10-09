@@ -58,12 +58,10 @@
      {:display-name (str "series-tsplot-" (:name series))
       :component-did-update
       (fn [ this ]
-        (watch :component-did-update)
         (tsplot-draw (reagent/dom-node this) (dom-width (:dom-node @series-state)) (:series-data @series-state)))
       
       :component-did-mount
       (fn [ this ]
-        (watch :component-did-mount)
         (swap! series-state assoc :dom-node (.-parentNode (reagent/dom-node this)))
         (go
           (swap! series-state assoc :series-data (<! (<<< fetch-series-data (:name series) @query-window-secs)))))
@@ -71,7 +69,6 @@
       :reagent-render
       (fn [ ]
         @window-width
-        (watch :reagent-render)
         [:canvas { :width (dom-width (:dom-node @series-state)) :height 180}])})))
 
 (defn series-pane [ series ]
