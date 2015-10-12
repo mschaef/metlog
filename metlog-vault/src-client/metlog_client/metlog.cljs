@@ -1,17 +1,17 @@
 (ns metlog-client.metlog
   (:require-macros [cljs.core.async.macros :refer [ go ]]
                    [metlog-client.macros :refer [ watch ]])
-  (:require [reagent.core :as reagent :refer [atom]]
-            [ajax.core :refer [GET]]
+  (:require [reagent.core :as reagent]
+            [ajax.core :as ajax]
             [cljs.reader :as reader]
             [cljs.core.async :refer [put! close! chan <!]]
             [metlog-client.tsplot :as tsplot]))
 
-(defonce query-window-secs (atom (* 3600 24)))
+(defonce query-window-secs (reagent/atom (* 3600 24)))
 
-(def dashboard-state (atom {:series [] :text ""}))
+(def dashboard-state (reagent/atom {:series [] :text ""}))
 
-(def window-width (atom 1024))
+(def window-width (reagent/atom nil))
 
 (defn <<< [f & args]
   (let [c (chan)]
@@ -23,37 +23,46 @@
     c))
 
 (defn ajax-get [ url callback ]
-  (GET url {:handler callback
-            :error-handler (fn [ resp ]
-                             (.log js/console (str "HTTP error, url: " url " resp: " resp)))}))
+  (ajax/GET url {:handler callback
+                 :error-handler (fn [ resp ]
+                                  (.log js/console (str "HTTP error, url: " url " resp: " resp)))}))
 
 (defn fetch-series-names [ cb ]
   (ajax-get "/series-names" cb))
 
-(defn fetch-latest-series-data [ series-name cb ]
-  (ajax-get (str "/latest/" series-name) cb))
-
 (defn fetch-series-data [ series-name query-window-secs cb ]
-  (ajax-get (str "/data/" series-name "?query-window-secs=" query-window-secs)
-            (fn [ data ]
-              (cb data))))
+  (ajax-get (str "/data/" series-name "?query-window-secs=" query-window-secs) cb))
 
-(defn tsplot-draw [ canvas width series-data ]
+(def default-tsplot-width 1024)
+(def default-tsplot-height 180)
+
+(defn dom-node-width
+  ([ node default-width ]
+   (if node
+     (.-clientWidth node)
+     default-width))
+  ([ node ]
+   (dom-node-width node nil)))
+
+(defn dom-node-height
+  ([ node default-height ]
+   (if node
+     (.-clientHeight node)
+     default-height))
+  ([ node ]
+   (dom-node-height node nil)))
+
+(defn tsplot-draw [ canvas series-data ]
   (let [ ctx (.getContext canvas "2d")]
-    (tsplot/draw ctx width 180 series-data)))
-
-(defn dom-width [ node ]
-  (if node
-    (.-clientWidth node)
-    1024))
+    (tsplot/draw ctx (dom-node-width canvas) (dom-node-height canvas) series-data)))
 
 (defn series-tsplot [ series ]
-  (let [ series-state (atom { }) ]
+  (let [ series-state (reagent/atom { }) ]
     (reagent/create-class
      {:display-name (str "series-tsplot-" series)
       :component-did-update
       (fn [ this ]
-        (tsplot-draw (reagent/dom-node this) (dom-width (:dom-node @series-state)) (:series-data @series-state)))
+        (tsplot-draw (reagent/dom-node this) (:series-data @series-state)))
       
       :component-did-mount
       (fn [ this ]
@@ -64,7 +73,10 @@
       :reagent-render
       (fn [ ]
         @window-width
-        [:canvas { :width (dom-width (:dom-node @series-state)) :height 180}])})))
+        (let [ dom-node (:dom-node @series-state)]
+          [:canvas
+           {:width (dom-node-width dom-node default-tsplot-width)
+            :height (dom-node-height dom-node default-tsplot-height)}]))})))
 
 (defn series-pane [ series ]
   [:div.series-pane
@@ -82,7 +94,7 @@
     (reset! query-window-secs qws)))
 
 (defn input-field [ on-enter ]
-  (let [ state (atom { :text "" }) ]
+  (let [ state (reagent/atom { :text "" }) ]
     (fn []
       [:input {:value (:text @state)
                :onChange #(swap! state assoc :text (.. % -target -value))
