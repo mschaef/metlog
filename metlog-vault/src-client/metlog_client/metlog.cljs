@@ -56,38 +56,28 @@
   (let [ ctx (.getContext canvas "2d")]
     (tsplot/draw ctx (dom-node-width canvas) (dom-node-height canvas) series-data)))
 
-(defn series-tsplot-plot-canvas [ series ]
-  (let [ series-state (reagent/atom { }) ]
+(defn series-tsplot [ series ]
+  (let [dom-node (reagent/atom nil)
+        series-state (reagent/atom {})]
     (reagent/create-class
      {:display-name (str "series-tsplot-" series)
       :component-did-update
       (fn [ this ]
-        (tsplot-draw (reagent/dom-node this) (:series-data @series-state)))
-      
+        (tsplot-draw (.-firstChild (reagent/dom-node this)) (:series-data @series-state)))
+
       :component-did-mount
       (fn [ this ]
+        (reset! dom-node (reagent/dom-node this))
         (go
           (swap! series-state assoc :series-data (<! (<<< fetch-series-data series @query-window-secs)))))
 
       :reagent-render
-      (fn [ series width height ]
-        @series-state
-        [:canvas {:width width :height height}])})))
-
-(defn series-tsplot [ series ]
-  (let [ dom-node (reagent/atom nil)]
-    (reagent/create-class
-     {:component-did-mount
-      (fn [ this ]
-        (reset! dom-node (reagent/dom-node this)))
-
-      :reagent-render
       (fn [ ]
         @window-width
+        @series-state
         [:div
-         [series-tsplot-plot-canvas series
-          (dom-node-width @dom-node default-tsplot-width)
-          (dom-node-height @dom-node default-tsplot-height)]])})))
+         [:canvas {:width (dom-node-width @dom-node default-tsplot-width)
+                   :height (dom-node-height @dom-node default-tsplot-height)}]])})))
 
 (defn series-pane [ series ]
   [:div.series-pane
