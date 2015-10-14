@@ -1,0 +1,40 @@
+* Version 0.1 - Ocean City
+** X query window adjustable in width (360s, 10m, 2d, etc.)
+** X Ticks are displayed at label witdh with sensible time units
+** Static resources cached to avoid multiple fetch
+** Autoscale for time X-values (ms, sec, min, hour, etc.)
+** Y scale is displayed with units (count, byte, temp c, etc.)
+* Backlog
+** Add a plot dynamically to the dashboard
+** Delete a plot from the dashboard
+** Reorder the plots on the dashboard with drag/drop
+** Persistently store the dashboard's configuration
+** Store multiple dashboard configurations and retrieve via URL
+** JMX instruments can be easily added with definst form
+** X query window stored in URL for linking
+** Plots display with a spinner when there are pending queries
+** Plots display with a gray background when there is stale data
+** Plots display with a red background when the vault is down
+** Plots update with incremental query
+** Plots load initial data with incremental query
+** Y axis is always drawn at zero, even when range spans it
+** Metlog available in clojars
+** Drag and drop to zoom in X, all plots zoom in sync
+** Drag and drop to zoom in Y
+** Plots scroll in X with clock, not with avail data.
+** Client uses local clock synced to server clock to measure local time.
+** Plots can be dragged to form an additional column on the dashboard
+** Annotate performance plots with comments
+** Add multi-series-on-graph support
+** When a graph is added, it flashes and is scrolled to the screen
+** There is an info bar at top of screen that shows server time and server name
+** Test embedded operation within WAR
+** Switch storage layer to multiple series query (sname as set rather than scalar)
+** Add light-on-dark theme
+** Add theme switching through UI
+** Remove series attr query from incremental data updates
+** Switch interval query to GET parameter
+** Stop sending a list of all series to the dashboard.
+* Complete
+
+
