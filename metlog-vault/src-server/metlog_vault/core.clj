@@ -9,7 +9,8 @@
             [compojure.route :as route]
             [compojure.handler :as handler]
             [clojure.edn :as edn]
-            [metlog-vault.data :as data]))
+            [metlog-vault.data :as data]
+            [hiccup.core :as hiccup]))
 
 (defn edn-response [data & [status]]
   {:status (or status 200)
@@ -20,6 +21,16 @@
   (edn-response
    (merge {:data (data/get-data-for-series-name series-name window-size-secs)}
           (data/get-time-range window-size-secs))))
+
+(defn render-dashboard []
+  (hiccup/html
+   [:html
+    [:head
+     [:link { :href "/metlog.css" :rel "stylesheet" :type "text/css"}]
+     [:title "Metlog"]]
+    [:body
+     [:div {:id "metlog"}]
+     [:script {:src "metlog.js" :type "text/javascript"}]]]))
 
 (defroutes all-routes
   (GET "/series-names" []
@@ -36,7 +47,8 @@
     "Incoming data accepted.")
   
   (route/resources "/")
-  (GET "/" [] (ring/redirect "/index.html"))
+  (GET "/" [] (ring/redirect "/dashboard"))
+  (GET "/dashboard" [] (render-dashboard))
   (route/not-found "Resource Not Found"))
 
 (defn wrap-request-logging [ app ]

@@ -19,7 +19,8 @@
                  [cljs-ajax "0.3.11"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [reagent "0.5.0"]
-                 [com.andrewmcveigh/cljs-time "0.3.5"]]
+                 [com.andrewmcveigh/cljs-time "0.3.5"]
+                 [hiccup "1.0.5"]]
 
   :main ^:skip-aot metlog-vault.core
   :target-path "target/%s"
