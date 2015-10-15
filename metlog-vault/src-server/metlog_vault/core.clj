@@ -5,6 +5,7 @@
   (:require [clojure.tools.logging :as log]
             [ring.adapter.jetty :as jetty]
             [ring.middleware.resource :as ring-resource]
+            [ring.middleware.not-modified :as not-modified]
             [ring.util.response :as ring]
             [compojure.route :as route]
             [compojure.handler :as handler]
@@ -51,23 +52,22 @@
     (data/store-data-samples (edn/read-string (slurp (:body req))))
     "Incoming data accepted.")
   
-  (route/resources "/")
   (GET "/" [] (ring/redirect "/dashboard"))
   (GET "/dashboard" [] (render-dashboard))
   (route/not-found "Resource Not Found"))
 
-(defn wrap-request-logging [ app ]
+(defn wrap-request-logging [ app num ]
   (fn [req]
     (log/debug 'REQUEST (:request-method req) (:uri req))
     (let [resp (app req)]
-      (log/trace 'RESPONSE (:status resp))
+      (log/debug 'RESPONSE (:status resp))
       resp)))
 
 (def handler (-> all-routes
                  (data/wrap-db-connection)
                  (ring-resource/wrap-resource "public")
-                 (wrap-request-logging)
-                 (handler/api)))
+                 (not-modified/wrap-not-modified)
+                 (handler/site)))
 
 (defn start-webserver [ http-port ]
   (log/info "Starting Vault Webserver on port" http-port)
