@@ -1,4 +1,6 @@
-(defproject metlog-vault "0.1.0-SNAPSHOT"
+(def project-version "0.1.0-SNAPSHOT")
+
+(defproject metlog-vault project-version
   :description "Repository for long term storage of series data."
   
   :license {:name "Eclipse Public License"
@@ -27,10 +29,10 @@
   :profiles {:uberjar {:aot :all}}
 
   :cljsbuild {:builds [{:source-paths ["src-client"]
-                        :compiler {:output-to "resources/public/metlog.js"
-                                   ;:optimizations :advanced
-                                   :optimizations :whitespace :pretty-print true
-                                   }}]}
+                        :compiler
+                        {:output-to ~(str "resources/public/metlog-" project-version".js")
+                         ;; :optimizations :advanced
+                         :optimizations :whitespace :pretty-print true}}]}
   
   :jar-name "metlog-vault.jar"
   :uberjar-name "metlog-vault-standalone.jar")

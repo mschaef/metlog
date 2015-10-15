@@ -12,6 +12,10 @@
             [metlog-vault.data :as data]
             [hiccup.core :as hiccup]))
 
+(defmacro get-version []
+  ;; Capture compile-time property definition from Lein
+  (System/getProperty "metlog-vault.version"))
+
 (defn edn-response [data & [status]]
   {:status (or status 200)
    :headers {"Content-Type" "application/edn"}
@@ -27,10 +31,11 @@
    [:html
     [:head
      [:link { :href "/metlog.css" :rel "stylesheet" :type "text/css"}]
-     [:title "Metlog"]]
+     [:title "Metlog - " (get-version)]]
     [:body
      [:div {:id "metlog"}]
-     [:script {:src "metlog.js" :type "text/javascript"}]]]))
+     [:script {:src (str "metlog-" (get-version) ".js")
+               :type "text/javascript"}]]]))
 
 (defroutes all-routes
   (GET "/series-names" []
