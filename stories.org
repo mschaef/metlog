@@ -4,6 +4,7 @@
 ** Static resources cached to avoid multiple fetch
 ** Autoscale for time X-values (ms, sec, min, hour, etc.)
 ** Y scale is displayed with units (count, byte, temp c, etc.)
+** Plots automatically update from server data.
 * Backlog
 ** Add a plot dynamically to the dashboard
 ** Delete a plot from the dashboard
