@@ -56,17 +56,21 @@
   (GET "/dashboard" [] (render-dashboard))
   (route/not-found "Resource Not Found"))
 
-(defn wrap-request-logging [ app num ]
+                                        ; https://github.com/slester/browser-caching
+
+(defn wrap-request-logging [ app ]
   (fn [req]
-    (log/debug 'REQUEST (:request-method req) (:uri req))
-    (let [resp (app req)]
-      (log/debug 'RESPONSE (:status resp))
+    (log/trace 'REQ (:request-method req) (:uri req) (:params req))
+    (let [begin-t (. System (nanoTime))
+          resp (app req)]
+      (log/info 'RESP (:status resp) (:uri req) "-" (/ (- (. System (nanoTime)) begin-t) 1000000.0))
       resp)))
 
 (def handler (-> all-routes
                  (data/wrap-db-connection)
                  (ring-resource/wrap-resource "public")
                  (not-modified/wrap-not-modified)
+                 (wrap-request-logging)
                  (handler/site)))
 
 (defn start-webserver [ http-port ]
