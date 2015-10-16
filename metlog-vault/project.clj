@@ -12,18 +12,20 @@
   
   :source-paths ["src-server"]
   
-  :dependencies [[metlog-common "0.1.0-SNAPSHOT"]
-                 [org.clojure/clojure "1.7.0"]
-                 [org.clojure/clojurescript "0.0-3308"]
+  :dependencies [[org.clojure/clojure "1.7.0"]
+                 [org.clojure/clojurescript "1.7.145"]
                  [com.ksmpartners/sql-file "0.1.0"]                 
-                 [ring/ring-jetty-adapter "1.3.2"]
-                 [compojure "1.3.4"]
-                 [cljs-ajax "0.3.11"]
-                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
-                 [reagent "0.5.0"]
-                 [com.andrewmcveigh/cljs-time "0.3.5"]
+                 [ring/ring-jetty-adapter "1.4.0"]
+                 [slester/ring-browser-caching "0.1.1"]
+                 [compojure "1.4.0"]
                  [hiccup "1.0.5"]
-                 [slester/ring-browser-caching "0.1.1"]]
+                 
+                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
+                 [cljs-ajax "0.5.0"]
+                 [reagent "0.5.1"]
+                 [com.andrewmcveigh/cljs-time "0.3.14"]
+
+                 [metlog-common "0.1.0-SNAPSHOT"]]
 
   :main ^:skip-aot metlog-vault.core
   :target-path "target/%s"
