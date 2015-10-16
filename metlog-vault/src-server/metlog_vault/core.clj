@@ -1,11 +1,12 @@
 (ns metlog-vault.core
   (:gen-class :main true)
   (:use metlog-common.core
-        compojure.core)
+        compojure.core
+        [ring.middleware resource
+                         not-modified
+                         content-type])
   (:require [clojure.tools.logging :as log]
             [ring.adapter.jetty :as jetty]
-            [ring.middleware.resource :as ring-resource]
-            [ring.middleware.not-modified :as not-modified]
             [ring.util.response :as ring]
             [compojure.route :as route]
             [compojure.handler :as handler]
@@ -56,22 +57,22 @@
   (GET "/dashboard" [] (render-dashboard))
   (route/not-found "Resource Not Found"))
 
-                                        ; https://github.com/slester/browser-caching
-
 (defn wrap-request-logging [ app ]
   (fn [req]
     (log/trace 'REQ (:request-method req) (:uri req) (:params req))
     (let [begin-t (. System (nanoTime))
           resp (app req)]
-      (log/info 'RESP (:status resp) (:uri req) "-" (/ (- (. System (nanoTime)) begin-t) 1000000.0))
+      (log/info 'RESP (:status resp) (:uri req)
+                "-" (/ (- (. System (nanoTime)) begin-t) 1000000.0))
       resp)))
 
 (def handler (-> all-routes
                  (data/wrap-db-connection)
-                 (ring-resource/wrap-resource "public")
-                 (not-modified/wrap-not-modified)
-                 (wrap-request-logging)
-                 (handler/site)))
+                 (wrap-resource "public")
+                 (wrap-content-type)
+                 (wrap-not-modified)
+                 (handler/site)
+                 (wrap-request-logging)))
 
 (defn start-webserver [ http-port ]
   (log/info "Starting Vault Webserver on port" http-port)
