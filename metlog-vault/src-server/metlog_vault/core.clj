@@ -4,7 +4,8 @@
         compojure.core
         [ring.middleware resource
                          not-modified
-                         content-type])
+                         content-type
+                         browser-caching])
   (:require [clojure.tools.logging :as log]
             [ring.adapter.jetty :as jetty]
             [ring.util.response :as ring]
@@ -47,7 +48,9 @@
   (GET "/data/:series-name" {{series-name :series-name
                               query-window-secs :query-window-secs}
                              :params}
-    (get-data-for-series-name series-name (or (parsable-integer? query-window-secs) 86400)))
+    (get-data-for-series-name series-name
+                              (or (parsable-integer? query-window-secs)
+                                  86400)))
 
   (POST "/data" req
     (data/store-data-samples (edn/read-string (slurp (:body req))))
@@ -70,6 +73,8 @@
                  (data/wrap-db-connection)
                  (wrap-resource "public")
                  (wrap-content-type)
+                 (wrap-browser-caching {"text/javascript" 360000
+                                        "text/css" 360000})
                  (wrap-not-modified)
                  (handler/site)
                  (wrap-request-logging)))
