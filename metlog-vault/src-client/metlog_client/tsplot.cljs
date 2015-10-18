@@ -38,15 +38,19 @@
 
 (defn translate-fn [ range size ]
   (let [min (:min range)
-        max (:max range)]
-    (fn [ val ]
-      (* size
-         (/ (- val min)
-            (- max min))))))
+        max (:max range)
+        delta (- max min)]
+    #(* size (/ (- % min) delta))))
+
+(defn translate-fn-invert [ range size ]
+  (let [min (:min range)
+        max (:max range)
+        delta (- max min)]
+    #(- size (* size (/ (- % min) delta)))))
 
 (defn draw-series-line [ ctx data x-range y-range w h ]
   (let [tx (translate-fn x-range w)
-        ty (translate-fn y-range h)]
+        ty (translate-fn-invert y-range h)]
     (.beginPath ctx)
     (let [ pt (first data) ]
       (.moveTo ctx (tx (:t pt)) (ty (:val pt))))
