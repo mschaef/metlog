@@ -26,21 +26,20 @@
     c))
 
 (defn ajax-get
-  ([ url callback params ]
+  ([ url params callback ]
    (ajax/GET url {:handler callback
                   :params params
-                  :error-handler (fn [ resp ]
-                                   (.log js/console (str "HTTP error, url: " url " resp: " resp)))}))
+                  :error-handler #(.log js/console (str "HTTP error, url: " url " resp: " %))}))
   ( [ url callback ]
-    (ajax-get url callback {})))
+    (ajax-get url {} callback)))
 
 (defn fetch-series-names [ cb ]
   (ajax-get "/series-names" cb))
 
 (defn fetch-series-data [ series-name query-window-secs cb ]
   (ajax-get (str "/data/" series-name)
-            cb
-            {:query-window-secs= query-window-secs}))
+            {:query-window-secs query-window-secs}
+            cb))
 
 (defn dom-node-width
   ([ node default-width ]
