@@ -65,7 +65,7 @@
     (log/trace 'REQ (:request-method req) (:uri req) (:params req))
     (let [begin-t (. System (nanoTime))
           resp (app req)]
-      (log/info 'RESP (:status resp) (:uri req)
+      (log/info 'RESP (:status resp) (:request-method req) (:uri req)
                 "-" (/ (- (. System (nanoTime)) begin-t) 1000000.0))
       resp)))
 
