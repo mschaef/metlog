@@ -6,7 +6,8 @@
     </encoder>
   </appender>
 
-  <logger name="metlog-vault.core" level="DEBUG"/>
+  <logger name="metlog-vault.core" level="INFO"/>
+  <logger name="metlog-vault.data" level="INFO"/>
 
   <root level="INFO">
     <appender-ref ref="CONSOLE"/>
