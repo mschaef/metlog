@@ -5,7 +5,6 @@
 ** Autoscale for time X-values (ms, sec, min, hour, etc.)
 ** Y scale is displayed with units (count, byte, temp c, etc.)
 ** Plots automatically update from server data.
-** BUG - Plots displayed flipped around y-axis
 ** BUG - Time utility functions can't be used to scale test series data in config.clj
 * Backlog
 ** Add a plot dynamically to the dashboard
@@ -39,5 +38,4 @@
 ** Switch interval query to GET parameter
 ** Stop sending a list of all series to the dashboard.
 * Complete
-
-
+** DONE BUG - Plots displayed flipped around y-axis
