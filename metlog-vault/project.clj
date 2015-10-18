@@ -21,7 +21,7 @@
                  [hiccup "1.0.5"]
                  
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
-                 [cljs-ajax "0.5.0"]
+                 [cljs-ajax "0.3.11"]
                  [reagent "0.5.1"]
                  [com.andrewmcveigh/cljs-time "0.3.14"]
 
