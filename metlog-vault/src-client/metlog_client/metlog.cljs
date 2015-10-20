@@ -13,9 +13,6 @@
 
 (def window-width (reagent/atom nil))
 
-(def default-tsplot-width 1024)
-(def default-tsplot-height 180)
-
 (defn <<< [f & args]
   (let [c (chan)]
     (apply f (concat args [(fn [x]
@@ -41,25 +38,9 @@
             {:query-window-secs query-window-secs}
             cb))
 
-(defn dom-node-width
-  ([ node default-width ]
-   (if node
-     (.-clientWidth node)
-     default-width))
-  ([ node ]
-   (dom-node-width node nil)))
-
-(defn dom-node-height
-  ([ node default-height ]
-   (if node
-     (.-clientHeight node)
-     default-height))
-  ([ node ]
-   (dom-node-height node nil)))
-
 (defn tsplot-draw [ canvas series-data ]
   (let [ ctx (.getContext canvas "2d")]
-    (tsplot/draw ctx (dom-node-width canvas) (dom-node-height canvas) series-data)))
+    (tsplot/draw ctx (.-clientWidth canvas) (.-clientHeight canvas) series-data)))
 
 (defn series-tsplot [ series ]
   (let [dom-node (reagent/atom nil)
@@ -81,8 +62,9 @@
         @window-width
         @series-state
         [:div
-         [:canvas {:width (dom-node-width @dom-node default-tsplot-width)
-                   :height (dom-node-height @dom-node default-tsplot-height)}]])})))
+         [:canvas (if-let [ node @dom-node ]
+                    {:width (.-clientWidth node)
+                     :height (.-clientHeight node)})]])})))
 
 (defn series-pane [ series ]
   [:div.series-pane
@@ -127,7 +109,6 @@
   (reagent/render [dashboard]
                   (js/document.getElementById "metlog"))
   (.addEventListener js/window "resize" on-window-resize)
-  (on-window-resize nil)
   (go
     (swap! dashboard-state assoc :series (<! (<<< fetch-series-names)))))
 
