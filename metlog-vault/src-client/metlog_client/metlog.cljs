@@ -49,7 +49,7 @@
      {:display-name (str "series-tsplot-" series)
       :component-did-update
       (fn [ this ]
-        (tsplot-draw (.-firstChild (reagent/dom-node this)) (:series-data @series-state)))
+        (tsplot-draw (.-firstChild @dom-node) (:series-data @series-state)))
 
       :component-did-mount
       (fn [ this ]
@@ -66,11 +66,11 @@
                     {:width (.-clientWidth node)
                      :height (.-clientHeight node)})]])})))
 
-(defn series-pane [ series ]
+(defn series-pane [ series-name ]
   [:div.series-pane
    [:div.series-pane-header
-    [:span.series-name series]]
-   [series-tsplot series]])
+    [:span.series-name series-name]]
+   [series-tsplot series-name]])
 
 (defn series-list [ ]
   [:div
@@ -86,9 +86,8 @@
     (fn []
       [:input {:value (:text @state)
                :onChange #(swap! state assoc :text (.. % -target -value))
-               :onKeyDown #(do
-                             (when (= (.-key %) "Enter")
-                                 (on-enter (:text @state))))} ])))
+               :onKeyDown #(when (= (.-key %) "Enter")
+                             (on-enter (:text @state)))}])))
 
 (defn header [ ]
   [:div.header
