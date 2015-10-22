@@ -51,11 +51,12 @@
                     (Thread. (fn []
                                (shutdown-fn)))))
 
-(defn exception-barrier [ fn ]
-  #(try
-     (fn)
-     (catch Exception ex
-       (log/error ex "Uncaught exception"))))
+(defn exception-barrier
+  ([ fn label ]
+   #(try
+      (fn)
+      (catch Exception ex
+        (log/error ex (str "Uncaught exception: " label))))))
 
 (defn query-all [ db-connection query-spec ]
   (log/debug "query-all:" query-spec)

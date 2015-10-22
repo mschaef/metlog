@@ -73,12 +73,13 @@
     (when-let [ snapshot (take-result-queue-snapshot) ]
       (.addAll update-queue snapshot))
     (unless (.isEmpty update-queue)
-      (let [url (config-property "vault.url" "http://localhost:8080/data")
-            data { :body (pr-str (seq update-queue))}]
-        (log/info "Posting" (count data) "reading(s) to" url)
-        (let [ post-response (client/post url data) ]
-          (when (= (:status post-response) 200)
-            (.clear update-queue)))))))
+            (let [url (config-property "vault.url" "http://localhost:8080/data")
+                  readings (seq update-queue)
+                  data { :body (pr-str readings)}]
+              (log/info "Posting" (count readings) "reading(s) to" url)
+              (let [ post-response (client/post url data) ]
+                (when (= (:status post-response) 200)
+                  (.clear update-queue)))))))
 
 (defn maybe-load-config-file [ filename ]
   (binding [ *ns* (find-ns 'metlog-agent.core)]
@@ -93,9 +94,11 @@
 
   (doseq [ [ poll-interval sensors ] (group-by :poll-interval (all-sensors))]
     (log/info "Scheduling poll job @" poll-interval "msec. for" (map :sensor-name sensors))
-    (at-at/every poll-interval (exception-barrier #(poll-sensors sensors)) my-pool))
+    (at-at/every poll-interval
+                 (exception-barrier #(poll-sensors sensors) (str "poller-" poll-interval))
+                 my-pool))
 
-  (at-at/every vault-update-interval (exception-barrier update-vault) my-pool)
+  (at-at/every vault-update-interval (exception-barrier update-vault "vault-update") my-pool)
   
   (log/info "running."))
 
