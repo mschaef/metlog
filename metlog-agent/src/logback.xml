@@ -1,0 +1,15 @@
+<configuration debug="false">
+
+ <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%-4r [%t] %-5p %logger - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <logger name="metlog-vault.core" level="INFO"/>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+  
+</configuration>
