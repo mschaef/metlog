@@ -56,8 +56,11 @@
     (data/store-data-samples (edn/read-string (slurp (:body req))))
     "Incoming data accepted.")
   
-  (GET "/" [] (ring/redirect "/dashboard"))
   (GET "/dashboard" [] (render-dashboard))
+  
+  (route/resources "/resources/public")
+  
+  (GET "/" [] (ring/redirect "/dashboard"))
   (route/not-found "Resource Not Found"))
 
 (defn wrap-request-logging [ app ]
@@ -71,7 +74,6 @@
 
 (def handler (-> all-routes
                  (data/wrap-db-connection)
-                 (wrap-resource "public")
                  (wrap-content-type)
                  (wrap-browser-caching {"text/javascript" 360000
                                         "text/css" 360000})
