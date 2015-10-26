@@ -1,11 +1,10 @@
 * Version 0.1 - Ocean City
-** X query window adjustable in width (360s, 10m, 2d, etc.)
-** X Ticks are displayed at label witdh with sensible time units
 ** Static resources cached to avoid multiple fetch
-** Autoscale for time X-values (ms, sec, min, hour, etc.)
-** Y scale is displayed with units (count, byte, temp c, etc.)
+** X query window adjustable in width (360s, 10m, 2d, etc.)
 ** Plots automatically update from server data.
-** BUG - Time utility functions can't be used to scale test series data in config.clj
+** X Ticks are displayed at label witdh with sensible time units
+** Y scale is displayed with units (count, byte, temp c, etc.)
+** Autoscale for time X-values (ms, sec, min, hour, etc.)
 * Backlog
 ** Add a plot dynamically to the dashboard
 ** Delete a plot from the dashboard
@@ -39,3 +38,4 @@
 ** Stop sending a list of all series to the dashboard.
 * Complete
 ** DONE BUG - Plots displayed flipped around y-axis
+** DONE BUG - Time utility functions can't be used to scale test series data in config.clj

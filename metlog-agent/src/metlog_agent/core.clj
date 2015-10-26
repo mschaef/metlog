@@ -68,13 +68,16 @@
 
 (def update-queue (java.util.concurrent.LinkedBlockingQueue.))
 
+(defn clean-readings [ unclean ]
+  (map #(assoc % :val (double (:val %))) unclean))
+
 (defn update-vault []
   (locking update-queue
     (when-let [ snapshot (take-result-queue-snapshot) ]
       (.addAll update-queue snapshot))
     (unless (.isEmpty update-queue)
             (let [url (config-property "vault.url" "http://localhost:8080/data")
-                  readings (seq update-queue)
+                  readings (clean-readings (seq update-queue))
                   data { :body (pr-str readings)}]
               (log/info "Posting" (count readings) "reading(s) to" url)
               (let [ post-response (client/post url data) ]
