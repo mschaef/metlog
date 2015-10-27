@@ -30,11 +30,14 @@
   ( [ string count ]
       (string-leftmost string count "")))
 
-(defn parsable-integer? [ str ]
-  (try
-   (Integer/parseInt str)
-   (catch Exception ex
-     false)))
+(defn try-parse-integer
+  ([ str default-value ]
+   (try
+     (Integer/parseInt str)
+     (catch Exception ex
+       default-value)))
+  ([ str ]
+    (try-parse-integer str false)))
 
 (defn config-property 
   ( [ name ] (config-property name nil))
@@ -42,7 +45,7 @@
       (let [prop-binding (System/getProperty name)]
         (if (nil? prop-binding)
           default
-          (if-let [ int (parsable-integer? prop-binding) ]
+          (if-let [ int (try-parse-integer prop-binding) ]
             int
             prop-binding)))))
 

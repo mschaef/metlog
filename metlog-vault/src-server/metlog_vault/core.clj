@@ -47,12 +47,9 @@
     (edn-response
      (data/get-series-names)))
 
-  (GET "/data/:series-name" {{series-name :series-name
-                              query-window-secs :query-window-secs}
-                             :params}
-    (get-data-for-series-name series-name
-                              (or (parsable-integer? query-window-secs)
-                                  86400)))
+  (GET "/data/:series-name" {params :params}
+    (get-data-for-series-name (:series-name params)
+                              (try-parse-integer (:query-window-secs params) 86400)))
 
   (POST "/data" req
     (data/store-data-samples (edn/read-string (slurp (:body req))))
