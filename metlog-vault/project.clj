@@ -1,6 +1,4 @@
-(def project-version "0.1.0-SNAPSHOT")
-
-(defproject metlog-vault project-version
+(defproject metlog-vault "0.1.0-SNAPSHOT"
   :description "Repository for long term storage of series data."
   
   :license {:name "Eclipse Public License"
@@ -33,7 +31,7 @@
 
   :cljsbuild {:builds [{:source-paths ["src-client"]
                         :compiler
-                        {:output-to ~(str "resources/public/metlog-" project-version".js")
+                        {:output-to "resources/public/metlog.js"
                          ;; :optimizations :advanced
                          :optimizations :whitespace :pretty-print true}}]}
   

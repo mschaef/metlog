@@ -33,11 +33,13 @@
   (hiccup/html
    [:html
     [:head
-     [:link { :href "/metlog.css" :rel "stylesheet" :type "text/css"}]
+     [:link {:href (str "/" (get-version) "/metlog.css")
+             :rel "stylesheet"
+             :type "text/css"}]
      [:title "Metlog - " (get-version)]]
     [:body
      [:div {:id "metlog"}]
-     [:script {:src (str "metlog-" (get-version) ".js")
+     [:script {:src  (str "/" (get-version) "/metlog.js")
                :type "text/javascript"}]]]))
 
 (defroutes all-routes
@@ -58,7 +60,7 @@
   
   (GET "/dashboard" [] (render-dashboard))
   
-  (route/resources "/resources/public")
+  (route/resources (str "/" (get-version)))
   
   (GET "/" [] (ring/redirect "/dashboard"))
   (route/not-found "Resource Not Found"))
@@ -92,6 +94,6 @@
 
 (defn -main
   []
-  (log/info "Starting Vault")
+  (log/info "Starting Vault -" (get-version))
   (start-webserver (config-property "http.port" 8080))
   (log/info "end run."))
