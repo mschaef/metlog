@@ -87,11 +87,6 @@
         (draw-xlabel ctx (format-xlabel (:min x-range)) 0 h true)
         (draw-xlabel ctx (format-xlabel (:max x-range)) w h false)))))
 
-(defn draw-background [ ctx w h ]
-  (with-preserved-ctx ctx
-    (aset ctx "fillStyle" "#e0e0e0")
-    (.fillRect ctx 0 0 w h)))
-
 (defn draw-series-background [ ctx w h ]
   (with-preserved-ctx ctx
     (aset ctx "fillStyle" "#FFFFFF")
@@ -108,7 +103,6 @@
     (.stroke ctx)))
 
 (defn draw [ ctx w h sinfo ]
-  (draw-background ctx w h)
   (let [w (- w y-axis-space tsplot-right-margin)
         h (- h x-axis-space)]
     (with-preserved-ctx ctx

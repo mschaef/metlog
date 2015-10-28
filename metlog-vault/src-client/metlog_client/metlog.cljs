@@ -42,15 +42,16 @@
   (let [ ctx (.getContext canvas "2d")]
     (tsplot/draw ctx (.-clientWidth canvas) (.-clientHeight canvas) series-data)))
 
-(defn series-tsplot [ series ]
+(defn series-tsplot [ series qws-arg]
   (let [dom-node (reagent/atom nil)
         series-state (reagent/atom {})]
     (reagent/create-class
      {:display-name (str "series-tsplot-" series)
       :component-did-update
-      (fn [ this ]
+      (fn [ this old-argv ]
         (tsplot-draw (.-firstChild @dom-node) (:series-data @series-state)))
 
+      
       :component-did-mount
       (fn [ this ]
         (reset! dom-node (reagent/dom-node this))
@@ -70,7 +71,7 @@
   [:div.series-pane
    [:div.series-pane-header
     [:span.series-name series-name]]
-   [series-tsplot series-name]])
+   [series-tsplot series-name @query-window-secs]])
 
 (defn series-list [ ]
   [:div
@@ -91,9 +92,9 @@
 
 (defn header [ ]
   [:div.header
-   [:span.left
-    "Metlog"
-    [input-field #(end-edit % dashboard-state)]]])
+   [:span#app-name
+    "Metlog"]
+   [input-field #(end-edit % dashboard-state)]])
 
 (defn dashboard [ ]
   [:div
