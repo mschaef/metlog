@@ -42,7 +42,7 @@
   (let [ ctx (.getContext canvas "2d")]
     (tsplot/draw ctx (.-clientWidth canvas) (.-clientHeight canvas) series-data)))
 
-(defn series-tsplot [ series qws-arg]
+(defn series-tsplot [ series qws-arg ]
   (let [dom-node (reagent/atom nil)
         series-state (reagent/atom {})]
     (reagent/create-class
@@ -56,10 +56,11 @@
       (fn [ this ]
         (reset! dom-node (reagent/dom-node this))
         (go
-          (swap! series-state assoc :series-data (<! (<<< fetch-series-data series @query-window-secs)))))
+          (swap! series-state assoc :series-data
+                 (<! (<<< fetch-series-data series @query-window-secs)))))
 
       :reagent-render
-      (fn [ ]
+      (fn [ & rest ]
         @window-width
         @series-state
         [:div
@@ -67,23 +68,24 @@
                     {:width (.-clientWidth node)
                      :height (.-clientHeight node)})]])})))
 
-(defn series-pane [ series-name ]
+(defn series-pane [ series-name query-window-secs ]
   [:div.series-pane
    [:div.series-pane-header
     [:span.series-name series-name]]
-   [series-tsplot series-name @query-window-secs]])
+   [series-tsplot series-name query-window-secs]])
 
 (defn series-list [ ]
-  [:div
-   (for [ series (:series @dashboard-state) ]
-     ^{ :key series } [series-pane series])])
+  (let [ query-window-secs @query-window-secs] 
+    [:div
+     (for [ series (:series @dashboard-state) ]
+       ^{ :key series } [series-pane series query-window-secs])]))
 
 (defn end-edit [ text state ]
   (let [ qws (js/parseInt text) ]
     (reset! query-window-secs qws)))
 
-(defn input-field [ on-enter ]
-  (let [ state (reagent/atom { :text "" }) ]
+(defn input-field [ initial-text on-enter ]
+  (let [ state (reagent/atom { :text initial-text }) ]
     (fn []
       [:input {:value (:text @state)
                :onChange #(swap! state assoc :text (.. % -target -value))
@@ -94,7 +96,7 @@
   [:div.header
    [:span#app-name
     "Metlog"]
-   [input-field #(end-edit % dashboard-state)]])
+   [input-field @query-window-secs #(end-edit % dashboard-state)]])
 
 (defn dashboard [ ]
   [:div
