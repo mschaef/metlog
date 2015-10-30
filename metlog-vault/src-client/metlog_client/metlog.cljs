@@ -1,10 +1,11 @@
 (ns metlog-client.metlog
-  (:require-macros [cljs.core.async.macros :refer [ go ]]
+  (:require-macros [cljs.core.async.macros :refer [ go go-loop ]]
                    [metlog-client.macros :refer [ watch ]])
   (:require [reagent.core :as reagent]
             [ajax.core :as ajax]
             [cljs.reader :as reader]
-            [cljs.core.async :refer [put! close! chan <!]]
+            [cljs.core.async :refer [put! close! chan <! dropping-buffer alts!]]
+            [cljs-time.core :as time]
             [metlog-client.tsplot :as tsplot]))
 
 (defonce query-window-secs (reagent/atom (* 3600 24)))
@@ -37,6 +38,29 @@
   (ajax-get (str "/data/" series-name)
             {:query-window-secs query-window-secs}
             cb))
+
+(defn periodic-event-channel [ interval-ms ]
+  (let [ channel (chan (dropping-buffer 1)) ]
+    (js/setInterval #(put! channel (time/now)) interval-ms)
+    channel))
+
+(defn query-range-channel [ periodic-event-channel ]
+  (let [ channel (chan) ]
+    (go-loop [end-t (<! periodic-event-channel)]
+      (when end-t
+        (watch end-t)
+        (let [begin-t (time/minus end-t (time/seconds @query-window-secs))]
+          (put! channel {:begin-t begin-t
+                         :end-t end-t}))))
+    channel))
+
+(defn channel-test []
+  (go
+    (let [ channel (query-range-channel (periodic-event-channel 5000))]
+      (go-loop [range (<! channel)]
+        (when range
+          (watch range))))))
+
 
 (defn tsplot-draw [ canvas series-data ]
   (let [ ctx (.getContext canvas "2d")]

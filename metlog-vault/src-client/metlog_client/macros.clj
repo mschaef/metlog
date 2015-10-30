@@ -12,14 +12,7 @@
      ~@body))
 
 (defmacro watch [ & exprs ]
-  `(do
-     ~@(map
-        (fn [ expr ]
-          `(.log js/console ">>" (pr-str '~expr) " => "
-                 (let [ obj# ~expr ]
-                   (if (satisfies? cljs.core/IPrintWithWriter obj#)
-                     (pr-str obj#)
-                     obj#))))
-        exprs)))
+  `(.log js/console ">>" (pr-str '~exprs) " => " (pr-str (list ~@exprs))))
+
 
 
