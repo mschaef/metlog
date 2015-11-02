@@ -26,6 +26,7 @@
 
 (defn ajax-get
   ([ url params callback ]
+   (watch url params)
    (ajax/GET url {:handler callback
                   :params params
                   :error-handler #(.log js/console (str "HTTP error, url: " url " resp: " %))}))
@@ -44,26 +45,28 @@
               cb)))
 
 (defn periodic-event-channel [ interval-ms ]
-  (let [ channel (chan (dropping-buffer 1)) ]
-    (js/setInterval #(put! channel (time/now))
-                    interval-ms)
+  (let [channel (chan (dropping-buffer 1))
+        put-now #(put! channel (time/now))]
+    (put-now)
+    (js/setInterval put-now interval-ms)
     channel))
 
 (defn range-ending-at [ end-t ]
   (let [begin-t (time/minus end-t (time/seconds @query-window-secs))]
-    {:begin-t begin-t :end-t end-t}))
+    {:begin-t (time-coerce/to-long begin-t)
+     :end-t (time-coerce/to-long end-t)}))
 
 (defn query-range-channel [ periodic-event-channel ]
   (let [ channel (chan) ]
     (pipeline 1 channel (map range-ending-at) periodic-event-channel)
     channel))
 
-#_(let [ channel (query-range-channel (periodic-event-channel 5000))]
+(defn series-data-channel [ series-name query-range-channel ]
+  (let [channel (chan)]
     (go-loop []
-      (let [range (<! channel)]
-        (when range
-          (watch range)
-          (recur)))))
+      (ajax-get (str "/data/" series-name) (<! query-range-channel) #(put! channel %))
+      (recur))
+    channel))
 
 (defn series-tsplot [ series qws-arg ]
   (let [dom-node (reagent/atom nil)
@@ -82,10 +85,14 @@
       :component-did-mount
       (fn [ this ]
         (reset! dom-node (reagent/dom-node this))
-        (go
-          (swap! series-state assoc :series-data
-                 (<! (<<< fetch-series-data series @query-window-secs)))))
-
+        (let [ channel (series-data-channel series (query-range-channel (periodic-event-channel 15000))) ]
+          (go-loop []
+            (let [ data (<! channel) ]
+              (when data
+                (watch (count data))
+                (swap! series-state assoc :series-data data)
+                (recur))))))
+      
       :reagent-render
       (fn [ & rest ]
         @window-width
