@@ -4,7 +4,7 @@
   (:require [reagent.core :as reagent]
             [ajax.core :as ajax]
             [cljs.reader :as reader]
-            [cljs.core.async :refer [put! close! chan <! dropping-buffer alts!]]
+            [cljs.core.async :refer [put! close! chan <! dropping-buffer alts! pipeline]]
             [cljs-time.core :as time]
             [cljs-time.coerce :as time-coerce]
             [metlog-client.tsplot :as tsplot]))
@@ -45,25 +45,25 @@
 
 (defn periodic-event-channel [ interval-ms ]
   (let [ channel (chan (dropping-buffer 1)) ]
-    (js/setInterval #(put! channel (time/now)) interval-ms)
+    (js/setInterval #(put! channel (time/now))
+                    interval-ms)
     channel))
+
+(defn range-ending-at [ end-t ]
+  (let [begin-t (time/minus end-t (time/seconds @query-window-secs))]
+    {:begin-t begin-t :end-t end-t}))
 
 (defn query-range-channel [ periodic-event-channel ]
   (let [ channel (chan) ]
-    (go-loop [end-t (<! periodic-event-channel)]
-      (when end-t
-        (watch end-t)
-        (let [begin-t (time/minus end-t (time/seconds @query-window-secs))]
-          (put! channel {:begin-t begin-t
-                         :end-t end-t}))))
+    (pipeline 1 channel (map range-ending-at) periodic-event-channel)
     channel))
 
-(defn channel-test []
-  (go
-    (let [ channel (query-range-channel (periodic-event-channel 5000))]
-      (go-loop [range (<! channel)]
+#_(let [ channel (query-range-channel (periodic-event-channel 5000))]
+    (go-loop []
+      (let [range (<! channel)]
         (when range
-          (watch range))))))
+          (watch range)
+          (recur)))))
 
 (defn series-tsplot [ series qws-arg ]
   (let [dom-node (reagent/atom nil)
