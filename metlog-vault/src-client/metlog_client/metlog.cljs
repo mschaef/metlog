@@ -6,6 +6,7 @@
             [cljs.reader :as reader]
             [cljs.core.async :refer [put! close! chan <! dropping-buffer alts!]]
             [cljs-time.core :as time]
+            [cljs-time.coerce :as time-coerce]
             [metlog-client.tsplot :as tsplot]))
 
 (defonce query-window-secs (reagent/atom (* 3600 24)))
@@ -35,9 +36,13 @@
   (ajax-get "/series-names" cb))
 
 (defn fetch-series-data [ series-name query-window-secs cb ]
-  (ajax-get (str "/data/" series-name)
-            {:query-window-secs query-window-secs}
-            cb))
+  (let [end-t (time/time-now)
+        begin-t (time/minus end-t (time/seconds query-window-secs))]
+    (ajax-get (str "/data/" series-name)
+              {:query-window-secs query-window-secs
+               :begin-t (time-coerce/to-long begin-t)
+               :end-t (time-coerce/to-long end-t)}
+              cb)))
 
 (defn periodic-event-channel [ interval-ms ]
   (let [ channel (chan (dropping-buffer 1)) ]
@@ -60,7 +65,6 @@
       (go-loop [range (<! channel)]
         (when range
           (watch range))))))
-
 
 (defn tsplot-draw [ canvas series-data ]
   (let [ ctx (.getContext canvas "2d")]

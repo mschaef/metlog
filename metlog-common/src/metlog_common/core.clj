@@ -39,6 +39,15 @@
   ([ str ]
     (try-parse-integer str false)))
 
+(defn try-parse-long
+  ([ str default-value ]
+   (try
+     (Long/parseLong str)
+     (catch Exception ex
+       default-value)))
+  ([ str ]
+    (try-parse-long str false)))
+
 (defn config-property 
   ( [ name ] (config-property name nil))
   ( [ name default ]
