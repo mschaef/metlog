@@ -102,12 +102,12 @@
     (.lineTo ctx (- w 0.5) (- h 0.5))
     (.stroke ctx)))
 
-(defn draw [ ctx w h sinfo ]
+(defn draw [ ctx w h data begin-t end-t]
   (let [w (- w y-axis-space tsplot-right-margin)
         h (- h x-axis-space)]
     (with-preserved-ctx ctx
       (.translate ctx y-axis-space 0)
       (draw-series-background ctx w h)
-      (draw-series ctx w h (:data sinfo) {:min (:begin sinfo) :max (:end sinfo)})
+      (draw-series ctx w h data {:min begin-t :max end-t})
       (draw-frame ctx w h))))
 

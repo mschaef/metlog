@@ -39,8 +39,7 @@
   (let [end-t (time/time-now)
         begin-t (time/minus end-t (time/seconds query-window-secs))]
     (ajax-get (str "/data/" series-name)
-              {:query-window-secs query-window-secs
-               :begin-t (time-coerce/to-long begin-t)
+              {:begin-t (time-coerce/to-long begin-t)
                :end-t (time-coerce/to-long end-t)}
               cb)))
 
@@ -66,10 +65,6 @@
         (when range
           (watch range))))))
 
-(defn tsplot-draw [ canvas series-data ]
-  (let [ ctx (.getContext canvas "2d")]
-    (tsplot/draw ctx (.-clientWidth canvas) (.-clientHeight canvas) series-data)))
-
 (defn series-tsplot [ series qws-arg ]
   (let [dom-node (reagent/atom nil)
         series-state (reagent/atom {})]
@@ -77,9 +72,13 @@
      {:display-name (str "series-tsplot-" series)
       :component-did-update
       (fn [ this old-argv ]
-        (tsplot-draw (.-firstChild @dom-node) (:series-data @series-state)))
+        (let [canvas (.-firstChild @dom-node)
+              ctx (.getContext canvas "2d")]
+          (tsplot/draw ctx (.-clientWidth canvas) (.-clientHeight canvas)
+                       (:series-data @series-state)
+                       (time-coerce/to-long (time/minus (time/time-now) (time/seconds @query-window-secs))) 
+                       (time-coerce/to-long (time/time-now)))))
 
-      
       :component-did-mount
       (fn [ this ]
         (reset! dom-node (reagent/dom-node this))

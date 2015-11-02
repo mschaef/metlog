@@ -24,11 +24,6 @@
    :headers {"Content-Type" "application/edn"}
    :body (pr-str data)})
 
-(defn get-data-for-series-name [ series-name begin-t end-t]
-  (edn-response
-   (merge {:data (data/get-data-for-series-name series-name begin-t end-t)}
-          (data/get-time-range 86400))))
-
 (defn render-dashboard []
   (hiccup/html
    [:html
@@ -48,10 +43,10 @@
      (data/get-series-names)))
 
   (GET "/data/:series-name" {params :params}
-    (log/info "get-data" params)
-    (get-data-for-series-name (:series-name params)
-                              (try-parse-long (:begin-t params))
-                              (try-parse-long (:end-t params))))
+    (edn-response
+     (data/get-data-for-series-name (:series-name params)
+                                    (try-parse-long (:begin-t params))
+                                    (try-parse-long (:end-t params)))))
 
   (POST "/data" req
     (data/store-data-samples (edn/read-string (slurp (:body req))))

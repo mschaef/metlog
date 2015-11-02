@@ -65,14 +65,6 @@
        (query-all *db* [(str "SELECT series_name"
                              " FROM series")])))
 
-(defn get-time-range [ window-size-secs ]
-  (let [ range (query-first *db* [(str "SELECT CURRENT_TIMESTAMP AS end, "
-                                       "       TIMESTAMPADD(SQL_TSI_SECOND, ?, CURRENT_TIMESTAMP) AS begin"
-                                       " FROM dual")
-                                  (- window-size-secs)])]
-    {:begin (.getTime (:begin range))
-     :end (.getTime (:end range))}))
-
 (defn get-data-for-series-name [ series-name begin-t end-t]
   (log/info "Getting series data for " series-name [ begin-t end-t ])
   (map #(assoc % :t (.getTime (:t %)))
