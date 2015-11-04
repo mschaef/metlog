@@ -72,8 +72,8 @@
                          " FROM sample, series"
                          " WHERE sample.series_id = series.series_id"
                          "   AND series.series_name = ?"
-                         "   AND UNIX_MILLIS(t) > ?"
-                         "   AND UNIX_MILLIS(t) < ?"
+                         "   AND UNIX_MILLIS(t-session_timezone()) > ?"
+                         "   AND UNIX_MILLIS(t-session_timezone()) < ?"
                          " ORDER BY t")
                     series-name
                     begin-t

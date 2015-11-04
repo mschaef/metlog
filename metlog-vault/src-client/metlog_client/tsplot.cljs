@@ -103,6 +103,7 @@
     (.stroke ctx)))
 
 (defn draw [ ctx w h data begin-t end-t]
+  (draw-series-background ctx w h)
   (let [w (- w y-axis-space tsplot-right-margin)
         h (- h x-axis-space)]
     (with-preserved-ctx ctx

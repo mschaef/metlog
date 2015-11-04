@@ -26,7 +26,6 @@
 
 (defn ajax-get
   ([ url params callback ]
-   (watch url params)
    (ajax/GET url {:handler callback
                   :params params
                   :error-handler #(.log js/console (str "HTTP error, url: " url " resp: " %))}))
@@ -37,7 +36,7 @@
   (ajax-get "/series-names" cb))
 
 (defn fetch-series-data [ series-name query-window-secs cb ]
-  (let [end-t (time/time-now)
+  (let [end-t (time/now)
         begin-t (time/minus end-t (time/seconds query-window-secs))]
     (ajax-get (str "/data/" series-name)
               {:begin-t (time-coerce/to-long begin-t)
@@ -76,11 +75,12 @@
       :component-did-update
       (fn [ this old-argv ]
         (let [canvas (.-firstChild @dom-node)
-              ctx (.getContext canvas "2d")]
+              ctx (.getContext canvas "2d")
+              range (range-ending-at (time/now))]
           (tsplot/draw ctx (.-clientWidth canvas) (.-clientHeight canvas)
                        (:series-data @series-state)
-                       (time-coerce/to-long (time/minus (time/time-now) (time/seconds @query-window-secs))) 
-                       (time-coerce/to-long (time/time-now)))))
+                       (:begin-t range)
+                       (:end-t range))))
 
       :component-did-mount
       (fn [ this ]
@@ -89,7 +89,6 @@
           (go-loop []
             (let [ data (<! channel) ]
               (when data
-                (watch (count data))
                 (swap! series-state assoc :series-data data)
                 (recur))))))
       
