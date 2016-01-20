@@ -7,7 +7,7 @@
   :main metlog-common.core
   :aot [metlog-common.core]
 
-  :dependencies [[org.clojure/clojure "1.6.0"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/tools.logging "0.3.1"]
-                 [ch.qos.logback/logback-classic "1.1.2"]
-                 [org.clojure/java.jdbc "0.3.5"]])
+                 [ch.qos.logback/logback-classic "1.1.3"]
+                 [org.clojure/java.jdbc "0.4.2"]])

@@ -10,18 +10,20 @@
   
   :source-paths ["src-server"]
   
-  :dependencies [[org.clojure/clojure "1.7.0"]
-                 [org.clojure/clojurescript "1.7.145"]
-                 [com.ksmpartners/sql-file "0.1.0"]                 
+  :dependencies [[org.clojure/clojure "1.8.0"]
+                 [org.clojure/clojurescript "1.7.228"]
+                 [com.ksmpartners/sql-file "0.1.0"
+                  :exclusions [org.clojure/java.jdbc]]                 
                  [ring/ring-jetty-adapter "1.4.0"]
                  [slester/ring-browser-caching "0.1.1"]
-                 [compojure "1.4.0"]
+                 [compojure "1.4.0"
+                  :exclusions [commons-codec]]
                  [hiccup "1.0.5"]
                  
-                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
-                 [cljs-ajax "0.3.11"]
+                 [org.clojure/core.async "0.2.374"]
+                 [cljs-ajax "0.5.3"]
                  [reagent "0.5.1"]
-                 [com.andrewmcveigh/cljs-time "0.3.14"]
+                 [com.andrewmcveigh/cljs-time "0.4.0"]
 
                  [metlog-common "0.1.0-SNAPSHOT"]]
 
