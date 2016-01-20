@@ -56,7 +56,7 @@
      :end-t (time-coerce/to-long end-t)}))
 
 (defn query-range-channel [ periodic-event-channel ]
-  (let [ channel (chan) ]
+  (let [ channel (chan (dropping-buffer 1)) ]
     (pipeline 1 channel (map range-ending-at) periodic-event-channel)
     channel))
 
