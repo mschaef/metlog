@@ -2,9 +2,10 @@
   (:gen-class)
   (:use metlog-common.core)
   (:require [clojure.tools.logging :as log]
+            [clojure.java.io :as jio]
             [overtone.at-at :as at-at]
-            [clj-http.client :as client]
-            [clojure.java.io :as jio]))
+            [clj-http.client :as http]
+            [clojure.data.json :as json]))
 
 (defn seconds [ seconds ] (* 1000 seconds))
 (defn minutes [ minutes ] (seconds (* 60 minutes)))
@@ -39,7 +40,7 @@
     `(add-sensor-def '~name (merge ~attrs {:sensor-fn (fn [] ~@body)}))))
 
 (defn read-w1-sensor-at-path [ sensor-path ]
-  (with-open [rdr (clojure.java.io/reader sensor-path)]
+  (with-open [rdr (jio/reader sensor-path)]
     (let [ line (second (line-seq rdr)) ]
       (and (not (nil? line))
            (/ (Double/valueOf (.substring line 29)) 1000.0)))))
@@ -54,10 +55,18 @@
            (merge (get current-sensor-defs sensor-name) {:sensor-name sensor-name}))
          (keys current-sensor-defs)))  )
 
+(defn poll-sensor [ sensor-def ]
+  (try 
+    ((:sensor-fn sensor-def))
+    (catch Exception ex
+      (log/error "Error polling sensor" (:sensor-name sensor-def) (str ex))
+      false)))
+
+
 (defn poll-sensors [ sensor-defs ]
   (log/debug "poll-sensors" (map :sensor-name sensor-defs))
   (doseq [ sensor-def sensor-defs ]
-    (if-let [ sensor-value ((:sensor-fn sensor-def)) ]
+    (if-let [ sensor-value (poll-sensor sensor-def)]
       (enqueue-sensor-reading (:sensor-name sensor-def) sensor-value))))
 
 (defn take-result-queue-snapshot []
@@ -80,7 +89,7 @@
                   readings (clean-readings (seq update-queue))
                   data { :body (pr-str readings)}]
               (log/info "Posting" (count readings) "reading(s) to" url)
-              (let [ post-response (client/post url data) ]
+              (let [ post-response (http/post url data) ]
                 (when (= (:status post-response) 200)
                   (.clear update-queue)))))))
 
