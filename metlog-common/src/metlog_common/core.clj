@@ -48,6 +48,15 @@
   ([ str ]
     (try-parse-long str false)))
 
+(defn try-parse-double
+  ([ str default-value ]
+   (try
+     (Double/parseDouble str)
+     (catch Exception ex
+       default-value)))
+  ([ str ]
+   (try-parse-double str false)))
+
 (defn config-property 
   ( [ name ] (config-property name nil))
   ( [ name default ]
