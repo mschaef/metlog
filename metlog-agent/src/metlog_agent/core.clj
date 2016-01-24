@@ -62,12 +62,26 @@
       (log/error "Error polling sensor" (:sensor-name sensor-def) (str ex))
       false)))
 
+(defn process-sensor-reading [ sensor-name sensor-value ]
+  (cond
+    (number? sensor-value)
+    (enqueue-sensor-reading sensor-name sensor-value)
+    
+    (map? sensor-value)
+    (doseq [[sub-name sub-value] sensor-value]
+      (process-sensor-reading (str sensor-name "-" (name sub-name))
+                              sub-value))
+    
+    :else
+    (log/error "Bad sensor value" sensor-value "(" (.getClass sensor-value) ")"
+               "from sensor" sensor-name)))
+
 
 (defn poll-sensors [ sensor-defs ]
   (log/debug "poll-sensors" (map :sensor-name sensor-defs))
   (doseq [ sensor-def sensor-defs ]
     (if-let [ sensor-value (poll-sensor sensor-def)]
-      (enqueue-sensor-reading (:sensor-name sensor-def) sensor-value))))
+      (process-sensor-reading (:sensor-name sensor-def) sensor-value))))
 
 (defn take-result-queue-snapshot []
   (let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
