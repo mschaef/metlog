@@ -1,6 +1,7 @@
 (ns metlog-common.core
   (:require [clojure.tools.logging :as log]
-            [clojure.java.jdbc :as jdbc]))
+            [clojure.java.jdbc :as jdbc]
+            [clojure.data.json :as json]))
 
 (defmacro unless [ condition & body ]
   `(when (not ~condition)
@@ -56,6 +57,27 @@
        default-value)))
   ([ str ]
    (try-parse-double str false)))
+
+
+(defn safe-json-read-str [ json-string ]
+  (try
+    (json/read-str json-string)
+    (catch Exception ex
+      (log/warn "Bad JSON:" (.getMessage ex) json-string)
+      false)))
+
+(defn try-parse-percentage [ str ]
+  (and (string? str)
+       (let [ str (if (= \% (.charAt str (- (.length str) 1)))
+                    (.substring str 0 (- (.length str) 1))
+                    str)]
+         (try-parse-double str))))
+
+(defn ensure-number [ val ]
+  (if (number? val)
+    val
+    (try-parse-double val)))
+
 
 (defn config-property 
   ( [ name ] (config-property name nil))

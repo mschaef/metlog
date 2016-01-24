@@ -8,8 +8,7 @@
                  [org.clojure/clojure "1.8.0"]
                  [clj-http "2.0.1"
                   :exclusions [com.fasterxml.jackson.core/jackson-core]]
-                 [overtone/at-at "1.2.0"]
-                 [org.clojure/data.json "0.2.6"]]
+                 [overtone/at-at "1.2.0"]]
   
   :main ^:skip-aot metlog-agent.core
   :target-path "target/%s"

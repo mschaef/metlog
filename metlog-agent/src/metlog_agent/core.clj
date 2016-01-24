@@ -4,8 +4,7 @@
   (:require [clojure.tools.logging :as log]
             [clojure.java.io :as jio]
             [overtone.at-at :as at-at]
-            [clj-http.client :as http]
-            [clojure.data.json :as json]))
+            [clj-http.client :as http]))
 
 (defn seconds [ seconds ] (* 1000 seconds))
 (defn minutes [ minutes ] (seconds (* 60 minutes)))

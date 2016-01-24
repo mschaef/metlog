@@ -8,25 +8,6 @@
   (mod (/ (- (System/currentTimeMillis) start-t) (minutes 4))
        3))
 
-(defn safe-json-read-str [ json-string ]
-  (try
-    (json/read-str json-string)
-    (catch Exception ex
-      (log/warn "Bad JSON:" (.getMessage ex) json-string)
-      false)))
-
-(defn try-parse-percentage [ str ]
-  (and (string? str)
-       (let [ str (if (= \% (.charAt str (- (.length str) 1)))
-                    (.substring str 0 (- (.length str) 1))
-                    str)]
-         (try-parse-double str))))
-
-(defn ensure-number [ val ]
-  (if (number? val)
-    val
-    (try-parse-double val)))
-
 (defn read-wunderground-temp [ key location ]
   (let [response (http/get (str "http://api.wunderground.com/api/" key "/conditions/q/" location ".json"))
         body (safe-json-read-str (:body response))]
@@ -42,7 +23,21 @@
             :precip-1hr-in (ensure-number (get obv "precip_1hr_in" false))
             :precip-today-in (ensure-number (get obv "precip_today_in" false))}))))
 
-(defsensor weather-19096 {:poll-interval (minutes 15)}
-  (read-wunderground-temp "965408b79c41f708" "19096"))
+(defn read-w1-sensor-at-path [ sensor-path ]
+  (with-open [rdr (jio/reader sensor-path)]
+    (let [ line (second (line-seq rdr)) ]
+      (and (not (nil? line))
+           (/ (Double/valueOf (.substring line 29)) 1000.0)))))
+
+(if-let [ sensor-path (config-property "sensor.path") ]
+  (do
+    (defsensor "basement-temp"
+      (read-w1-sensor-at-path sensor-path))
+    
+    (defsensor "weather-19096" {:poll-interval (minutes 15)}
+      (read-wunderground-temp "965408b79c41f708" "19096"))
+
+    (defsensor "weather-08226" {:poll-interval (minutes 15)}
+      (read-wunderground-temp "965408b79c41f708" "08226"))))
 
 
