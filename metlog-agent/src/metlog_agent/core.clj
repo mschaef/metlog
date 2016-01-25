@@ -38,16 +38,6 @@
         body (if (map? (first body)) (next body) body)]
     `(add-sensor-def '~name (merge ~attrs {:sensor-fn (fn [] ~@body)}))))
 
-(defn read-w1-sensor-at-path [ sensor-path ]
-  (with-open [rdr (jio/reader sensor-path)]
-    (let [ line (second (line-seq rdr)) ]
-      (and (not (nil? line))
-           (/ (Double/valueOf (.substring line 29)) 1000.0)))))
-
-(if-let [ sensor-path (config-property "sensor.path") ]
-  (defsensor "basement-temp"
-    (read-w1-sensor-at-path sensor-path)))
-
 (defn all-sensors []
   (let [ current-sensor-defs @sensor-defs ]
     (map (fn [ sensor-name ]
