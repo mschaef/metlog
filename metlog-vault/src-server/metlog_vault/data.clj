@@ -20,19 +20,29 @@
     (with-db-connection
       (app req))))
 
+(defn call-with-query-logging [ name actual-args fn ]
+  (log/info "query" name actual-args)
+  (let [begin-t (. System (nanoTime))
+        result (fn)]
+    (log/info "query time" name "-" (/ (- (. System (nanoTime)) begin-t) 1000000.0))
+    result))
+
+(defmacro defquery [ name lambda-list & body ]
+  `(defn ~name ~lambda-list
+     (call-with-query-logging '~name ~lambda-list (fn [] ~@body))))
 
 (defmacro with-transaction [ & body ]
   `(jdbc/with-db-transaction [ db-trans# *db* ]
      (binding [ *db* db-trans# ]
        ~@body)))
 
-(defn series-name-id [ series-name ]
+(defquery series-name-id [ series-name ]
   (query-scalar *db* [(str "SELECT series_id "
                            " FROM series "
                            " WHERE series_name=?")
                       series-name]))
 
-(defn- add-series-name [ series-name ]
+(defquery add-series-name [ series-name ]
   (:series_id (first 
                (jdbc/insert! *db* :series
                              {:series_name series-name}))))
@@ -46,7 +56,7 @@
         (or (series-name-id series-name)
             (add-series-name series-name))))))
 
-(defn store-data-samples [ samples ]
+(defquery store-data-samples [ samples ]
   (doseq [ sample samples ]
     (log/debug "Inserting sample: " sample)
     (jdbc/insert! *db* :sample
@@ -54,19 +64,18 @@
                    :t (:t sample)
                    :val (:val sample)})))
 
-(defn get-series-id [ series-name ]
+(defquery get-series-id [ series-name ]
   (query-scalar *db* [(str "SELECT series_id"
                            " FROM series"
                            " WHERE series_name=?")
                       series-name]))
 
-(defn get-series-names []
+(defquery get-series-names []
   (map :series_name
        (query-all *db* [(str "SELECT series_name"
                              " FROM series")])))
 
-(defn get-data-for-series-name [ series-name begin-t end-t]
-  (log/info "Getting series data for " series-name [ begin-t end-t ])
+(defquery get-data-for-series-name [ series-name begin-t end-t]
   (map #(assoc % :t (.getTime (:t %)))
    (query-all *db* [(str "SELECT sample.t, sample.val"
                          " FROM sample, series"
@@ -78,5 +87,4 @@
                     series-name
                     begin-t
                     end-t])))
-
 
