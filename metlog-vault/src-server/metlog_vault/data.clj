@@ -78,13 +78,12 @@
 (defquery get-data-for-series-name [ series-name begin-t end-t]
   (map #(assoc % :t (.getTime (:t %)))
    (query-all *db* [(str "SELECT sample.t, sample.val"
-                         " FROM sample, series"
-                         " WHERE sample.series_id = series.series_id"
-                         "   AND series.series_name = ?"
+                         " FROM sample"
+                         " WHERE series_id = ?"
                          "   AND UNIX_MILLIS(t-session_timezone()) > ?"
                          "   AND UNIX_MILLIS(t-session_timezone()) < ?"
                          " ORDER BY t")
-                    series-name
+                    (get-series-id series-name)
                     begin-t
                     end-t])))
 
