@@ -122,8 +122,9 @@
 
 (defn series-list [ ]
   [:div
-   (for [ series (:series @dashboard-state) ]
-     ^{ :key series } [series-pane series @query-window])])
+   (doall
+    (for [ series (:series @dashboard-state) ]
+      ^{ :key series } [series-pane series @query-window]))])
 
 (defn end-edit [ text state ]
   (when (parse-query-window text)
