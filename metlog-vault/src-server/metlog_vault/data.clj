@@ -21,10 +21,10 @@
       (app req))))
 
 (defn call-with-query-logging [ name actual-args fn ]
-  (log/info "query" name actual-args)
+  (log/debug "query" name actual-args)
   (let [begin-t (. System (nanoTime))
         result (fn)]
-    (log/info "query time" name "-" (/ (- (. System (nanoTime)) begin-t) 1000000.0))
+    (log/debug "query time" name "-" (/ (- (. System (nanoTime)) begin-t) 1000000.0))
     result))
 
 (defmacro defquery [ name lambda-list & body ]
