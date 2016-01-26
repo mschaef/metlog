@@ -9,7 +9,7 @@
             [cljs-time.coerce :as time-coerce]
             [metlog-client.tsplot :as tsplot]))
 
-(defonce query-window-secs (reagent/atom (* 3600 24)))
+(defonce query-window (reagent/atom (* 3600 24)))
 
 (def dashboard-state (reagent/atom {:series [] :text ""}))
 
@@ -51,7 +51,7 @@
     channel))
 
 (defn range-ending-at [ end-t ]
-  (let [begin-t (time/minus end-t (time/seconds @query-window-secs))]
+  (let [begin-t (time/minus end-t (time/seconds @query-window))]
     {:begin-t (time-coerce/to-long begin-t)
      :end-t (time-coerce/to-long end-t)}))
 
@@ -101,21 +101,19 @@
                     {:width (.-clientWidth node)
                      :height (.-clientHeight node)})]])})))
 
-(defn series-pane [ series-name query-window-secs ]
+(defn series-pane [ series-name query-window ]
   [:div.series-pane
    [:div.series-pane-header
     [:span.series-name series-name]]
-   [series-tsplot series-name query-window-secs]])
+   [series-tsplot series-name query-window]])
 
 (defn series-list [ ]
-  (let [ query-window-secs @query-window-secs] 
-    [:div
-     (for [ series (:series @dashboard-state) ]
-       ^{ :key series } [series-pane series query-window-secs])]))
+  [:div
+   (for [ series (:series @dashboard-state) ]
+     ^{ :key series } [series-pane series @query-window])])
 
 (defn end-edit [ text state ]
-  (let [ qws (js/parseInt text) ]
-    (reset! query-window-secs qws)))
+  (reset! query-window (js/parseInt text)))
 
 (defn input-field [ initial-text on-enter ]
   (let [ state (reagent/atom { :text initial-text }) ]
@@ -129,7 +127,7 @@
   [:div.header
    [:span#app-name
     "Metlog"]
-   [input-field @query-window-secs #(end-edit % dashboard-state)]])
+   [input-field @query-window #(end-edit % dashboard-state)]])
 
 (defn dashboard [ ]
   [:div
@@ -148,3 +146,4 @@
     (swap! dashboard-state assoc :series (<! (<<< fetch-series-names)))))
 
 (run)
+
