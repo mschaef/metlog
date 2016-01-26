@@ -9,7 +9,21 @@
             [cljs-time.coerce :as time-coerce]
             [metlog-client.tsplot :as tsplot]))
 
-(defonce query-window (reagent/atom (* 3600 24)))
+(defn parse-query-window [ text ]
+  (let [ text (.trim text) ]
+    (and (> (.-length text) 0)
+         (let [window-unit-char (.charAt text (- (.-length text) 1))
+               window-value (.substring text 0 (- (.-length text) 1))]
+           (case window-unit-char
+             "S" (js/parseInt window-value)
+             "m" (* 60 (js/parseInt window-value))
+             "h" (* 3600 (js/parseInt window-value))
+             "d" (* 86400 (js/parseInt window-value))
+             "w" (* 604800 (js/parseInt window-value))
+             false)))))
+
+
+(defonce query-window (reagent/atom "1d"))
 
 (def dashboard-state (reagent/atom {:series [] :text ""}))
 
@@ -51,7 +65,7 @@
     channel))
 
 (defn range-ending-at [ end-t ]
-  (let [begin-t (time/minus end-t (time/seconds @query-window))]
+  (let [begin-t (time/minus end-t (time/seconds (parse-query-window @query-window)))]
     {:begin-t (time-coerce/to-long begin-t)
      :end-t (time-coerce/to-long end-t)}))
 
@@ -113,7 +127,8 @@
      ^{ :key series } [series-pane series @query-window])])
 
 (defn end-edit [ text state ]
-  (reset! query-window (js/parseInt text)))
+  (when (parse-query-window text)
+    (reset! query-window text)))
 
 (defn input-field [ initial-text on-enter ]
   (let [ state (reagent/atom { :text initial-text }) ]
