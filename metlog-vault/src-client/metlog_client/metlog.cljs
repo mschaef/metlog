@@ -22,7 +22,6 @@
              "w" (* 604800 (js/parseInt window-value))
              false)))))
 
-
 (defonce query-window (reagent/atom "1d"))
 
 (def dashboard-state (reagent/atom {:series [] :text ""}))
@@ -130,19 +129,22 @@
   (when (parse-query-window text)
     (reset! query-window text)))
 
-(defn input-field [ initial-text on-enter ]
+(defn input-field [ initial-text text-valid? on-enter ]
   (let [ state (reagent/atom { :text initial-text }) ]
     (fn []
-      [:input {:value (:text @state)
-               :onChange #(swap! state assoc :text (.. % -target -value))
-               :onKeyDown #(when (= (.-key %) "Enter")
-                             (on-enter (:text @state)))}])))
+      (let [valid? (text-valid? (:text @state))]
+        [:input {:value (:text @state)
+                 :class (if (not valid?) "invalid")
+                 :onChange #(swap! state assoc :text (.. % -target -value))
+                 :onKeyDown #(when (and valid?
+                                        (= (.-key %) "Enter"))
+                               (on-enter (:text @state)))}]))))
 
 (defn header [ ]
   [:div.header
    [:span#app-name
     "Metlog"]
-   [input-field @query-window #(end-edit % dashboard-state)]])
+   [input-field @query-window parse-query-window #(end-edit % dashboard-state)]])
 
 (defn dashboard [ ]
   [:div

@@ -41,6 +41,11 @@ div.header input {
     width: 40em;
 }
 
+div.header input.invalid {
+    background: #ffd0d0;
+    border: 1px solod red;
+}
+
 div.header span#app-name {
     font-weight: bold;
     padding-right: 0.66em;
@@ -71,3 +76,4 @@ div.series-pane div.series-pane-header span.series-name {
     padding-left: 0.66em;
     padding-right: 0.66em;
 }
+
