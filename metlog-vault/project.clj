@@ -4,7 +4,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :plugins [[lein-cljsbuild "1.0.6"
+  :plugins [[lein-cljsbuild "1.1.1"
              :exclusions [org.clojure/clojure]]
             [lein-cooper "1.1.1"]]
   
@@ -21,7 +21,8 @@
                  [hiccup "1.0.5"]
                  
                  [org.clojure/core.async "0.2.374"]
-                 [cljs-ajax "0.5.3"]
+                 ;; Old version to work around https://github.com/JulianBirch/cljs-ajax/issues/109
+                 [cljs-ajax "0.3.11"] 
                  [reagent "0.5.1"]
                  [com.andrewmcveigh/cljs-time "0.4.0"]
 
