@@ -15,6 +15,8 @@
             [metlog-vault.data :as data]
             [hiccup.core :as hiccup]))
 
+(def http-thread-count 4)
+
 (defmacro get-version []
   ;; Capture compile-time property definition from Lein
   (System/getProperty "metlog-vault.version"))
@@ -78,8 +80,12 @@
                  (wrap-request-logging)))
 
 (defn start-webserver [ http-port ]
-  (log/info "Starting Vault Webserver on port" http-port)
-  (let [server (jetty/run-jetty handler  { :port http-port :join? false })]
+  (log/info "Starting Vault Webserver on port" http-port
+            (str "(HTTP threads=" http-thread-count ")"))
+  (let [server (jetty/run-jetty handler {:port http-port
+                                         :join? false
+                                         :min-threads http-thread-count
+                                         :max-threads http-thread-count})]
     (add-shutdown-hook
      (fn []
        (log/info "Shutting down webserver")
