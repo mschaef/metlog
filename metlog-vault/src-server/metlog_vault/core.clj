@@ -70,6 +70,16 @@
                 "-" (/ (- (. System (nanoTime)) begin-t) 1000000.0))
       resp)))
 
+(defn wrap-request-thread-naming [ app ]
+  (fn [ req ]
+    (let [thread (Thread/currentThread)
+          initial-thread-name (.getName thread)]
+      (try
+        (.setName thread (str initial-thread-name " " (:request-method req) " " (:uri req)))
+        (app req)
+        (finally
+          (.setName thread initial-thread-name))))))
+
 (def handler (-> all-routes
                  (data/wrap-db-connection)
                  (wrap-content-type)
@@ -77,7 +87,8 @@
                                         "text/css" 360000})
                  (wrap-not-modified)
                  (handler/site)
-                 (wrap-request-logging)))
+                 (wrap-request-logging)
+                 (wrap-request-thread-naming)))
 
 (defn start-webserver [ http-port ]
   (log/info "Starting Vault Webserver on port" http-port
