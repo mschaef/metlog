@@ -24,9 +24,9 @@
 
 (defonce query-window (reagent/atom "1d"))
 
-(def dashboard-state (reagent/atom {:series [] :text ""}))
+(defonce dashboard-state (reagent/atom {:series [] :text ""}))
 
-(def window-width (reagent/atom nil))
+(defonce window-width (reagent/atom nil))
 
 (defn <<< [f & args]
   (let [c (chan)]
@@ -80,6 +80,14 @@
       (recur))
     channel))
 
+(defn subscribe-plot-data [ series series-state ]
+  (let [ channel (series-data-channel series (query-range-channel (periodic-event-channel 15000))) ]
+    (go-loop []
+      (let [ data (<! channel) ]
+        (when data
+          (swap! series-state assoc :series-data data)
+          (recur))))))
+
 (defn series-tsplot [ series qws-arg ]
   (let [dom-node (reagent/atom nil)
         series-state (reagent/atom {})]
@@ -98,12 +106,7 @@
       :component-did-mount
       (fn [ this ]
         (reset! dom-node (reagent/dom-node this))
-        (let [ channel (series-data-channel series (query-range-channel (periodic-event-channel 15000))) ]
-          (go-loop []
-            (let [ data (<! channel) ]
-              (when data
-                (swap! series-state assoc :series-data data)
-                (recur))))))
+        (subscribe-plot-data series series-state))
       
       :reagent-render
       (fn [ & rest ]
