@@ -4,7 +4,7 @@
   (:require [reagent.core :as reagent]
             [ajax.core :as ajax]
             [cljs.reader :as reader]
-            [cljs.core.async :refer [put! close! chan <! dropping-buffer alts! pipeline]]
+            [cljs.core.async :refer [put! close! chan <! dropping-buffer alts! pipeline pub sub]]
             [cljs-time.core :as time]
             [cljs-time.coerce :as time-coerce]
             [metlog-client.tsplot :as tsplot]))
@@ -23,6 +23,34 @@
              false)))))
 
 (defonce query-window (reagent/atom "1d"))
+
+(defn periodic-event-channel [ interval-ms ]
+  (let [channel (chan)
+        put-now #(put! channel {:msg-type :timestamp :t (time/now)})]
+    (put-now)
+    (js/setInterval put-now interval-ms)
+    channel))
+
+(defonce time-event-channel (periodic-event-channel 15000))
+
+(defn range-ending-at [ end-t window-seconds ]
+  (let [begin-t (time/minus end-t (time/seconds window-seconds))]
+    {:msg-type :range
+     :begin-t (time-coerce/to-long begin-t)
+     :end-t (time-coerce/to-long end-t)}))
+
+(defn query-range-channel-2 [ time-event-channel ]
+  (let [ output (chan)
+        output-pub (pub output :msg-type)]
+    (go-loop [ time (time/now) qws @query-window ]
+      (>! output (range-ending-at time (parse-query-window qws)))
+      (when-let [ msg (<! time-event-channel)]
+        (case (:msg-type msg)
+          :timestamp (recur (:t msg) qws)
+          :query-window (recur time (:window-spec msg)))))
+    output-pub))
+
+(defonce update-pub (query-range-channel-2 time-event-channel))
 
 (defonce dashboard-state (reagent/atom {:series [] :text ""}))
 
@@ -48,45 +76,26 @@
 (defn fetch-series-names [ cb ]
   (ajax-get "/series-names" cb))
 
-(defn fetch-series-data [ series-name query-window-secs cb ]
-  (let [end-t (time/now)
-        begin-t (time/minus end-t (time/seconds query-window-secs))]
-    (ajax-get (str "/data/" series-name)
-              {:begin-t (time-coerce/to-long begin-t)
-               :end-t (time-coerce/to-long end-t)}
-              cb)))
 
-(defn periodic-event-channel [ interval-ms ]
-  (let [channel (chan (dropping-buffer 1))
-        put-now #(put! channel (time/now))]
-    (put-now)
-    (js/setInterval put-now interval-ms)
-    channel))
-
-(defn range-ending-at [ end-t ]
-  (let [begin-t (time/minus end-t (time/seconds (parse-query-window @query-window)))]
-    {:begin-t (time-coerce/to-long begin-t)
-     :end-t (time-coerce/to-long end-t)}))
-
-(defn query-range-channel [ periodic-event-channel ]
-  (let [ channel (chan (dropping-buffer 1)) ]
-    (pipeline 1 channel (map range-ending-at) periodic-event-channel)
-    channel))
+(defn range-ending-at-current-window [ end-t ]
+  (range-ending-at end-t (parse-query-window @query-window)))
 
 (defn series-data-channel [ series-name query-range-channel ]
   (let [channel (chan)]
     (go-loop []
-      (ajax-get (str "/data/" series-name) (<! query-range-channel) #(put! channel %))
-      (recur))
+      (when-let [ query-range  (<! query-range-channel)]
+        (ajax-get (str "/data/" series-name) query-range #(put! channel %))
+        (recur)))
     channel))
 
 (defn subscribe-plot-data [ series series-state ]
-  (let [ channel (series-data-channel series (query-range-channel (periodic-event-channel 15000))) ]
+  (let [update-out-chan (chan)
+        channel (series-data-channel series update-out-chan) ]
+    (sub update-pub :range update-out-chan)    
     (go-loop []
-      (let [ data (<! channel) ]
-        (when data
-          (swap! series-state assoc :series-data data)
-          (recur))))))
+      (when-let [ data (<! channel) ]
+        (swap! series-state assoc :series-data data)
+        (recur)))))
 
 (defn series-tsplot [ series qws-arg ]
   (let [dom-node (reagent/atom nil)
@@ -97,7 +106,7 @@
       (fn [ this old-argv ]
         (let [canvas (.-firstChild @dom-node)
               ctx (.getContext canvas "2d")
-              range (range-ending-at (time/now))]
+              range (range-ending-at-current-window (time/now))]
           (tsplot/draw ctx (.-clientWidth canvas) (.-clientHeight canvas)
                        (:series-data @series-state)
                        (:begin-t range)
@@ -131,6 +140,7 @@
 
 (defn end-edit [ text state ]
   (when (parse-query-window text)
+    (put! time-event-channel {:msg-type :query-window :window-spec text})
     (reset! query-window text)))
 
 (defn input-field [ initial-text text-valid? on-enter ]
