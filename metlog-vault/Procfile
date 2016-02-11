@@ -1,2 +1,0 @@
-cljs: lein cljsbuild auto
-web: lein run

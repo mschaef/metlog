@@ -19,7 +19,8 @@
 
 (defmacro get-version []
   ;; Capture compile-time property definition from Lein
-  (System/getProperty "metlog-vault.version"))
+  (or (System/getProperty "metlog-vault.version")
+      "dev"))
 
 (defn edn-response [data & [status]]
   {:status (or status 200)
@@ -30,13 +31,13 @@
   (hiccup/html
    [:html
     [:head
-     [:link {:href (str "/" (get-version) "/metlog.css")
+     [:link {:href "/metlog.css"
              :rel "stylesheet"
              :type "text/css"}]
      [:title "Metlog - " (get-version)]]
     [:body
      [:div {:id "metlog"}]
-     [:script {:src  (str "/" (get-version) "/metlog.js")
+     [:script {:src "/compiled/metlog.js"
                :type "text/javascript"}]]]))
 
 (defroutes all-routes
@@ -56,7 +57,7 @@
   
   (GET "/dashboard" [] (render-dashboard))
   
-  (route/resources (str "/" (get-version)))
+  (route/resources "/")
   
   (GET "/" [] (ring/redirect "/dashboard"))
   (route/not-found "Resource Not Found"))
