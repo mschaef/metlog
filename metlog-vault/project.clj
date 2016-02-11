@@ -22,8 +22,7 @@
 
                  [metlog-common "0.1.0-SNAPSHOT"]]
 
-  :plugins [[lein-cljsbuild "1.1.1"]
-            [lein-cooper "1.1.1"]]
+  :plugins [[lein-cljsbuild "1.1.1"]]
 
   :min-lein-version "2.5.3"
 
