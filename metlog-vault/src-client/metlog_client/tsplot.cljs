@@ -34,7 +34,7 @@
 (defn draw-ylabel [ ctx text x y ]
   (let [mt (.measureText ctx text)
         w (.-width mt)]
-    (.fillText ctx text (- x w) (+ y 8))))
+    (.fillText ctx text (- x w) (+ y 4))))
 
 (defn translate-fn [ range size ]
   (let [min (:min range)
@@ -72,6 +72,69 @@
   (.rect ctx x y w h)
   (.clip ctx))
 
+(def y-line-intervals [ 0.1 1 10 100 ])
+
+(defn range-contains-zero? [ range ]
+  (and (< (:min range) 0.0)
+       (> (:max range) 0.0)))
+
+(defn range-magnitude [ range ]
+  (- (:max range) (:min range)))
+
+(defn largest-y-range-magnitude [ y-range ]
+  (if (range-contains-zero? y-range)
+    (if (> (:max y-range) (.abs js/Math (:min y-range)))
+      {:t (/ (:max y-range) (range-magnitude y-range)) :magnitude (:max y-range)}
+      {:t (/ (:max y-range) (range-magnitude y-range)) :magnitude (- (:min y-range))})
+    {:t 1.0 :magnitude (- (:max y-range) (:min y-range)) }))
+
+(def pixels-per-y-label 30)
+
+(defn first-that [ pred? xs ]
+  (first (filter pred? xs)))
+
+(defn find-y-grid-interval [ h y-range ]
+  (let [{ t :t magnitude :magnitude } (largest-y-range-magnitude y-range)
+        avail-pixels (* t h)]
+    (first
+     (first-that #(< (second %) avail-pixels)
+                 (map #(vector % (* pixels-per-y-label (/ magnitude %)))
+                      y-line-intervals)))))
+
+(defn draw-y-grid-line [ ctx w y value emphasize? ]
+  (with-preserved-ctx ctx
+    (draw-ylabel ctx (format-ylabel value) -2 y)
+    (aset ctx "lineWidth" 0)
+    (if emphasize?
+      (aset ctx "strokeStyle" "#000000")
+      (aset ctx "strokeStyle" "#707070"))
+    (unless emphasize?
+       (.setLineDash ctx #js [ 2 2 ]))
+    (.beginPath ctx)
+    (.moveTo ctx 0 y)
+    (.lineTo ctx w y)
+    (.stroke ctx)))
+
+(defn pixel-snap [ t ]
+  (+ 0.5 (.floor js/Math t)))
+
+(defn draw-y-grid [ ctx w h y-range ]
+  (with-preserved-ctx ctx
+    (let [ty (translate-fn-invert y-range h)
+          y-interval (find-y-grid-interval h y-range)]
+      (if (range-contains-zero? y-range)
+        (let [positive-lines (.floor js/Math (/ (:max y-range) y-interval))
+              negative-lines (.floor js/Math (/ (- (:min y-range)) y-interval))]
+          (draw-y-grid-line ctx w (pixel-snap (ty 0.0)) 0.0 true)
+          (doseq [ii (range positive-lines)]
+            (draw-y-grid-line ctx w (pixel-snap (ty (* y-interval (+ ii 1)))) (* y-interval (+ ii 1)) false))
+          (doseq [ii (range negative-lines)]
+            (draw-y-grid-line ctx w (pixel-snap (ty (* (- y-interval) (+ ii 1)))) (* (- y-interval) (+ ii 1)) false)))
+        (let [ lines (.floor js/Math (/ (- (:max y-range) (:min y-range)) y-interval))]
+          (doseq [ii (range lines)]
+            (draw-y-grid-line ctx w (pixel-snap (ty (+ (:min y-range) (* y-interval (+ ii 1)))))
+                              (+ (:min y-range) (* y-interval (+ ii 1))) false)))))))
+
 (defn draw-series [ ctx w h data x-range ]
   (with-preserved-ctx ctx
     (aset ctx "lineWidth" 0)
@@ -79,13 +142,12 @@
     (aset ctx "font" "12px Arial")
     (let [y-range (rescale-range (s-yrange data) 1.2)]
       (unless (empty? data)
-        (with-preserved-ctx ctx
-          (clip-rect ctx 0 0 w h)
-          (draw-series-line ctx data x-range y-range w h))
-        (draw-ylabel ctx (format-ylabel (:min y-range)) -2 (- h 8))
-        (draw-ylabel ctx (format-ylabel (:max y-range)) -2 8)
-        (draw-xlabel ctx (format-xlabel (:min x-range)) 0 h true)
-        (draw-xlabel ctx (format-xlabel (:max x-range)) w h false)))))
+              (draw-y-grid ctx w h y-range)
+              (with-preserved-ctx ctx
+                (clip-rect ctx 0 0 w h)
+                (draw-series-line ctx data x-range y-range w h))
+              (draw-xlabel ctx (format-xlabel (:min x-range)) 0 h true)
+              (draw-xlabel ctx (format-xlabel (:max x-range)) w h false))))) 
 
 (defn draw-series-background [ ctx w h ]
   (with-preserved-ctx ctx
@@ -99,7 +161,6 @@
     (aset ctx "strokeStyle" "#000000")
     (.moveTo ctx 0.5 0.5)
     (.lineTo ctx 0.5 (- h 0.5))
-    (.lineTo ctx (- w 0.5) (- h 0.5))
     (.stroke ctx)))
 
 (defn draw [ ctx w h data begin-t end-t]
