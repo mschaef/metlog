@@ -72,7 +72,10 @@
   (.rect ctx x y w h)
   (.clip ctx))
 
-(def y-line-intervals [ 0.1 1 10 100 ])
+(def y-line-intervals [0.1 0.2 0.5
+                       1 2 5
+                       10 20 50
+                       100 200 500])
 
 (defn range-contains-zero? [ range ]
   (and (< (:min range) 0.0)
@@ -88,7 +91,7 @@
       {:t (/ (:max y-range) (range-magnitude y-range)) :magnitude (- (:min y-range))})
     {:t 1.0 :magnitude (- (:max y-range) (:min y-range)) }))
 
-(def pixels-per-y-label 30)
+(def pixels-per-y-label 20)
 
 (defn first-that [ pred? xs ]
   (first (filter pred? xs)))
