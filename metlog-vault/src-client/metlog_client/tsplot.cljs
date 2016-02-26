@@ -10,6 +10,61 @@
 (def tsplot-right-margin 5)
 (def y-axis-space 40)
 
+(def pixels-per-y-label 20)
+
+(def y-line-intervals [0.1 0.2 0.5
+                       1 2 5
+                       10 20 50
+                       100 200 500])
+
+(def stroke-styles
+  {:grid
+   {:line-width 0
+    :stroke-style "#707070"
+    :line-dash #js [ 2 2]}
+
+   :grid-emphasis
+   {:line-width 0
+    :stroke-style "#000000"
+    :line-dash #js [ ]}
+
+   :series-line
+   {:line-width 0
+    :stroke-style "#0000FF"
+    :line-dash #js [ ]}
+   
+   :frame
+   {:line-width 1
+    :stroke-style "#000000"
+    :line-dash #js [ ]}})
+
+(defn floor [ x ]
+  (.floor js/Math x))
+
+(defn pixel-snap [ t ]
+  (+ 0.5 (floor t)))
+
+(defn range-contains-zero? [ range ]
+  (and (< (:min range) 0.0)
+       (> (:max range) 0.0)))
+
+(defn range-magnitude [ range ]
+  (- (:max range) (:min range)))
+
+(defn clip-rect [ ctx x y w h ]
+  (.beginPath ctx)
+  (.rect ctx x y w h)
+  (.clip ctx))
+
+(defn first-that [ pred? xs ]
+  (first (filter pred? xs)))
+
+(defn draw-line [ ctx [ x-1 y-1 ] [ x-2 y-2 ] ]
+  (.beginPath ctx)
+  (.moveTo ctx x-1 y-1)
+  (.lineTo ctx x-2 y-2)
+  (.stroke ctx))
+
 (defn s-yrange [ samples ]
   (loop [samples (next samples)
          min (:val (first samples))
@@ -22,7 +77,7 @@
                (if (> val max) val max))))))
 
 (defn rescale-range [ range factor ]
-  (let [ scaled-delta (* (/ (- factor 1) 2) (- (:max range) (:min range) )) ]
+  (let [ scaled-delta (* (/ (- factor 1) 2) (range-magnitude range)) ]
     {:max (+ (:max range) scaled-delta)
      :min (- (:min range) scaled-delta)}))
 
@@ -67,34 +122,12 @@
 (defn format-ylabel [ val ]
   (.toFixed val 2))
 
-(defn clip-rect [ ctx x y w h ]
-  (.beginPath ctx)
-  (.rect ctx x y w h)
-  (.clip ctx))
-
-(def y-line-intervals [0.1 0.2 0.5
-                       1 2 5
-                       10 20 50
-                       100 200 500])
-
-(defn range-contains-zero? [ range ]
-  (and (< (:min range) 0.0)
-       (> (:max range) 0.0)))
-
-(defn range-magnitude [ range ]
-  (- (:max range) (:min range)))
-
 (defn largest-y-range-magnitude [ y-range ]
   (if (range-contains-zero? y-range)
     (if (> (:max y-range) (.abs js/Math (:min y-range)))
       {:t (/ (:max y-range) (range-magnitude y-range)) :magnitude (:max y-range)}
       {:t (/ (:max y-range) (range-magnitude y-range)) :magnitude (- (:min y-range))})
-    {:t 1.0 :magnitude (- (:max y-range) (:min y-range)) }))
-
-(def pixels-per-y-label 20)
-
-(defn first-that [ pred? xs ]
-  (first (filter pred? xs)))
+    {:t 1.0 :magnitude (range-magnitude y-range) }))
 
 (defn find-y-grid-interval [ h y-range ]
   (let [{ t :t magnitude :magnitude } (largest-y-range-magnitude y-range)
@@ -104,44 +137,41 @@
                  (map #(vector % (* pixels-per-y-label (/ magnitude %)))
                       y-line-intervals)))))
 
+(defn set-stroke-style [ ctx style-name ]
+  (if-let [ style (get stroke-styles style-name false) ]
+    (do
+      (aset ctx "lineWidth" (:line-width style))      
+      (aset ctx "strokeStyle" (:stroke-style style))
+      (.setLineDash ctx (:line-dash style)))
+    (.error js/console "Unknown stroke style:" (pr-str style-name))))
+
 (defn draw-y-grid-line [ ctx w y value emphasize? ]
   (with-preserved-ctx ctx
     (draw-ylabel ctx (format-ylabel value) -2 y)
-    (aset ctx "lineWidth" 0)
-    (if emphasize?
-      (aset ctx "strokeStyle" "#000000")
-      (aset ctx "strokeStyle" "#707070"))
-    (unless emphasize?
-       (.setLineDash ctx #js [ 2 2 ]))
-    (.beginPath ctx)
-    (.moveTo ctx 0 y)
-    (.lineTo ctx w y)
-    (.stroke ctx)))
-
-(defn pixel-snap [ t ]
-  (+ 0.5 (.floor js/Math t)))
+    (set-stroke-style ctx (if emphasize? :grid-emphasis :grid))
+    (draw-line ctx [ 0 y ] [ w y ])))
 
 (defn draw-y-grid [ ctx w h y-range ]
   (with-preserved-ctx ctx
     (let [ty (translate-fn-invert y-range h)
           y-interval (find-y-grid-interval h y-range)]
       (if (range-contains-zero? y-range)
-        (let [positive-lines (.floor js/Math (/ (:max y-range) y-interval))
-              negative-lines (.floor js/Math (/ (- (:min y-range)) y-interval))]
+        (let [positive-lines (floor (/ (:max y-range) y-interval))
+              negative-lines (floor (/ (- (:min y-range)) y-interval))]
           (draw-y-grid-line ctx w (pixel-snap (ty 0.0)) 0.0 true)
           (doseq [ii (range positive-lines)]
             (draw-y-grid-line ctx w (pixel-snap (ty (* y-interval (+ ii 1)))) (* y-interval (+ ii 1)) false))
           (doseq [ii (range negative-lines)]
             (draw-y-grid-line ctx w (pixel-snap (ty (* (- y-interval) (+ ii 1)))) (* (- y-interval) (+ ii 1)) false)))
-        (let [ lines (.floor js/Math (/ (- (:max y-range) (:min y-range)) y-interval))]
+        (let [ lines (floor (/ (range-magnitude y-range) y-interval))]
           (doseq [ii (range lines)]
             (draw-y-grid-line ctx w (pixel-snap (ty (+ (:min y-range) (* y-interval (+ ii 1)))))
                               (+ (:min y-range) (* y-interval (+ ii 1))) false)))))))
 
 (defn draw-series [ ctx w h data x-range ]
   (with-preserved-ctx ctx
-    (aset ctx "lineWidth" 0)
-    (aset ctx "strokeStyle" "#0000FF")
+    (set-stroke-style ctx :series-line)
+
     (aset ctx "font" "12px Arial")
     (let [y-range (rescale-range (s-yrange data) 1.2)]
       (unless (empty? data)
@@ -159,12 +189,8 @@
 
 (defn draw-frame [ ctx w h ]
   (with-preserved-ctx ctx
-    (.beginPath ctx)
-    (aset ctx "lineWidth" 1)
-    (aset ctx "strokeStyle" "#000000")
-    (.moveTo ctx 0.5 0.5)
-    (.lineTo ctx 0.5 (- h 0.5))
-    (.stroke ctx)))
+    (set-stroke-style ctx :frame)
+    (draw-line ctx [ 0.5 0.5 ] [ 0.5 (- h 0.5) ] )))
 
 (defn draw [ ctx w h data begin-t end-t]
   (draw-series-background ctx w h)
