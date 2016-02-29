@@ -4,6 +4,14 @@
             [cljs-time.format :as time-format]
             [cljs-time.coerce :as time-coerce]))
 
+
+(defn floor [ x ]
+  (.floor js/Math x))
+
+(defn pixel-snap [ t ]
+  (+ 0.5 (floor t)))
+
+
 (def dtf-axis-label (time-format/formatter "MM-dd HH:mm"))
 (def dtf-header (time-format/formatter "yyyy-MM-dd HH:mm"))
 (def x-axis-space 20)
@@ -12,16 +20,17 @@
 
 (def pixels-per-y-label 20)
 
-(def y-line-intervals [0.1 0.2 0.5
-                       1 2 5
-                       10 20 50
-                       100 200 500])
+(def y-line-intervals
+  (mapcat (fn [ scale ]
+            (map #(* % (.pow js/Math 10 scale))
+                 [ 1 2 5 ]))
+          (range -3 3)))
 
 (def stroke-styles
   {:grid
    {:line-width 0
     :stroke-style "#707070"
-    :line-dash #js [ 2 2]}
+    :line-dash #js [ 2 2 ]}
 
    :grid-emphasis
    {:line-width 0
@@ -37,12 +46,6 @@
    {:line-width 1
     :stroke-style "#000000"
     :line-dash #js [ ]}})
-
-(defn floor [ x ]
-  (.floor js/Math x))
-
-(defn pixel-snap [ t ]
-  (+ 0.5 (floor t)))
 
 (defn range-contains-zero? [ range ]
   (and (< (:min range) 0.0)
@@ -155,25 +158,21 @@
   (with-preserved-ctx ctx
     (let [ty (translate-fn-invert y-range h)
           y-interval (find-y-grid-interval h y-range)]
-      (if (range-contains-zero? y-range)
-        (let [positive-lines (floor (/ (:max y-range) y-interval))
-              negative-lines (floor (/ (- (:min y-range)) y-interval))]
-          (draw-y-grid-line ctx w (pixel-snap (ty 0.0)) 0.0 true)
-          (doseq [ii (range positive-lines)]
-            (draw-y-grid-line ctx w (pixel-snap (ty (* y-interval (+ ii 1)))) (* y-interval (+ ii 1)) false))
-          (doseq [ii (range negative-lines)]
-            (draw-y-grid-line ctx w (pixel-snap (ty (* (- y-interval) (+ ii 1)))) (* (- y-interval) (+ ii 1)) false)))
-        (let [ lines (floor (/ (range-magnitude y-range) y-interval))]
-          (doseq [ii (range lines)]
-            (draw-y-grid-line ctx w (pixel-snap (ty (+ (:min y-range) (* y-interval (+ ii 1)))))
-                              (+ (:min y-range) (* y-interval (+ ii 1))) false)))))))
+      (doseq [ y (if (range-contains-zero? y-range)
+                   (concat (map #(* y-interval %)
+                                (range (/ (:max y-range) y-interval)))
+                           (map #(* (- y-interval) (+ % 1))
+                                (range (- (/ (- (:min y-range)) y-interval) 1))))
+                   (map #(+ (:min y-range) (* y-interval (+ % 1)))
+                        (range (/ (range-magnitude y-range) y-interval))))]
+        (draw-y-grid-line ctx w (pixel-snap (ty y)) y (= y 0))))))
 
 (defn draw-series [ ctx w h data x-range ]
   (with-preserved-ctx ctx
     (set-stroke-style ctx :series-line)
 
     (aset ctx "font" "12px Arial")
-    (let [y-range (rescale-range (s-yrange data) 1.2)]
+    (let [y-range (rescale-range (s-yrange data) 1.1)]
       (unless (empty? data)
               (draw-y-grid ctx w h y-range)
               (with-preserved-ctx ctx
