@@ -27,11 +27,35 @@
                  [ 1 2 5 ]))
           (range -3 3)))
 
+(defn seconds [ seconds ] (* 1000 seconds))
+(defn minutes [ minutes ] (seconds (* 60 minutes)))
+(defn hours [ hours ] (minutes (* 60 hours)))
+(defn days [ days ] (hours (* 24 days)))
+
 (def x-line-intervals
-  (mapcat (fn [ scale ]
-            (map #(* % scale 1000)
-                 [ 1 2 3 6 12 ]))
-          [ 1 60 3600 86400 ]))
+  [(seconds 1)
+   (seconds 2)
+   (seconds 5)
+   (seconds 10)
+   (seconds 15)
+   (seconds 30)
+   (minutes 1)
+   (minutes 2)
+   (minutes 5)
+   (minutes 10)
+   (minutes 15)
+   (minutes 30)
+   (hours 1)
+   (hours 2)
+   (hours 3)
+   (hours 6)
+   (hours 12)
+   (days 1)
+   (days 2)
+   (days 3)
+   (days 7)
+   (days 14)
+   (days 30)])
 
 (def stroke-styles
   {:grid
