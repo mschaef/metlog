@@ -18,6 +18,7 @@
 (def tsplot-right-margin 5)
 (def y-axis-space 40)
 
+(def pixels-per-x-label 100)
 (def pixels-per-y-label 20)
 
 (def y-line-intervals
@@ -28,9 +29,9 @@
 
 (def x-line-intervals
   (mapcat (fn [ scale ]
-            (map #(* % scale)
-                 [ 1 2 3 4 5 6 ]))
-          [1 60 3600 86400 604800]))
+            (map #(* % scale 1000)
+                 [ 1 2 3 6 12 ]))
+          [ 1 60 3600 86400 ]))
 
 (def stroke-styles
   {:grid
@@ -175,16 +176,30 @@
                         (range (/ (range-magnitude y-range) y-interval))))]
         (draw-y-grid-line ctx w (pixel-snap (ty y)) y (= y 0))))))
 
+(defn draw-x-grid-line [ ctx h x value ]
+  (with-preserved-ctx ctx
+    (draw-xlabel ctx (format-xlabel value) x h false)
+    (set-stroke-style ctx :grid)
+    (draw-line ctx [ x 0 ] [ x h ])))
 
+(defn find-x-grid-interval [ w x-range ]
+  (let [magnitude (range-magnitude x-range)
+        max-label-count (floor (/ w pixels-per-x-label))]
+    (first
+     (first-that #(< (second %) max-label-count)
+                 (map #(vector % (/ magnitude %))
+                      x-line-intervals)))))
 
 (defn draw-x-grid [ ctx w h x-range ]
-  (draw-xlabel ctx (format-xlabel (:min x-range)) 0 h true)
-  (draw-xlabel ctx (format-xlabel (:max x-range)) w h false))
+  (let [x-interval (find-x-grid-interval w x-range)
+        tx (translate-fn x-range w)]
+    (doseq [ x (map #(- (:max x-range) (* % x-interval))
+                    (range 0 (/ (range-magnitude x-range) x-interval)))]
+      (draw-x-grid-line ctx h (tx x) x))))
 
 (defn draw-series [ ctx w h data x-range ]
   (with-preserved-ctx ctx
     (set-stroke-style ctx :series-line)
-
     (aset ctx "font" "12px Arial")
     (let [y-range (rescale-range (s-yrange data) 1.1)]
       (unless (empty? data)
