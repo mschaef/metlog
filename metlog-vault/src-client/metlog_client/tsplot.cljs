@@ -26,6 +26,12 @@
                  [ 1 2 5 ]))
           (range -3 3)))
 
+(def x-line-intervals
+  (mapcat (fn [ scale ]
+            (map #(* % scale)
+                 [ 1 2 3 4 5 6 ]))
+          [1 60 3600 86400 604800]))
+
 (def stroke-styles
   {:grid
    {:line-width 0
@@ -85,14 +91,16 @@
      :min (- (:min range) scaled-delta)}))
 
 (defn draw-xlabel [ ctx text x y left? ]
-  (let [mt (.measureText ctx text)
-        w (.-width mt)]
-    (.fillText ctx text (if left? x (- x w)) (+ 12 y))))
+  (with-preserved-ctx ctx
+    (aset ctx "textBaseline" "top")
+    (aset ctx "textAlign" (if left? "left" "right"))
+    (.fillText ctx text x y)))
 
 (defn draw-ylabel [ ctx text x y ]
-  (let [mt (.measureText ctx text)
-        w (.-width mt)]
-    (.fillText ctx text (- x w) (+ y 4))))
+  (with-preserved-ctx ctx
+    (aset ctx "textBaseline" "middle")
+    (aset ctx "textAlign" "right")
+    (.fillText ctx text x y)))
 
 (defn translate-fn [ range size ]
   (let [min (:min range)
@@ -167,6 +175,12 @@
                         (range (/ (range-magnitude y-range) y-interval))))]
         (draw-y-grid-line ctx w (pixel-snap (ty y)) y (= y 0))))))
 
+
+
+(defn draw-x-grid [ ctx w h x-range ]
+  (draw-xlabel ctx (format-xlabel (:min x-range)) 0 h true)
+  (draw-xlabel ctx (format-xlabel (:max x-range)) w h false))
+
 (defn draw-series [ ctx w h data x-range ]
   (with-preserved-ctx ctx
     (set-stroke-style ctx :series-line)
@@ -174,12 +188,11 @@
     (aset ctx "font" "12px Arial")
     (let [y-range (rescale-range (s-yrange data) 1.1)]
       (unless (empty? data)
-              (draw-y-grid ctx w h y-range)
-              (with-preserved-ctx ctx
-                (clip-rect ctx 0 0 w h)
-                (draw-series-line ctx data x-range y-range w h))
-              (draw-xlabel ctx (format-xlabel (:min x-range)) 0 h true)
-              (draw-xlabel ctx (format-xlabel (:max x-range)) w h false))))) 
+        (draw-y-grid ctx w h y-range)
+        (draw-x-grid ctx w h x-range)
+        (with-preserved-ctx ctx
+          (clip-rect ctx 0 0 w h)
+          (draw-series-line ctx data x-range y-range w h)))))) 
 
 (defn draw-series-background [ ctx w h ]
   (with-preserved-ctx ctx
@@ -191,7 +204,7 @@
     (set-stroke-style ctx :frame)
     (draw-line ctx [ 0.5 0.5 ] [ 0.5 (- h 0.5) ] )))
 
-(defn draw [ ctx w h data begin-t end-t]
+(defn draw [ ctx w h data begin-t end-t ]
   (draw-series-background ctx w h)
   (let [w (- w y-axis-space tsplot-right-margin)
         h (- h x-axis-space)]
