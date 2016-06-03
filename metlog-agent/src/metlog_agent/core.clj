@@ -105,7 +105,7 @@
 (defn -main
   "Agent entry point"
   [& args]
-  (maybe-load-config-file "config.clj")
+  (maybe-load-config-file (config-property "agent.configurationFile" "config.clj"))
 
   (doseq [ [ poll-interval sensors ] (group-by :poll-interval (all-sensors))]
     (log/info "Scheduling poll job @" poll-interval "msec. for" (map :sensor-name sensors))
