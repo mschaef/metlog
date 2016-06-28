@@ -7,7 +7,8 @@
             [cljs.core.async :refer [put! close! chan <! dropping-buffer alts! pipeline pub sub]]
             [cljs-time.core :as time]
             [cljs-time.coerce :as time-coerce]
-            [metlog-client.tsplot :as tsplot]))
+            [metlog-client.tsplot :as tsplot]
+            [metlog-client.autocomplete :as autocomplete]))
 
 (defn parse-query-window [ text ]
   (let [ text (.trim text) ]
@@ -158,6 +159,7 @@
   [:div.header
    [:span#app-name
     "Metlog"]
+   [autocomplete/input-field #(:all-series @dashboard-state)]
    [input-field @query-window parse-query-window #(end-edit % dashboard-state)]])
 
 (defn dashboard [ ]
@@ -175,7 +177,9 @@
                   (js/document.getElementById "metlog"))
   (.addEventListener js/window "resize" on-window-resize)
   (go
-    (swap! dashboard-state assoc :series (<! (<<< fetch-series-names)))))
+    (let [ all-series (<! (<<< fetch-series-names))]
+      (swap! dashboard-state merge {:all-series all-series
+                                    :series [ (first all-series)]}))))
 
 (run)
 

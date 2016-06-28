@@ -16,7 +16,6 @@ div.header {
     background-color: white;
     color: black;
     padding-left: 1em;
-    font-size: 150%;
     top: 0px;
     left: 0px;
     position: fixed;
@@ -68,7 +67,6 @@ div.series-pane div.series-pane-header {
     padding-top: 0.25em;
     padding-bottom: 0.25em;
     margin-bottom: 0.25em;
-
 }
 
 div.series-pane div.series-pane-header span.series-name {
@@ -77,3 +75,26 @@ div.series-pane div.series-pane-header span.series-name {
     padding-right: 0.66em;
 }
 
+div.header-element {
+    display: inline-block;
+}
+
+div.autocomplete {
+    position: absolute;
+}
+
+div.autocomplete input {
+    width: 100%;
+}
+
+div.autocomplete-completions {
+    position: relative;
+    top: 0px;
+
+    background: white;
+    box-shadow: 1px 1px 1px 0px rgba(0,0,0,0.2);
+}
+
+div.autocomplete-completion-entry {
+    padding: 0.2em;
+}
