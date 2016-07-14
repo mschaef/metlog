@@ -27,6 +27,8 @@
 
 (def sensor-defs (atom {}))
 
+(def vault-url (config-property "vault.url" "http://localhost:8080/data"))
+
 (defn add-sensor-def [ sensor-name sensor-fn ]
   (swap! sensor-defs assoc sensor-name sensor-fn))
 
@@ -88,7 +90,7 @@
     (when-let [ snapshot (take-result-queue-snapshot) ]
       (.addAll update-queue snapshot))
     (unless (.isEmpty update-queue)
-            (let [url (config-property "vault.url" "http://localhost:8080/data")
+            (let [url vault-url
                   readings (clean-readings (seq update-queue))
                   data { :body (pr-str readings)}]
               (log/info "Posting" (count readings) "reading(s) to" url)
