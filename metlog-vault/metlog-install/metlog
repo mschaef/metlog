@@ -12,10 +12,15 @@
 
 # Author: Mike Schaeffer <mike@mschaef.com>
 
-
 . /lib/init/vars.sh
 . /lib/lsb/init-functions
 
+function require_root() {
+    if [ `id -u` -ne 0 ]; then
+        echo "You need root privileges to run this script"
+        exit 1
+    fi
+}
 
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
 NAME="metlog"
@@ -30,40 +35,33 @@ PIDFILE=/var/run/metlog.pid
 
 AUTHBIND=no
 
+JAVA_OPTS=""
+
 # Metlog Configuration
 
 METLOG_USER=metlog
-
-METLOG_PATH=/home/metlog
 
 METLOG_JAR=/usr/share/metlog/metlog-vault-standalone.jar
 METLOG_DB_SUBNAME=metlog-vault
 METLOG_HTTP_PORT=8080
 
-JAVA_OPTS=""
+### Read configuration variable file if it is present
 
-# Get to it...
+[ -r /etc/default/metlog ] && . /etc/default/metlog
 
-# Exit if not root
-if [ `id -u` -ne 0 ]; then
-    echo "You need root privileges to run this script"
-    exit 1
-fi
+### Verify runtime environment
 
-# Exit if the JAVA is not installed
 if [ ! -x "$JAVA" ]; then
     echo "The expected JAVA was not found at: $JAVA"
     exit 1
 fi
 
-# Exit if the JAR is not installed
 if [ ! -r "$METLOG_JAR" ]; then
    echo "The expected Metlog jar was not found at: $METLOG_JAR"
    exit 1
 fi
 
-# Read configuration variable file if it is present
-[ -r /etc/default/metlog ] && . /etc/default/metlog
+### Start assembling commands
 
 JAVA_OPTS="-Ddb.subname=/var/lib/metlog/${METLOG_DB_SUBNAME}"
 JAVA_OPTS="$JAVA_OPTS -Dhttp.port=${METLOG_HTTP_PORT}"
@@ -80,6 +78,8 @@ if [ "$AUTHBIND" = "yes" -a "$1" = "start" ]; then
    METLOG_SH="/usr/bin/authbind --deep /bin/bash -c '$METLOG_SH'"
 fi
 
+### Operations
+
 #
 # Function that starts the daemon/service
 #
@@ -89,6 +89,8 @@ fi
 #   2 if daemon could not be started
 do_start()
 {
+    require_root
+    
 	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $JAVA --test > /dev/null \
 		|| return 1
 
@@ -108,6 +110,8 @@ do_start()
 #   other if a failure occurred
 do_stop()
 {
+    require_root
+    
 	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE
 	RETVAL="$?"
 	[ "$RETVAL" = 2 ] && return 2
@@ -115,6 +119,8 @@ do_stop()
 	rm -f $PIDFILE
 	return "$RETVAL"
 }
+
+### Main command dispatch
 
 case "$1" in
   start)
