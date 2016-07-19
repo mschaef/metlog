@@ -15,58 +15,40 @@
 . /lib/init/vars.sh
 . /lib/lsb/init-functions
 
-function require_root() {
-    if [ `id -u` -ne 0 ]; then
-        echo "You need root privileges to run this script"
-        exit 1
-    fi
-}
-
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
-NAME="metlog"
-DESC="Metlog Metrics Vault"
 
 SCRIPTNAME=${0##*/}
 SCRIPTNAME=${SCRIPTNAME#[SK]??}
 
+# Metlog Configuration
+
+SERVICE_NAME=${SCRIPTNAME}
+SERVICE_DESC="Metlog Metrics Vault"
+
 JAVA=/usr/bin/java
 
-PIDFILE=/var/run/metlog.pid
+PIDFILE=/var/run/${SERVICE_NAME}.pid
 
 AUTHBIND=no
 
 JAVA_OPTS=""
 
-# Metlog Configuration
+METLOG_USER=${SERVICE_NAME}
 
-METLOG_USER=metlog
-
-METLOG_JAR=/usr/share/metlog/metlog-vault-standalone.jar
+METLOG_JAR=metlog-vault-standalone.jar
 METLOG_DB_SUBNAME=metlog-vault
 METLOG_HTTP_PORT=8080
 
 ### Read configuration variable file if it is present
 
-[ -r /etc/default/metlog ] && . /etc/default/metlog
-
-### Verify runtime environment
-
-if [ ! -x "$JAVA" ]; then
-    echo "The expected JAVA was not found at: $JAVA"
-    exit 1
-fi
-
-if [ ! -r "$METLOG_JAR" ]; then
-   echo "The expected Metlog jar was not found at: $METLOG_JAR"
-   exit 1
-fi
+[ -r /etc/default/${SERVICE_NAME} ] && . /etc/default/${SERVICE_NAME}
 
 ### Start assembling commands
 
-JAVA_OPTS="-Ddb.subname=/var/lib/metlog/${METLOG_DB_SUBNAME}"
+JAVA_OPTS="-Ddb.subname=/var/lib/${SERVICE_NAME}/${METLOG_DB_SUBNAME}"
 JAVA_OPTS="$JAVA_OPTS -Dhttp.port=${METLOG_HTTP_PORT}"
-JAVA_OPTS="$JAVA_OPTS -Dlogback.configurationFile=/etc/metlog/logback.xml"
-JAVA_OPTS="$JAVA_OPTS -jar ${METLOG_JAR}"
+JAVA_OPTS="$JAVA_OPTS -Dlogback.configurationFile=/etc/${SERVICE_NAME}/logback.xml"
+JAVA_OPTS="$JAVA_OPTS -jar /usr/share/${SERVICE_NAME}/${METLOG_JAR}"
 
 if [ "$AUTHBIND" = "yes" -a "$1" = "start" ]; then
    JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true"
@@ -74,9 +56,19 @@ fi
 
 METLOG_SH="$JAVA $JAVA_OPTS"
 
-if [ "$AUTHBIND" = "yes" -a "$1" = "start" ]; then
+if [ "$AUTHBIND" = "yes" ]; then
    METLOG_SH="/usr/bin/authbind --deep /bin/bash -c '$METLOG_SH'"
 fi
+
+### Functions
+
+
+function require_root() {
+    if [ `id -u` -ne 0 ]; then
+        echo "You need root privileges to run this script"
+        exit 1
+    fi
+}
 
 ### Operations
 
@@ -124,7 +116,7 @@ do_stop()
 
 case "$1" in
   start)
-	[ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+	[ "$VERBOSE" != no ] && log_daemon_msg "Starting $SERVICE_DESC" "$SERVICE_NAME"
 	do_start
 	case "$?" in
 		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
@@ -132,7 +124,7 @@ case "$1" in
 	esac
 	;;
   stop)
-	[ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+	[ "$VERBOSE" != no ] && log_daemon_msg "Stopping $SERVICE_DESC" "$SERVICE_NAME"
 	do_stop
 	case "$?" in
 		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
@@ -140,11 +132,11 @@ case "$1" in
 	esac
 	;;
   status)
-       status_of_proc -p $PIDFILE "$JAVA" "$NAME" && exit 0 || exit $?
+       status_of_proc -p $PIDFILE "$JAVA" "$SERVICE_NAME" && exit 0 || exit $?
        ;;
 
   restart|force-reload)
-	log_daemon_msg "Restarting $DESC" "$NAME"
+	log_daemon_msg "Restarting $SERVICE_DESC" "$SERVICE_NAME"
 	do_stop
         sleep 5 # Should be synchronous wait for shutdown.
 	case "$?" in
