@@ -5,18 +5,18 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/clojurescript "1.7.228"]
+                 [org.clojure/clojurescript "1.9.93"]
                  [com.ksmpartners/sql-file "0.1.0"
                   :exclusions [org.clojure/java.jdbc]]                 
-                 [ring/ring-jetty-adapter "1.4.0"]
+                 [ring/ring-jetty-adapter "1.5.0"]
                  [slester/ring-browser-caching "0.1.1"]
-                 [compojure "1.4.0"
+                 [com.cognitect/transit-clj "0.8.285"]                 
+                 [compojure "1.5.1"
                   :exclusions [commons-codec]]
                  [hiccup "1.0.5"]
                  
-                 [org.clojure/core.async "0.2.374"]
-                 ;; Old version to work around https://github.com/JulianBirch/cljs-ajax/issues/109
-                 [cljs-ajax "0.3.11"] 
+                 [org.clojure/core.async "0.2.385"]
+                 [cljs-ajax "0.5.8"] 
                  [reagent "0.5.1"]
                  [com.andrewmcveigh/cljs-time "0.4.0"]
 
@@ -54,12 +54,12 @@
              :server-logfile "log/figwheel.log"}
   
   :profiles {:dev
-             {:dependencies [[figwheel "0.5.0-6"]
-                             [figwheel-sidecar "0.5.0-6"]
+             {:dependencies [[figwheel "0.5.4-7"]
+                             [figwheel-sidecar "0.5.4-7"]
                              [com.cemerick/piggieback "0.2.1"]
                              [org.clojure/tools.nrepl "0.2.12"]]
 
-              :plugins [[lein-figwheel "0.5.0-6"]]
+              :plugins [[lein-figwheel "0.5.4-7"]]
 
               :cljsbuild {:builds
                           {:test

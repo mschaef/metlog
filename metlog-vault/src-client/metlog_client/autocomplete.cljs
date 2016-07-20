@@ -54,4 +54,4 @@
           (when (:display-completions @state)
             [autocomplete-completions completions (:selected-index @state)])]]))))
 
-(( 1) 2)
+

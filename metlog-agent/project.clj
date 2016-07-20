@@ -6,9 +6,10 @@
   
   :dependencies [[metlog-common "0.1.0-SNAPSHOT"]
                  [org.clojure/clojure "1.8.0"]
-                 [clj-http "2.0.1"
+                 [clj-http "3.1.0"
                   :exclusions [com.fasterxml.jackson.core/jackson-core]]
-                 [overtone/at-at "1.2.0"]]
+                 [overtone/at-at "1.2.0"]
+                 [com.cognitect/transit-clj "0.8.285"]]
   
   :main ^:skip-aot metlog-agent.core
   :target-path "target/%s"

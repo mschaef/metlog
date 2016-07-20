@@ -157,9 +157,8 @@
 
 (defn header [ ]
   [:div.header
-   [:span#app-name
-    "Metlog"]
-   [autocomplete/input-field #(:all-series @dashboard-state)]
+   [:span#app-name "Metlog"]
+;   [autocomplete/input-field #(:all-series @dashboard-state)]
    [input-field @query-window parse-query-window #(end-edit % dashboard-state)]])
 
 (defn dashboard [ ]

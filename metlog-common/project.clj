@@ -9,6 +9,6 @@
 
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/tools.logging "0.3.1"]
-                 [ch.qos.logback/logback-classic "1.1.3"]
-                 [org.clojure/java.jdbc "0.4.2"]
+                 [ch.qos.logback/logback-classic "1.1.7"]
+                 [org.clojure/java.jdbc "0.6.1"]
                  [org.clojure/data.json "0.2.6"]])

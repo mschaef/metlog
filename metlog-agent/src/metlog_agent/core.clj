@@ -4,7 +4,14 @@
   (:require [clojure.tools.logging :as log]
             [clojure.java.io :as jio]
             [overtone.at-at :as at-at]
-            [clj-http.client :as http]))
+            [clj-http.client :as http]
+            [cognitect.transit :as transit]))
+
+(defn pr-transit [ val ]
+  (let [out (java.io.ByteArrayOutputStream. 4096)
+        writer (transit/writer out :json)]
+    (transit/write writer val)
+    (.toString out)))
 
 (defn seconds [ seconds ] (* 1000 seconds))
 (defn minutes [ minutes ] (seconds (* 60 minutes)))
@@ -92,7 +99,7 @@
     (unless (.isEmpty update-queue)
             (let [url vault-url
                   readings (clean-readings (seq update-queue))
-                  data { :body (pr-str readings)}]
+                  data { :body (pr-transit readings)}]
               (log/info "Posting" (count readings) "reading(s) to" url)
               (let [ post-response (http/post url data) ]
                 (when (= (:status post-response) 200)

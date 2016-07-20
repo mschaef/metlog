@@ -11,7 +11,7 @@
             [ring.util.response :as ring]
             [compojure.route :as route]
             [compojure.handler :as handler]
-            [clojure.edn :as edn]
+            [cognitect.transit :as transit]            
             [metlog-vault.data :as data]
             [hiccup.core :as hiccup]))
 
@@ -22,10 +22,21 @@
   (or (System/getProperty "metlog-vault.version")
       "dev"))
 
-(defn edn-response [data & [status]]
+(defn pr-transit [ val ]
+  (let [out (java.io.ByteArrayOutputStream. 4096)
+        writer (transit/writer out :json)]
+    (transit/write writer val)
+    (.toString out)))
+
+(defn read-transit [ string ]
+  (let [in (java.io.ByteArrayInputStream. (.getBytes string))
+        reader (transit/reader in :json)]
+    (transit/read reader)))
+
+(defn transit-response [data & [status]]
   {:status (or status 200)
-   :headers {"Content-Type" "application/edn"}
-   :body (pr-str data)})
+   :headers {"Content-Type" "application/transit+json"}
+   :body (pr-transit data)})
 
 (defn render-dashboard []
   (hiccup/html
@@ -42,17 +53,17 @@
 
 (defroutes all-routes
   (GET "/series-names" []
-    (edn-response
+    (transit-response
      (data/get-series-names)))
 
   (GET "/data/:series-name" {params :params}
-    (edn-response
+    (transit-response
      (data/get-data-for-series-name (:series-name params)
                                     (try-parse-long (:begin-t params))
                                     (try-parse-long (:end-t params)))))
 
   (POST "/data" req
-    (data/store-data-samples (edn/read-string (slurp (:body req))))
+    (data/store-data-samples (read-transit (slurp (:body req))))
     "Incoming data accepted.")
   
   (GET "/dashboard" [] (render-dashboard))
