@@ -61,7 +61,7 @@
   {:grid
    {:line-width 0
     :stroke-style "#707070"
-    :line-dash #js [ 2 2 ]}
+    :line-dash #js [ 1 1 ]}
 
    :grid-emphasis
    {:line-width 0
