@@ -72,44 +72,30 @@ function require_root() {
 
 ### Operations
 
-#
-# Function that starts the daemon/service
-#
-# Return:
-#   0 if daemon has been started
-#   1 if daemon was already running
-#   2 if daemon could not be started
 do_start()
 {
     require_root
     
 	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $JAVA --test > /dev/null \
-		|| return 1
+		|| return 1 # daemon was already running
 
 	start-stop-daemon --start --quiet --pidfile $PIDFILE  --background \
                       --make-pidfile --chuid ${METLOG_USER} \
                       --exec /bin/bash -- -c "$METLOG_SH" \
-		|| return 2
+		|| return 2 # daemon could not be started
 }
 
-#
-# Function that stops the daemon/service
-#
-# Return:
-#   0 if daemon has been stopped
-#   1 if daemon was already stopped
-#   2 if daemon could not be stopped
-#   other if a failure occurred
 do_stop()
 {
     require_root
     
 	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE
 	RETVAL="$?"
-	[ "$RETVAL" = 2 ] && return 2
+    
+	[ "$RETVAL" = 2 ] && return 2 # daemon could not be stopped
 
 	rm -f $PIDFILE
-	return "$RETVAL"
+	return "$RETVAL" # 0 daemon has been stopped, 1  daemon was already stopped
 }
 
 ### Main command dispatch
