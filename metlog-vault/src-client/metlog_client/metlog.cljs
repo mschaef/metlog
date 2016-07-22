@@ -155,11 +155,20 @@
                                         (= (.-key %) "Enter"))
                                (on-enter (:text @state)))}]))))
 
+(defn- add-series [ new-series-name ]
+  (swap! dashboard-state merge {:series (conj (:series @dashboard-state) new-series-name)}))
+
 (defn header [ ]
   [:div.header
    [:span#app-name "Metlog"]
-;   [autocomplete/input-field #(:all-series @dashboard-state)]
-   [input-field @query-window parse-query-window #(end-edit % dashboard-state)]])
+
+   [:div#add-series.header-element
+    [autocomplete/input-field {:get-completions #(:all-series @dashboard-state)
+                               :placeholder "Add series..."
+                               :on-enter #(add-series %)}]]
+
+   [:div#query-window.header-element
+    [input-field @query-window parse-query-window #(end-edit % dashboard-state)]]])
 
 (defn dashboard [ ]
   [:div
@@ -178,7 +187,7 @@
   (go
     (let [ all-series (<! (<<< fetch-series-names))]
       (swap! dashboard-state merge {:all-series all-series
-                                    :series [ (first all-series)]}))))
+                                    :series [ ]}))))
 
 (run)
 
