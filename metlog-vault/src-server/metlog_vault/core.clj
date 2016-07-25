@@ -11,7 +11,8 @@
             [ring.util.response :as ring]
             [compojure.route :as route]
             [compojure.handler :as handler]
-            [cognitect.transit :as transit]            
+            [cognitect.transit :as transit]
+            [clojure.edn :as edn]
             [metlog-vault.data :as data]
             [hiccup.core :as hiccup]))
 
@@ -63,7 +64,12 @@
                                     (try-parse-long (:end-t params)))))
 
   (POST "/data" req
-    (data/store-data-samples (read-transit (slurp (:body req))))
+    (log/error (:content-type req))
+    (data/store-data-samples
+     (if (= "application/transit+json" (:content-type req))       
+       (read-transit (slurp (:body req)))
+       (edn/read-string (slurp (:body req)))))
+    
     "Incoming data accepted.")
   
   (GET "/dashboard" [] (render-dashboard))

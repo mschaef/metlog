@@ -98,10 +98,11 @@
       (.addAll update-queue snapshot))
     (unless (.isEmpty update-queue)
             (let [url vault-url
-                  readings (clean-readings (seq update-queue))
-                  data { :body (pr-transit readings)}]
+                  readings (clean-readings (seq update-queue))]
               (log/info "Posting" (count readings) "reading(s) to" url)
-              (let [ post-response (http/post url data) ]
+              (let [post-response
+                    (http/post url {:content-type "application/transit+json"
+                                    :body (pr-transit readings)}) ]
                 (when (= (:status post-response) 200)
                   (.clear update-queue)))))))
 
