@@ -165,7 +165,9 @@
    [:div#add-series.header-element
     [autocomplete/input-field {:get-completions #(:all-series @dashboard-state)
                                :placeholder "Add series..."
-                               :on-enter #(add-series %)}]]
+                               :on-enter #(do
+                                            (add-series %)
+                                            "")}]]
 
    [:div#query-window.header-element
     [input-field @query-window parse-query-window #(end-edit % dashboard-state)]]])

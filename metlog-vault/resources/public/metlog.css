@@ -113,6 +113,11 @@ div.series-pane div.series-pane-header span.series-name {
     box-sizing: border-box;
 }
 
+.autocomplete-no-results {
+    padding: 0.2em;
+    color: #707070;
+}
+
 .autocomplete-completion-entry {
     padding: 0.2em;
     white-space: nowrap;
