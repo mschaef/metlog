@@ -26,14 +26,12 @@
 
 (defonce query-window (reagent/atom "1d"))
 
-(defn periodic-event-channel [ interval-ms ]
-  (let [channel (chan)
-        put-now #(put! channel {:msg-type :timestamp :t (time/now)})]
-    (put-now)
-    (js/setInterval put-now interval-ms)
-    channel))
+(defn time-atom [ interval-ms ]
+  (let [ new-atom (reagent/atom (time/now)) ]
+    (js/setInterval #(reset! new-atom (time/now)) interval-ms)
+    new-atom))
 
-(defonce time-event-channel (periodic-event-channel 15000))
+(defonce current-time (time-atom 5000))
 
 (defn range-ending-at [ end-t window-seconds ]
   (let [begin-t (time/minus end-t (time/seconds window-seconds))]
@@ -41,20 +39,7 @@
      :begin-t (time-coerce/to-long begin-t)
      :end-t (time-coerce/to-long end-t)}))
 
-(defn query-range-channel-2 [ time-event-channel ]
-  (let [ output (chan)
-        output-pub (pub output :msg-type)]
-    (go-loop [ time (time/now) qws @query-window ]
-      (>! output (range-ending-at time (parse-query-window qws)))
-      (when-let [ msg (<! time-event-channel)]
-        (case (:msg-type msg)
-          :timestamp (recur (:t msg) qws)
-          :query-window (recur time (:window-spec msg)))))
-    output-pub))
-
-(defonce update-pub (query-range-channel-2 time-event-channel))
-
-(defonce dashboard-state (reagent/atom {:series [] :text ""}))
+(defonce dashboard-state (reagent/atom {:series [] }))
 
 (defonce window-width (reagent/atom nil))
 
@@ -79,6 +64,7 @@
   (ajax-get "/series-names" then))
 
 (defn fetch-series-data [ series-name query-range then ]
+  (.error js/console "Query: " series-name (pr-str query-range))
   (let [ request-t (time/now) ]
     (ajax-get (str "/data/" series-name) query-range
               #(then (merge {:series-data %
@@ -86,26 +72,6 @@
                              :request-t request-t
                              :response-t (time/now)}
                             query-range)))))
-
-(defn range-ending-at-current-window [ end-t ]
-  (range-ending-at end-t (parse-query-window @query-window)))
-
-(defn series-data-channel [ series-name query-range-channel ]
-  (let [channel (chan)]
-    (go-loop []
-      (when-let [ query-range  (<! query-range-channel)]
-        (fetch-series-data series-name query-range #(put! channel %))
-        (recur)))
-    channel))
-
-(defn subscribe-plot-data [ series series-state ]
-  (let [update-out-chan (chan)
-        channel (series-data-channel series update-out-chan) ]
-    (sub update-pub :range update-out-chan)    
-    (go-loop []
-      (when-let [ data (<! channel) ]
-        (swap! series-state assoc :series-data data)
-        (recur)))))
 
 (defn series-tsplot-view [ series series-data series-range ]
   (let [dom-node (reagent/atom nil)]
@@ -134,20 +100,40 @@
                     {:width (.-clientWidth node)
                      :height (.-clientHeight node)})]])})))
 
+(defn range-ending-at-current-window [ end-t ]
+  (range-ending-at end-t (parse-query-window @query-window)))
+
+(defn subscribe-plot-data [ series-name series-state-atom ]
+  (let [control-channel (chan)]
+    (go-loop [ last-query-range nil ]
+      (when-let [ query-range (<! control-channel) ]
+        (when (not (= query-range last-query-range))
+          (swap! series-state-atom assoc :series-data
+                 (<! (<<< fetch-series-data series-name query-range))))
+        (recur query-range)))
+    control-channel))
+
 (defn series-tsplot [ series-name ]
   (let [dom-node (reagent/atom nil)
-        series-state (reagent/atom {})]
+        series-state (reagent/atom {})
+        series-data-loop (reagent/atom nil)]
     (reagent/create-class
      {:display-name (str "series-tsplot-" series-name)
 
       :component-did-mount
       (fn [ this ]
-        (subscribe-plot-data series-name series-state))
+        (reset! series-data-loop (subscribe-plot-data series-name series-state))
+        (put! @series-data-loop (range-ending-at-current-window @current-time)))
+
+      :component-will-update
+      (fn [ this new-argv ]
+        (when @series-data-loop
+          (put! @series-data-loop (range-ending-at-current-window @current-time))))
       
       :reagent-render
       (fn [ & rest ]
         [series-tsplot-view series-name (:series-data @series-state)
-         (range-ending-at-current-window (time/now))])})))
+         (range-ending-at-current-window @current-time)])})))
 
 (defn- remove-series [ series-name ]
   (swap! dashboard-state merge
@@ -175,7 +161,6 @@
 
 (defn end-edit [ text state ]
   (when (parse-query-window text)
-    (put! time-event-channel {:msg-type :query-window :window-spec text})
     (reset! query-window text)))
 
 (defn input-field [ initial-text text-valid? on-enter ]
