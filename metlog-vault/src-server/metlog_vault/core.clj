@@ -64,7 +64,7 @@
                                     (try-parse-long (:end-t params)))))
 
   (POST "/data" req
-    (log/error (:content-type req))
+    (log/info "Incoming data, content-type:" (:content-type req))
     (data/store-data-samples
      (if (= "application/transit+json" (:content-type req))       
        (read-transit (slurp (:body req)))

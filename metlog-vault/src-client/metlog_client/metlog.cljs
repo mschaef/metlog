@@ -2,6 +2,7 @@
   (:require-macros [cljs.core.async.macros :refer [ go go-loop ]]
                    [metlog-client.macros :refer [ watch ]])
   (:require [reagent.core :as reagent]
+            [reagent.debug :as debug]
             [ajax.core :as ajax]
             [cljs.reader :as reader]
             [cljs.core.async :refer [put! close! chan <! dropping-buffer alts! pipeline pub sub]]
@@ -70,13 +71,21 @@
   ([ url params callback ]
    (ajax/GET url {:handler callback
                   :params params
-                  :error-handler #(.log js/console (str "HTTP error, url: " url " resp: " %))}))
+                  :error-handler #(debug/log "HTTP error, url: " url " resp: " %)}))
   ( [ url callback ]
     (ajax-get url {} callback)))
 
-(defn fetch-series-names [ cb ]
-  (ajax-get "/series-names" cb))
+(defn fetch-series-names [ then ]
+  (ajax-get "/series-names" then))
 
+(defn fetch-series-data [ series-name query-range then ]
+  (let [ request-t (time/now) ]
+    (ajax-get (str "/data/" series-name) query-range
+              #(then (merge {:series-data %
+                             :series-name series-name
+                             :request-t request-t
+                             :response-t (time/now)}
+                            query-range)))))
 
 (defn range-ending-at-current-window [ end-t ]
   (range-ending-at end-t (parse-query-window @query-window)))
@@ -85,7 +94,7 @@
   (let [channel (chan)]
     (go-loop []
       (when-let [ query-range  (<! query-range-channel)]
-        (ajax-get (str "/data/" series-name) query-range #(put! channel %))
+        (fetch-series-data series-name query-range #(put! channel %))
         (recur)))
     channel))
 
@@ -98,40 +107,65 @@
         (swap! series-state assoc :series-data data)
         (recur)))))
 
-(defn series-tsplot [ series qws-arg ]
-  (let [dom-node (reagent/atom nil)
-        series-state (reagent/atom {})]
+(defn series-tsplot-view [ series series-data series-range ]
+  (let [dom-node (reagent/atom nil)]
     (reagent/create-class
-     {:display-name (str "series-tsplot-" series)
+     {:display-name (str "series-tsplot-view-" series)
+      
       :component-did-update
-      (fn [ this old-argv ]
-        (let [canvas (.-firstChild @dom-node)
-              ctx (.getContext canvas "2d")
-              range (range-ending-at-current-window (time/now))]
+      (fn [ this _ ]
+        (let [[ _ _ series-data series-range ] (reagent/argv this)
+              canvas (.-firstChild @dom-node)
+              ctx (.getContext canvas "2d")]
           (tsplot/draw ctx (.-clientWidth canvas) (.-clientHeight canvas)
-                       (:series-data @series-state)
-                       (:begin-t range)
-                       (:end-t range))))
+                       (:series-data series-data)
+                       (:begin-t series-range)
+                       (:end-t series-range))))
 
       :component-did-mount
       (fn [ this ]
-        (reset! dom-node (reagent/dom-node this))
-        (subscribe-plot-data series series-state))
+        (reset! dom-node (reagent/dom-node this)))
       
       :reagent-render
-      (fn [ & rest ]
+      (fn [ series series-data series-range ]
         @window-width
-        @series-state
         [:div
          [:canvas (if-let [ node @dom-node ]
                     {:width (.-clientWidth node)
                      :height (.-clientHeight node)})]])})))
 
+(defn series-tsplot [ series-name ]
+  (let [dom-node (reagent/atom nil)
+        series-state (reagent/atom {})]
+    (reagent/create-class
+     {:display-name (str "series-tsplot-" series-name)
+
+      :component-did-mount
+      (fn [ this ]
+        (subscribe-plot-data series-name series-state))
+      
+      :reagent-render
+      (fn [ & rest ]
+        [series-tsplot-view series-name (:series-data @series-state)
+         (range-ending-at-current-window (time/now))])})))
+
+(defn- remove-series [ series-name ]
+  (swap! dashboard-state merge
+         {:series (vec (remove #(= % series-name) (:series @dashboard-state)))}))
+
+(defn- add-series [ new-series-name ]
+  (when (not (some #(= % new-series-name) (:series @dashboard-state)))
+    (swap! dashboard-state merge
+           {:series (conj (:series @dashboard-state) new-series-name)})))
+
 (defn series-pane [ series-name query-window ]
   [:div.series-pane
    [:div.series-pane-header
-    [:span.series-name series-name]]
-   [series-tsplot series-name query-window]])
+    [:span.series-name series-name]
+
+    [:span.close-button {:onClick #(remove-series series-name) }
+     "close"]]
+   [series-tsplot series-name]])
 
 (defn series-list [ ]
   [:div
@@ -154,9 +188,6 @@
                  :onKeyDown #(when (and valid?
                                         (= (.-key %) "Enter"))
                                (on-enter (:text @state)))}]))))
-
-(defn- add-series [ new-series-name ]
-  (swap! dashboard-state merge {:series (conj (:series @dashboard-state) new-series-name)}))
 
 (defn header [ ]
   [:div.header
