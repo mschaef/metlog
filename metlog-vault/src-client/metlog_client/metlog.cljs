@@ -3,13 +3,15 @@
                    [metlog-client.macros :refer [ watch ]])
   (:require [reagent.core :as reagent]
             [reagent.debug :as debug]
-            [ajax.core :as ajax]
-            [cljs.reader :as reader]
-            [cljs.core.async :refer [put! close! chan <! dropping-buffer alts! pipeline pub sub]]
+            [cljs.core.async :refer [put! close! chan <!]]
             [cljs-time.core :as time]
             [cljs-time.coerce :as time-coerce]
+            [metlog-client.server :as server]
             [metlog-client.tsplot :as tsplot]
+            [metlog-client.components :as components]
             [metlog-client.autocomplete :as autocomplete]))
+
+(def update-interval-ms 5000)
 
 (defn parse-query-window [ text ]
   (let [ text (.trim text) ]
@@ -26,12 +28,7 @@
 
 (defonce query-window (reagent/atom "1d"))
 
-(defn time-atom [ interval-ms ]
-  (let [ new-atom (reagent/atom (time/now)) ]
-    (js/setInterval #(reset! new-atom (time/now)) interval-ms)
-    new-atom))
-
-(defonce current-time (time-atom 5000))
+(defonce current-time (reagent/atom (time/now)))
 
 (defn range-ending-at [ end-t window-seconds ]
   (let [begin-t (time/minus end-t (time/seconds window-seconds))]
@@ -39,7 +36,8 @@
      :begin-t (time-coerce/to-long begin-t)
      :end-t (time-coerce/to-long end-t)}))
 
-(defonce dashboard-state (reagent/atom {:series [] }))
+(defonce dashboard-state
+  (reagent/atom { :displayed-series [] }))
 
 (defonce window-width (reagent/atom nil))
 
@@ -51,27 +49,6 @@
                                    (close! c)
                                    (put! c x)))]))
     c))
-
-(defn ajax-get
-  ([ url params callback ]
-   (ajax/GET url {:handler callback
-                  :params params
-                  :error-handler #(debug/log "HTTP error, url: " url " resp: " %)}))
-  ( [ url callback ]
-    (ajax-get url {} callback)))
-
-(defn fetch-series-names [ then ]
-  (ajax-get "/series-names" then))
-
-(defn fetch-series-data [ series-name query-range then ]
-  (.error js/console "Query: " series-name (pr-str query-range))
-  (let [ request-t (time/now) ]
-    (ajax-get (str "/data/" series-name) query-range
-              #(then (merge {:series-data %
-                             :series-name series-name
-                             :request-t request-t
-                             :response-t (time/now)}
-                            query-range)))))
 
 (defn series-tsplot-view [ series series-data series-range ]
   (let [dom-node (reagent/atom nil)]
@@ -109,7 +86,7 @@
       (when-let [ query-range (<! control-channel) ]
         (when (not (= query-range last-query-range))
           (swap! series-state-atom assoc :series-data
-                 (<! (<<< fetch-series-data series-name query-range))))
+                 (<! (<<< server/fetch-series-data series-name query-range))))
         (recur query-range)))
     control-channel))
 
@@ -137,12 +114,12 @@
 
 (defn- remove-series [ series-name ]
   (swap! dashboard-state merge
-         {:series (vec (remove #(= % series-name) (:series @dashboard-state)))}))
+         {:displayed-series (vec (remove #(= % series-name) (:displayed-series @dashboard-state)))}))
 
 (defn- add-series [ new-series-name ]
-  (when (not (some #(= % new-series-name) (:series @dashboard-state)))
+  (when (not (some #(= % new-series-name) (:displayed-series @dashboard-state)))
     (swap! dashboard-state merge
-           {:series (conj (:series @dashboard-state) new-series-name)})))
+           {:displayed-series (conj (:displayed-series @dashboard-state) new-series-name)})))
 
 (defn series-pane [ series-name query-window ]
   [:div.series-pane
@@ -156,23 +133,13 @@
 (defn series-list [ ]
   [:div
    (doall
-    (for [ series (:series @dashboard-state) ]
+    (for [ series (:displayed-series @dashboard-state) ]
       ^{ :key series } [series-pane series @query-window]))])
 
 (defn end-edit [ text state ]
   (when (parse-query-window text)
     (reset! query-window text)))
 
-(defn input-field [ initial-text text-valid? on-enter ]
-  (let [ state (reagent/atom { :text initial-text }) ]
-    (fn []
-      (let [valid? (text-valid? (:text @state))]
-        [:input {:value (:text @state)
-                 :class (if (not valid?) "invalid")
-                 :onChange #(swap! state assoc :text (.. % -target -value))
-                 :onKeyDown #(when (and valid?
-                                        (= (.-key %) "Enter"))
-                               (on-enter (:text @state)))}]))))
 
 (defn header [ ]
   [:div.header
@@ -186,7 +153,9 @@
                                             "")}]]
 
    [:div#query-window.header-element
-    [input-field @query-window parse-query-window #(end-edit % dashboard-state)]]])
+    [components/input-field {:initial-text @query-window
+                             :text-valid? parse-query-window
+                             :on-enter #(end-edit % dashboard-state)}]]])
 
 (defn dashboard [ ]
   [:div
@@ -197,15 +166,17 @@
 (defn on-window-resize [ evt ]
   (reset! window-width (.-innerWidth js/window)))
 
-
 (defn ^:export run []
   (reagent/render [dashboard]
                   (js/document.getElementById "metlog"))
   (.addEventListener js/window "resize" on-window-resize)
-  (go
-    (let [ all-series (<! (<<< fetch-series-names))]
-      (swap! dashboard-state merge {:all-series all-series
-                                    :series [ ]}))))
+  (let [update-interval-id
+        (or (:update-interval-id @dashboard-state)
+            (js/setInterval #(reset! current-time (time/now)) update-interval-ms))]
+    (go
+      (let [ all-series (<! (<<< server/fetch-series-names))]
+        (swap! dashboard-state merge {:all-series all-series
+                                      :update-interval-id update-interval-id})))))
 
 (run)
 
