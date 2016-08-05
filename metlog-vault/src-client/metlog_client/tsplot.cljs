@@ -115,10 +115,10 @@
     {:max (+ (:max range) scaled-delta)
      :min (- (:min range) scaled-delta)}))
 
-(defn draw-xlabel [ ctx text x y left? ]
+(defn draw-xlabel [ ctx text x y ]
   (with-preserved-ctx ctx
     (aset ctx "textBaseline" "top")
-    (aset ctx "textAlign" (if left? "left" "right"))
+    (aset ctx "textAlign" "center")
     (.fillText ctx text x y)))
 
 (defn draw-ylabel [ ctx text x y ]
@@ -202,7 +202,7 @@
 
 (defn draw-x-grid-line [ ctx h x value ]
   (with-preserved-ctx ctx
-    (draw-xlabel ctx (format-xlabel value) x h false)
+    (draw-xlabel ctx (format-xlabel value) x h)
     (set-stroke-style ctx :grid)
     (draw-line ctx [ x 0 ] [ x h ])))
 
@@ -216,8 +216,9 @@
 
 (defn draw-x-grid [ ctx w h x-range ]
   (let [x-interval (find-x-grid-interval w x-range)
-        tx (translate-fn x-range w)]
-    (doseq [ x (map #(- (:max x-range) (* % x-interval))
+        tx (translate-fn x-range w)
+        max-x (* (floor (/  (:max x-range) x-interval)) x-interval)]
+    (doseq [ x (map #(- max-x (* % x-interval))
                     (range 0 (/ (range-magnitude x-range) x-interval)))]
       (draw-x-grid-line ctx h (tx x) x))))
 
