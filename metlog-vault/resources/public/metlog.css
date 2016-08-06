@@ -52,8 +52,13 @@ div#add-series {
     width: 30em;
 }
 
-div.header input.invalid {
+div.header input.uncommitted.invalid {
     background: #ffd0d0;
+    border: 1px solod red;
+}
+
+div.header input.uncommitted {
+    background: #ffffd0;
     border: 1px solod red;
 }
 

@@ -1,13 +1,20 @@
 (ns metlog-client.components
+  (:require-macros [metlog-client.macros :refer [ watch ]])  
   (:require [reagent.core :as reagent]))
 
-(defn input-field [ { :keys [ initial-text text-valid? on-enter] } ]
-  (let [ state (reagent/atom { :text initial-text }) ]
-    (fn []
+(defn input-field [ { :keys [ text text-valid? on-enter] } ]
+  (defn initial-state [ text ]
+    {:initial-text text :text text :uncommitted? false})
+  (let [ state (reagent/atom (initial-state text)) ]
+    (fn [ { :keys [ text text-valid? on-enter] } ]
+      (when (not (= text (:initial-text @state)))
+        (swap! state merge  (initial-state text)))
       (let [valid? (text-valid? (:text @state))]
         [:input {:value (:text @state)
-                 :class (if (not valid?) "invalid")
-                 :onChange #(swap! state assoc :text (.. % -target -value))
+                 :class (str (if (not valid?) "invalid")
+                             (if (:uncommitted? @state) " uncommitted"))
+                 :onChange #(swap! state merge {:text (.. % -target -value)
+                                                :uncommitted? true})
                  :onKeyDown #(when (and valid?
                                         (= (.-key %) "Enter"))
                                (on-enter (:text @state)))}]))))

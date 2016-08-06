@@ -1,5 +1,5 @@
 (ns metlog-client.metlog
-  (:require-macros [cljs.core.async.macros :refer [ go go-loop ]]
+  (:require-macros [cljs.core.async.macros :refer [ go ]]
                    [metlog-client.macros :refer [ watch ]])
   (:require [reagent.core :as reagent]
             [reagent.debug :as debug]
@@ -77,40 +77,43 @@
                     {:width (.-clientWidth node)
                      :height (.-clientHeight node)})]])})))
 
-(defn range-ending-at-current-window [ end-t ]
-  (range-ending-at end-t (parse-query-window @query-window)))
-
 (defn subscribe-plot-data [ series-name series-state-atom ]
   (let [control-channel (chan)]
-    (go-loop [ last-query-range nil ]
-      (when-let [ query-range (<! control-channel) ]
-        (when (not (= query-range last-query-range))
-          (swap! series-state-atom assoc :series-data
-                 (<! (<<< server/fetch-series-data series-name query-range))))
-        (recur query-range)))
+    (go
+      (loop [ last-query-range nil ]
+        (when-let [ query-range (<! control-channel) ]
+          (when (not (= query-range last-query-range))
+            (swap! series-state-atom assoc :series-data
+                   (<! (<<< server/fetch-series-data series-name query-range))))
+          (recur query-range))))
     control-channel))
 
-(defn series-tsplot [ series-name ]
-  (let [dom-node (reagent/atom nil)
-        series-state (reagent/atom {})
-        series-data-loop (reagent/atom nil)]
+(defn series-tsplot [ series-name plot-end-time query-window ]
+  (let [series-state (reagent/atom {})]
     (reagent/create-class
      {:display-name (str "series-tsplot-" series-name)
 
       :component-did-mount
       (fn [ this ]
-        (reset! series-data-loop (subscribe-plot-data series-name series-state))
-        (put! @series-data-loop (range-ending-at-current-window @current-time)))
-
+        (let [ loop-control (subscribe-plot-data series-name series-state) ]
+          (swap! series-state assoc :data-loop-control loop-control)
+          (put! loop-control (range-ending-at plot-end-time (parse-query-window query-window)))))
+      
+      :component-will-unmount
+      (fn [ this ]
+        (when-let [loop-control (:data-loop-control @series-state)]
+          (close! loop-control)
+          (swap! series-state assoc :data-loop-control nil)))
+    
       :component-will-update
-      (fn [ this new-argv ]
-        (when @series-data-loop
-          (put! @series-data-loop (range-ending-at-current-window @current-time))))
+      (fn [ this [ _ _ plot-end-time query-window ]]
+        (when-let [loop-control (:data-loop-control @series-state)]
+          (put! loop-control (range-ending-at plot-end-time (parse-query-window query-window)))))
       
       :reagent-render
-      (fn [ & rest ]
+      (fn [ series-name plot-end-time query-window ]
         [series-tsplot-view series-name (:series-data @series-state)
-         (range-ending-at-current-window @current-time)])})))
+         (range-ending-at plot-end-time (parse-query-window query-window))])})))
 
 (defn- remove-series [ series-name ]
   (swap! dashboard-state merge
@@ -121,24 +124,20 @@
     (swap! dashboard-state merge
            {:displayed-series (conj (:displayed-series @dashboard-state) new-series-name)})))
 
-(defn series-pane [ series-name query-window ]
+(defn series-pane [ series-name current-time query-window ]
   [:div.series-pane
    [:div.series-pane-header
     [:span.series-name series-name]
 
     [:span.close-button {:onClick #(remove-series series-name) }
      "close"]]
-   [series-tsplot series-name]])
+   [series-tsplot series-name current-time query-window]])
 
 (defn series-list [ ]
   [:div
    (doall
     (for [ series (:displayed-series @dashboard-state) ]
-      ^{ :key series } [series-pane series @query-window]))])
-
-(defn end-edit [ text state ]
-  (when (parse-query-window text)
-    (reset! query-window text)))
+      ^{ :key series } [series-pane series @current-time @query-window]))])
 
 
 (defn header [ ]
@@ -148,14 +147,12 @@
    [:div#add-series.header-element
     [autocomplete/input-field {:get-completions #(:all-series @dashboard-state)
                                :placeholder "Add series..."
-                               :on-enter #(do
-                                            (add-series %)
-                                            "")}]]
+                               :on-enter #(do (add-series %) "")}]]
 
    [:div#query-window.header-element
-    [components/input-field {:initial-text @query-window
+    [components/input-field {:text @query-window
                              :text-valid? parse-query-window
-                             :on-enter #(end-edit % dashboard-state)}]]])
+                             :on-enter #(reset! query-window %)}]]])
 
 (defn dashboard [ ]
   [:div
