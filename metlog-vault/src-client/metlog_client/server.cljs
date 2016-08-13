@@ -16,8 +16,10 @@
 
 (defn fetch-series-data [ series-name query-range then ]
   (let [ request-t (time/now) ]
+    (log/debug :fetch-series-data series-name (:begin-t query-range)
+               (- (:end-t query-range) (:begin-t query-range)))
     (ajax-get (str "/data/" series-name) query-range
-              #(then (merge {:series-data %
+              #(then (merge {:series-points %
                              :series-name series-name
                              :request-t request-t
                              :response-t (time/now)}

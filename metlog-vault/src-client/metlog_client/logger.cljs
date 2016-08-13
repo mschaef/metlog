@@ -19,7 +19,7 @@
    :error {:message-writer error-writer   :ordinal 4}
    :fatal {:message-writer error-writer   :ordinal 5}})
 
-(def default-logger-configuration {"" :info })
+(def default-logger-configuration { "" :info })
 
 (def logger-configuration default-logger-configuration)
 

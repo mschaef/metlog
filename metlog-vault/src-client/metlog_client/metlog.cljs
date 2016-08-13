@@ -55,7 +55,7 @@
               canvas (.-firstChild @dom-node)
               ctx (.getContext canvas "2d")]
           (tsplot/draw ctx (.-clientWidth canvas) (.-clientHeight canvas)
-                       (:series-data series-data)
+                       (:series-points series-data)
                        (:begin-t series-range)
                        (:end-t series-range))))
 
@@ -76,16 +76,44 @@
     {:begin-t (time-coerce/to-long begin-t)
      :end-t (time-coerce/to-long end-t)}))
 
+(defn find-query-ranges [ current-data-range desired-data-range ]
+  (if current-data-range
+    `[
+      ~@(if (> (:end-t desired-data-range)
+               (:end-t current-data-range))
+          [ {:begin-t (:end-t current-data-range)
+             :end-t (:end-t desired-data-range)}])
+      ~@(if (< (:begin-t desired-data-range)
+               (:begin-t current-data-range))
+          [ {:begin-t (:begin-t desired-data-range)
+             :end-t (:begin-t current-data-range)} ])
+      ]
+    [ desired-data-range ]))
+
+
+(defn merge-series-data [ current-data new-data ]
+  {:series-points
+   (vec
+    (distinct
+     (sort-by :t (concat (:series-points current-data)
+                         (:series-points new-data)))))
+   
+   :begin-t (min (:begin-t current-data) (:begin-t new-data))
+   :end-t (max (:end-t current-data) (:end-t new-data))})
+
 (defn subscribe-plot-data [ series-name series-state-atom ]
   (let [control-channel (chan)]
     (go
-      (loop [ last-query-range nil ]
-        (when-let [ query-range (<! control-channel) ]
-          (log/watch query-range)
-          (when (not (= query-range last-query-range))
-            (swap! series-state-atom assoc :series-data
+      (loop [ current-data-range nil ]
+        (when-let [ desired-data-range (<! control-channel) ]
+          (log/watch desired-data-range)
+          (doseq [ query-range (find-query-ranges current-data-range desired-data-range) ]
+            (swap! series-state-atom 
+                   (fn [ state new-data ]
+                     (assoc state :series-data
+                            (merge-series-data (:series-data state) new-data)))
                    (<! (<<< server/fetch-series-data series-name query-range))))
-          (recur query-range))))
+          (recur desired-data-range))))
     control-channel))
 
 (defn series-tsplot [ series-name plot-end-time query-window ]
@@ -107,6 +135,7 @@
     
       :component-will-update
       (fn [ this [ _ _ plot-end-time query-window ]]
+        (log/debug :component-will-update [ (.toString plot-end-time) query-window ])
         (when-let [loop-control (:data-loop-control @series-state)]
           (put! loop-control (range-ending-at plot-end-time (parse-query-window query-window)))))
       
@@ -163,7 +192,7 @@
 (defn on-window-resize [ evt ]
   (reset! window-width (.-innerWidth js/window)))
 
-(log/set-configuration! {"" :trace})
+(log/set-configuration! {"" :warn })
 
 (defn ^:export run []
   (reagent/render [dashboard]
