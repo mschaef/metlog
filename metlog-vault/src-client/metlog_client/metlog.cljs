@@ -1,11 +1,11 @@
 (ns metlog-client.metlog
-  (:require-macros [cljs.core.async.macros :refer [ go ]]
-                   [metlog-client.macros :refer [ watch ]])
+  (:require-macros [cljs.core.async.macros :refer [ go ]])
   (:require [reagent.core :as reagent]
             [reagent.debug :as debug]
             [cljs.core.async :refer [put! close! chan <!]]
             [cljs-time.core :as time]
             [cljs-time.coerce :as time-coerce]
+            [metlog-client.logger :as log]            
             [metlog-client.server :as server]
             [metlog-client.tsplot :as tsplot]
             [metlog-client.components :as components]
@@ -29,12 +29,6 @@
 (defonce query-window (reagent/atom "1d"))
 
 (defonce current-time (reagent/atom (time/now)))
-
-(defn range-ending-at [ end-t window-seconds ]
-  (let [begin-t (time/minus end-t (time/seconds window-seconds))]
-    {:msg-type :range
-     :begin-t (time-coerce/to-long begin-t)
-     :end-t (time-coerce/to-long end-t)}))
 
 (defonce dashboard-state
   (reagent/atom { :displayed-series [] }))
@@ -77,11 +71,17 @@
                     {:width (.-clientWidth node)
                      :height (.-clientHeight node)})]])})))
 
+(defn range-ending-at [ end-t window-seconds ]
+  (let [begin-t (time/minus end-t (time/seconds window-seconds))]
+    {:begin-t (time-coerce/to-long begin-t)
+     :end-t (time-coerce/to-long end-t)}))
+
 (defn subscribe-plot-data [ series-name series-state-atom ]
   (let [control-channel (chan)]
     (go
       (loop [ last-query-range nil ]
         (when-let [ query-range (<! control-channel) ]
+          (log/watch query-range)
           (when (not (= query-range last-query-range))
             (swap! series-state-atom assoc :series-data
                    (<! (<<< server/fetch-series-data series-name query-range))))
@@ -162,6 +162,8 @@
 
 (defn on-window-resize [ evt ]
   (reset! window-width (.-innerWidth js/window)))
+
+(log/set-configuration! {"" :trace})
 
 (defn ^:export run []
   (reagent/render [dashboard]

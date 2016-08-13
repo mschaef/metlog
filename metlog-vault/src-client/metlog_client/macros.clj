@@ -10,9 +10,3 @@
 (defmacro unless [ condition & body ]
   `(when (not ~condition)
      ~@body))
-
-(defmacro watch [ & exprs ]
-  `(.log js/console ">>" (pr-str '~exprs) " => " (pr-str (list ~@exprs))))
-
-
-

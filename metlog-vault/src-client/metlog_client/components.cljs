@@ -1,6 +1,6 @@
 (ns metlog-client.components
-  (:require-macros [metlog-client.macros :refer [ watch ]])  
-  (:require [reagent.core :as reagent]))
+  (:require [reagent.core :as reagent]
+            [metlog-client.logger :as log]))
 
 (defn input-field [ { :keys [ text text-valid? on-enter] } ]
   (defn initial-state [ text ]

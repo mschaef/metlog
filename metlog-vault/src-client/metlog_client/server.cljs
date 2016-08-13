@@ -1,12 +1,13 @@
 (ns metlog-client.server
   (:require [ajax.core :as ajax]
-            [cljs-time.core :as time]))
+            [cljs-time.core :as time]
+            [metlog-client.logger :as log]))
 
 (defn ajax-get
   ([ url params callback ]
    (ajax/GET url {:handler callback
                   :params params
-                  :error-handler #(debug/log "HTTP error, url: " url " resp: " %)}))
+                  :error-handler #(log/error "HTTP error, url: " url " resp: " %)}))
   ( [ url callback ]
     (ajax-get url {} callback)))
 

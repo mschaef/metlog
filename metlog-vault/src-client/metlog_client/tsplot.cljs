@@ -1,8 +1,9 @@
 (ns metlog-client.tsplot
-  (:require-macros [metlog-client.macros :refer [ with-preserved-ctx unless watch ]])
+  (:require-macros [metlog-client.macros :refer [ with-preserved-ctx unless ]])
   (:require [cljs-time.core :as time]
             [cljs-time.format :as time-format]
-            [cljs-time.coerce :as time-coerce]))
+            [cljs-time.coerce :as time-coerce]
+            [metlog-client.logger :as log]))
 
 
 (defn floor [ x ]
