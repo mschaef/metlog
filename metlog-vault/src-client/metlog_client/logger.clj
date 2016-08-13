@@ -14,7 +14,7 @@
 
 (defmacro watch
   ([ expr ]
-   `(log :debug ~expr))
+   `(watch :debug ~expr))
   
   ([ level expr ]
    `(log ~level "WATCH" (pr-str '~expr) "=>" ~expr)))
