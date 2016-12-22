@@ -188,6 +188,12 @@
     (set-stroke-style ctx (if emphasize? :grid-emphasis :grid))
     (draw-line ctx [ 0 y ] [ w y ])))
 
+(defn adjust-range-to-interval [ range interval ]
+  {:min (let [ value (:min range) ]
+          (* interval
+             (.floor js/Math (/ (+ value interval) interval))))
+   :max (:max range)})
+
 (defn draw-y-grid [ ctx w h y-range ]
   (with-preserved-ctx ctx
     (let [ty (translate-fn-invert y-range h)
@@ -197,8 +203,9 @@
                                 (range (/ (:max y-range) y-interval)))
                            (map #(* (- y-interval) (+ % 1))
                                 (range (- (/ (- (:min y-range)) y-interval) 1))))
-                   (map #(+ (:min y-range) (* y-interval (+ % 1)))
-                        (range (/ (range-magnitude y-range) y-interval))))]
+                   (let [ y-range (adjust-range-to-interval y-range y-interval) ]
+                     (map #(+ (:min y-range) (* y-interval %))
+                          (range (/ (range-magnitude y-range) y-interval)))))]
         (draw-y-grid-line ctx w (pixel-snap (ty y)) y (= y 0))))))
 
 (defn draw-x-grid-line [ ctx h x value ]
