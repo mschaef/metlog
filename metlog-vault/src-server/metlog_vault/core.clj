@@ -64,7 +64,7 @@
                                     (try-parse-long (:end-t params)))))
 
   (POST "/data" req
-    (log/info "Incoming data, content-type:" (:content-type req))
+    (log/debug "Incoming data, content-type:" (:content-type req))
     (data/store-data-samples
      (if (= "application/transit+json" (:content-type req))       
        (read-transit (slurp (:body req)))
@@ -84,8 +84,8 @@
     (log/trace 'REQ (:request-method req) (:uri req) (:params req))
     (let [begin-t (. System (nanoTime))
           resp (app req)]
-      (log/info 'RESP (:status resp) (:request-method req) (:uri req)
-                "-" (/ (- (. System (nanoTime)) begin-t) 1000000.0))
+      (log/debug 'RESP (:status resp) (:request-method req) (:uri req)
+                 "-" (/ (- (. System (nanoTime)) begin-t) 1000000.0))
       resp)))
 
 (defn wrap-request-thread-naming [ app ]

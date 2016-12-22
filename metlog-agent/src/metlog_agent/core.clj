@@ -29,7 +29,7 @@
   (let [ reading {:t (java.util.Date.)
                   :series_name series-name
                   :val val}]
-    (log/debug "enquing sensor reading" reading)
+    (log/trace "enquing sensor reading" reading)
     (.add sensor-result-queue reading)))
 
 (def sensor-defs (atom {}))
@@ -76,7 +76,7 @@
 
 
 (defn poll-sensors [ sensor-defs ]
-  (log/debug "poll-sensors" (map :sensor-name sensor-defs))
+  (log/trace "poll-sensors" (map :sensor-name sensor-defs))
   (doseq [ sensor-def sensor-defs ]
     (if-let [ sensor-value (poll-sensor sensor-def)]
       (process-sensor-reading (:sensor-name sensor-def) sensor-value))))
@@ -99,7 +99,7 @@
     (unless (.isEmpty update-queue)
             (let [url vault-url
                   readings (clean-readings (seq update-queue))]
-              (log/info "Posting" (count readings) "reading(s) to" url)
+              (log/debug "Posting" (count readings) "reading(s) to" url)
               (let [post-response
                     (http/post url {:content-type "application/transit+json"
                                     :body (pr-transit readings)}) ]
@@ -118,7 +118,7 @@
   (maybe-load-config-file (config-property "agent.configurationFile" "config.clj"))
 
   (doseq [ [ poll-interval sensors ] (group-by :poll-interval (all-sensors))]
-    (log/info "Scheduling poll job @" poll-interval "msec. for" (map :sensor-name sensors))
+    (log/debug "Scheduling poll job @" poll-interval "msec. for" (map :sensor-name sensors))
     (at-at/every poll-interval
                  (exception-barrier #(poll-sensors sensors) (str "poller-" poll-interval))
                  my-pool))
