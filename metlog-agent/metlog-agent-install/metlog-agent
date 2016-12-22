@@ -37,6 +37,7 @@ METLOG_USER=${SERVICE_NAME}
 
 METLOG_JAR=metlog-agent-standalone.jar
 METLOG_VAULT_URL=http://dunitall.com:8080/data
+METLOG_CONFIG_PATH=/etc/metlog-agent/config.clj
 
 ### Read configuration variable file if it is present
 
@@ -46,6 +47,8 @@ METLOG_VAULT_URL=http://dunitall.com:8080/data
 
 JAVA_OPTS="-Dvault.url=${METLOG_VAULT_URL}"
 JAVA_OPTS="$JAVA_OPTS -Dlogback.configurationFile=/etc/${SERVICE_NAME}/logback.xml"
+JAVA_OPTS="$JAVA_OPTS -Dagent.configurationFile=${METLOG_CONFIG_PATH}"
+
 JAVA_OPTS="$JAVA_OPTS -jar /usr/share/${SERVICE_NAME}/${METLOG_JAR}"
 
 if [ "$AUTHBIND" = "yes" -a "$1" = "start" ]; then
