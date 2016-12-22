@@ -5,6 +5,7 @@
    :cosine (Math/cos (/ (- (System/currentTimeMillis) start-t) (minutes 1))) })
 
 (defsensor steps-ascending {:poll-interval (seconds 5)}
-  (mod (/ (- (System/currentTimeMillis) start-t) (minutes 4))
-       3))
+  (+ 2.3
+     (mod (/ (- (System/currentTimeMillis) start-t) (minutes 4))
+          3)))
 
