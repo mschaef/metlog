@@ -16,3 +16,4 @@ CREATE CACHED TABLE dual (
 );
 
 INSERT INTO dual(x) values(1);
+

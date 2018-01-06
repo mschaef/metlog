@@ -73,6 +73,15 @@
     "Incoming data accepted.")
   
   (GET "/dashboard" [] (render-dashboard))
+
+  (POST "/dashboard-defn/:name" req
+    (let [name (:name (:params req))
+          defn (slurp (:body req))]
+      (log/info "Incoming dashboard definition: " name req)
+      (data/store-dashboard-definition name defn)))
+  
+  (GET "/dashboard-defn/:name" [ name ]
+    (data/get-dashboard-definition name))
   
   (route/resources "/")
   

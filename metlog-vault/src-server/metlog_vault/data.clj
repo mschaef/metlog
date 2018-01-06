@@ -5,9 +5,8 @@
             [clojure.java.jdbc :as jdbc]
             [sql-file.core :as sql-file]))
 
-
 (def db-connection
-  (delay (sql-file/open-hsqldb-file-conn (config-property "db.subname" "metlog-db")  "metlog" 0)))
+  (delay (sql-file/open-hsqldb-file-conn (config-property "db.subname" "metlog-db")  "metlog" 1)))
 
 (def ^:dynamic *db* nil)
 
@@ -86,4 +85,20 @@
                     (get-series-id series-name)
                     begin-t
                     end-t])))
+
+(defquery get-dashboard-definition [ name ]
+  (query-scalar *db* [(str "SELECT definition"
+                           " FROM dashboard"
+                           " WHERE name=?")
+                      name]))
+
+(defquery store-dashboard-definition [ name definition ]
+  (with-transaction
+    (if (get-dashboard-definition name)
+      (jdbc/update! *db* :dashboard
+                    {:definition definition }
+                    ["name = ?" name])
+      (jdbc/insert! *db* :dashboard
+                    {:name name
+                     :definition definition}))))
 
