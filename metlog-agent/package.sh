@@ -1,6 +1,6 @@
 #!/bin/sh
 
-POM_PROPERTIES_FILE=./target/uberjar/classes/META-INF/maven/metlog-vault/metlog-vault/pom.properties
+POM_PROPERTIES_FILE=./target/uberjar/classes/META-INF/maven/metlog-agent/metlog-agent/pom.properties
 
 lein clean && lein uberjar
 
@@ -16,9 +16,8 @@ then
     exit 1
 fi
 
-cp target/uberjar/metlog-vault-standalone.jar metlog-vault-install
-
+cp target/uberjar/metlog-agent-standalone.jar metlog-agent-install
 
 PROJECT_VERSION=`grep version ${POM_PROPERTIES_FILE} | cut -d= -f2`
 
-tar czvf metlog-vault-install-${PROJECT_VERSION}.tgz --exclude="*~" metlog-vault-install 
+tar czvf metlog-agent-install-${PROJECT_VERSION}.tgz --exclude="*~" metlog-agent-install 
