@@ -11,6 +11,15 @@
   ( [ url callback ]
     (ajax-get url {} callback)))
 
+(defn ajax-post [ url params ]
+  (ajax/POST url {:params params}))
+
+(defn set-dashboard-series [ series-names ]
+  (ajax-post "/dashboard-defn/default" series-names)) 
+
+(defn fetch-dashboard-series [ callback ]
+  (ajax-get "/dashboard-defn/default" callback))
+
 (defn fetch-series-names [ then ]
   (ajax-get "/series-names" then))
 

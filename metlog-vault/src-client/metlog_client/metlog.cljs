@@ -144,14 +144,16 @@
         [series-tsplot-view series-name (:series-data @series-state)
          (range-ending-at plot-end-time (parse-query-window query-window))])})))
 
+(defn- set-displayed-series! [ series-names ]
+  (swap! dashboard-state merge {:displayed-series series-names})
+  (server/set-dashboard-series series-names))
+
 (defn- remove-series [ series-name ]
-  (swap! dashboard-state merge
-         {:displayed-series (vec (remove #(= % series-name) (:displayed-series @dashboard-state)))}))
+  (set-displayed-series! (vec (remove #(= % series-name) (:displayed-series @dashboard-state)))))
 
 (defn- add-series [ new-series-name ]
   (when (not (some #(= % new-series-name) (:displayed-series @dashboard-state)))
-    (swap! dashboard-state merge
-           {:displayed-series (conj (:displayed-series @dashboard-state) new-series-name)})))
+    (set-displayed-series! (conj (:displayed-series @dashboard-state) new-series-name))))
 
 (defn series-pane [ series-name current-time query-window ]
   [:div.series-pane
@@ -202,9 +204,11 @@
         (or (:update-interval-id @dashboard-state)
             (js/setInterval #(reset! current-time (time/now)) update-interval-ms))]
     (go
-      (let [ all-series (<! (<<< server/fetch-series-names))]
+      (let [all-series (<! (<<< server/fetch-series-names))
+            series-names (<! (<<< server/fetch-dashboard-series))]
         (swap! dashboard-state merge {:all-series all-series
-                                      :update-interval-id update-interval-id})))))
+                                      :update-interval-id update-interval-id
+                                      :displayed-series series-names})))))
 
 (run)
 
