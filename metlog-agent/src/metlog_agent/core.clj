@@ -41,11 +41,18 @@
 
 (def default-sensor-attrs {:poll-interval (minutes 1)})
 
+(defmacro defsensor*
+  ([ name attrs fn-form ]
+   (let [attrs (merge default-sensor-attrs attrs)]
+     `(add-sensor-def '~name (merge ~attrs {:sensor-fn ~fn-form}))))
+
+  ([ name fn-form ]
+   `(defsensor* ~name {} ~fn-form)))
+
 (defmacro defsensor [ name & body ]
-  (let [attrs (merge default-sensor-attrs
-                     (if (map? (first body)) (first body) {}))
-        body (if (map? (first body)) (next body) body)]
-    `(add-sensor-def '~name (merge ~attrs {:sensor-fn (fn [] ~@body)}))))
+  (if (map? (first body))
+    `(defsensor* ~name ~(first body) (fn [] ~@(rest body)))
+    `(defsensor* ~name {}  (fn [] ~@body))))
 
 (defn all-sensors []
   (let [ current-sensor-defs @sensor-defs ]
