@@ -163,7 +163,7 @@
   (if (range-contains-zero? y-range)
     (if (> (:max y-range) (.abs js/Math (:min y-range)))
       {:t (/ (:max y-range) (range-magnitude y-range)) :magnitude (:max y-range)}
-      {:t (/ (:max y-range) (range-magnitude y-range)) :magnitude (- (:min y-range))})
+      {:t (.abs js/Math (/ (:min y-range) (range-magnitude y-range))) :magnitude (- (:min y-range))})
     {:t 1.0 :magnitude (range-magnitude y-range) }))
 
 (defn find-y-grid-interval [ h y-range ]
@@ -189,9 +189,7 @@
     (draw-line ctx [ 0 y ] [ w y ])))
 
 (defn adjust-range-to-interval [ range interval ]
-  {:min (let [ value (:min range) ]
-          (* interval
-             (.floor js/Math (/ (+ value interval) interval))))
+  {:min (* interval (.floor js/Math (/ (+ (:min range) interval) interval)))
    :max (:max range)})
 
 (defn draw-y-grid [ ctx w h y-range ]
