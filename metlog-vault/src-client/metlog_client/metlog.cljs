@@ -1,10 +1,11 @@
 (ns metlog-client.metlog
-  (:require-macros [cljs.core.async.macros :refer [ go ]])
+  (:require-macros [cljs.core.async.macros :refer [ go go-loop ]])
   (:require [reagent.core :as reagent]
             [reagent.debug :as debug]
             [cljs.core.async :refer [put! close! chan <!]]
             [cljs-time.core :as time]
             [cljs-time.coerce :as time-coerce]
+            [metlog-client.util :refer [ <<< ]]
             [metlog-client.logger :as log]            
             [metlog-client.server :as server]
             [metlog-client.tsplot :as tsplot]
@@ -17,32 +18,26 @@
   (let [ text (.trim text) ]
     (and (> (.-length text) 0)
          (let [window-unit-char (.charAt text (- (.-length text) 1))
-               window-value (.substring text 0 (- (.-length text) 1))]
+               window-value (js/parseInt (.substring text 0 (- (.-length text) 1)))]
            (case window-unit-char
-             "S" (js/parseInt window-value)
-             "m" (* 60 (js/parseInt window-value))
-             "h" (* 3600 (js/parseInt window-value))
-             "d" (* 86400 (js/parseInt window-value))
-             "w" (* 604800 (js/parseInt window-value))
+             "S" window-value
+             "m" (* 60 window-value)
+             "h" (* 3600 window-value)
+             "d" (* 86400 window-value)
+             "w" (* 604800 window-value)
              false)))))
 
-(defonce query-window (reagent/atom "1d"))
+(defonce query-window
+  (reagent/atom "1d"))
 
-(defonce current-time (reagent/atom (time/now)))
+(defonce current-time
+  (reagent/atom (time/now)))
 
 (defonce dashboard-state
   (reagent/atom { :displayed-series [] }))
 
-(defonce window-width (reagent/atom nil))
-
-(defn <<< [f & args]
-  (let [c (chan)]
-    (apply f (concat args [(fn [x]
-                             (if (or (nil? x)
-                                     (undefined? x))
-                                   (close! c)
-                                   (put! c x)))]))
-    c))
+(defonce window-width
+  (reagent/atom nil))
 
 (defn series-tsplot-view [ series series-data series-range ]
   (let [dom-node (reagent/atom nil)]
@@ -76,44 +71,53 @@
     {:begin-t (time-coerce/to-long begin-t)
      :end-t (time-coerce/to-long end-t)}))
 
-(defn find-query-ranges [ current-data-range desired-data-range ]
-  (if current-data-range
-    `[
-      ~@(if (> (:end-t desired-data-range)
-               (:end-t current-data-range))
-          [ {:begin-t (:end-t current-data-range)
-             :end-t (:end-t desired-data-range)}])
-      ~@(if (< (:begin-t desired-data-range)
-               (:begin-t current-data-range))
-          [ {:begin-t (:begin-t desired-data-range)
-             :end-t (:begin-t current-data-range)} ])
-      ]
-    [ desired-data-range ]))
+(defn points-range [ data ]
+  (and data
+       (let [ series-points (:series-points data) ]
+         {:begin-t (:t (get series-points 0))
+          :end-t (:t (get series-points (- (count series-points) 1)))})))
 
+(defn find-historical-query-range [ current-data desired-data-range ]
+  (and (< (:begin-t desired-data-range)
+          (:begin-t current-data))
+       {:begin-t (:begin-t desired-data-range)
+        :end-t (:begin-t current-data)}))
+
+(defn find-update-query-range [ current-data desired-data-range ]
+  (if-let [ current-data-range (points-range current-data)]
+    (and (> (:end-t desired-data-range)
+            (:end-t current-data-range))
+         {:begin-t (:end-t current-data-range)
+          :end-t (:end-t desired-data-range)})
+    desired-data-range))
+
+(defn normalize-points [ points ]
+  (vec (distinct (sort-by :t points))))
 
 (defn merge-series-data [ current-data new-data ]
-  {:series-points
-   (vec
-    (distinct
-     (sort-by :t (concat (:series-points current-data)
-                         (:series-points new-data)))))
-   
-   :begin-t (min (:begin-t current-data) (:begin-t new-data))
-   :end-t (max (:end-t current-data) (:end-t new-data))})
+  {:series-points (normalize-points (concat (or (:series-points current-data) [])
+                                            (:series-points new-data)))
+   :begin-t (min (or (:begin-t current-data)
+                     (.-MAX_VALUE js/Number))
+                 (:begin-t new-data))
+   :end-t (max (or (:end-t current-data)
+                   (.-MIN_VALUE js/Number))
+               (:end-t new-data))})
 
-(defn subscribe-plot-data [ series-name series-state-atom ]
+(defn subscribe-plot-data [ series-name series-data-chan ]
   (let [control-channel (chan)]
-    (go
-      (loop [ current-data-range nil ]
-        (when-let [ desired-data-range (<! control-channel) ]
-          (log/watch desired-data-range)
-          (doseq [ query-range (find-query-ranges current-data-range desired-data-range) ]
-            (swap! series-state-atom 
-                   (fn [ state new-data ]
-                     (assoc state :series-data
-                            (merge-series-data (:series-data state) new-data)))
-                   (<! (<<< server/fetch-series-data series-name query-range))))
-          (recur desired-data-range))))
+    (go-loop [ current-data nil ]
+      (when-let [ desired-data-range (<! control-channel) ]
+        (let [ updated-data
+              (let [ data (if-let [ historical-query-range (find-historical-query-range current-data desired-data-range) ]
+                            (merge-series-data current-data (<! (<<< server/fetch-series-data series-name historical-query-range)))
+                            current-data)]
+                (if-let [ update-query-range (find-update-query-range data desired-data-range )]
+                  (merge-series-data data (<! (<<< server/fetch-series-data series-name update-query-range)))
+                  data))]
+          (when updated-data
+            (put! series-data-chan updated-data))
+          (recur updated-data))))
     control-channel))
 
 (defn series-tsplot [ series-name plot-end-time query-window ]
@@ -123,9 +127,14 @@
 
       :component-did-mount
       (fn [ this ]
-        (let [ loop-control (subscribe-plot-data series-name series-state) ]
+        (let [series-data-chan (chan)
+              loop-control (subscribe-plot-data series-name series-data-chan) ]
           (swap! series-state assoc :data-loop-control loop-control)
-          (put! loop-control (range-ending-at plot-end-time (parse-query-window query-window)))))
+          (go-loop []
+            (when-let [ series-data (<! series-data-chan) ]
+              (swap! series-state assoc :series-data series-data)
+              (recur)))
+          (put! loop-control (range-ending-at plot-end-time  (parse-query-window query-window)))))
       
       :component-will-unmount
       (fn [ this ]
@@ -135,9 +144,12 @@
     
       :component-will-update
       (fn [ this [ _ _ plot-end-time query-window ]]
-        (log/debug :component-will-update [ (.toString plot-end-time) query-window ])
         (when-let [loop-control (:data-loop-control @series-state)]
-          (put! loop-control (range-ending-at plot-end-time (parse-query-window query-window)))))
+          (let [updated-query-window (range-ending-at plot-end-time (parse-query-window query-window))]
+            (when (not (= updated-query-window
+                          (:last-query-window @series-state)))
+              (put! loop-control updated-query-window)
+              (swap! series-state assoc :last-query-window updated-query-window)))))
       
       :reagent-render
       (fn [ series-name plot-end-time query-window ]
@@ -170,7 +182,6 @@
     (for [ series (:displayed-series @dashboard-state) ]
       ^{ :key series } [series-pane series @current-time @query-window]))])
 
-
 (defn header [ ]
   [:div.header
    [:span#app-name "Metlog"]
@@ -194,7 +205,11 @@
 (defn on-window-resize [ evt ]
   (reset! window-width (.-innerWidth js/window)))
 
-(log/set-configuration! {"" :warn })
+(log/set-configuration! {"" :debug })
+
+(defn update-current-time []
+  (log/debug "update-current-time")
+  (reset! current-time (time/now)))
 
 (defn ^:export run []
   (reagent/render [dashboard]
@@ -202,7 +217,7 @@
   (.addEventListener js/window "resize" on-window-resize)
   (let [update-interval-id
         (or (:update-interval-id @dashboard-state)
-            (js/setInterval #(reset! current-time (time/now)) update-interval-ms))]
+            (js/setInterval update-current-time update-interval-ms))]
     (go
       (let [all-series (<! (<<< server/fetch-series-names))
             series-names (<! (<<< server/fetch-dashboard-series))]

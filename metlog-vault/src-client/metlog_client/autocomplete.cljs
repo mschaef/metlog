@@ -45,7 +45,6 @@
 (defn autocomplete-completions [ _ _ ]
   (reagent/create-class
    {
-
     :reagent-render
     (fn [ completions state ]
       (let [selected-index (:selected-index @state)]
