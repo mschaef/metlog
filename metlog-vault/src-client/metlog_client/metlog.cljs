@@ -104,8 +104,8 @@
                    (.-MIN_VALUE js/Number))
                (:end-t new-data))})
 
-(defn subscribe-plot-data [ series-name series-data-chan ]
-  (let [control-channel (chan)]
+(defn subscribe-plot-data [ series-name update-fn ]
+  (let [control-channel (chan 1 (dedupe))]
     (go-loop [ current-data nil ]
       (when-let [ desired-data-range (<! control-channel) ]
         (let [ updated-data
@@ -116,7 +116,7 @@
                   (merge-series-data data (<! (<<< server/fetch-series-data series-name update-query-range)))
                   data))]
           (when updated-data
-            (put! series-data-chan updated-data))
+            (update-fn updated-data))
           (recur updated-data))))
     control-channel))
 
@@ -127,13 +127,8 @@
 
       :component-did-mount
       (fn [ this ]
-        (let [series-data-chan (chan)
-              loop-control (subscribe-plot-data series-name series-data-chan) ]
+        (let [loop-control (subscribe-plot-data series-name #(swap! series-state assoc :series-data %))]
           (swap! series-state assoc :data-loop-control loop-control)
-          (go-loop []
-            (when-let [ series-data (<! series-data-chan) ]
-              (swap! series-state assoc :series-data series-data)
-              (recur)))
           (put! loop-control (range-ending-at plot-end-time query-window))))
       
       :component-will-unmount
@@ -142,12 +137,8 @@
 
       :component-will-update
       (fn [ this [ _ _ plot-end-time query-window ]]
-        (when-let [loop-control (:data-loop-control @series-state)]
-          (let [updated-query-window (range-ending-at plot-end-time query-window)]
-            (when (not (= updated-query-window
-                          (:last-query-window @series-state)))
-              (put! loop-control updated-query-window)
-              (swap! series-state assoc :last-query-window updated-query-window)))))
+        (put! (:data-loop-control @series-state)
+              (range-ending-at plot-end-time query-window)))
       
       :reagent-render
       (fn [ series-name plot-end-time query-window ]
