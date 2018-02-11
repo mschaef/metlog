@@ -228,17 +228,25 @@
                     (range 0 (/ (range-magnitude x-range) x-interval)))]
       (draw-x-grid-line ctx h (tx x) x))))
 
+(defn restrict-data [ data x-range ]
+  (let [{min :min max :max} x-range
+        min (- min (* 0.1 (- max min)))]
+    (filter #(and (>= (:t %) min)
+                  (<= (:t %) max))
+            data)))
+
 (defn draw-series [ ctx w h data x-range ]
   (with-preserved-ctx ctx
     (set-stroke-style ctx :series-line)
     (aset ctx "font" "12px Arial")
-    (let [y-range (rescale-range (s-yrange data) 1.1)]
-      (unless (empty? data)
-        (draw-y-grid ctx w h y-range)
-        (draw-x-grid ctx w h x-range)
-        (with-preserved-ctx ctx
-          (clip-rect ctx 0 0 w h)
-          (draw-series-line ctx data x-range y-range w h)))))) 
+    (let [ data (restrict-data data x-range) ]
+      (let [y-range (rescale-range (s-yrange data) 1.1)]
+        (unless (empty? data)
+                (draw-y-grid ctx w h y-range)
+                (draw-x-grid ctx w h x-range)
+                (with-preserved-ctx ctx
+                  (clip-rect ctx 0 0 w h)
+                  (draw-series-line ctx data x-range y-range w h))))))) 
 
 (defn draw-series-background [ ctx w h ]
   (with-preserved-ctx ctx
