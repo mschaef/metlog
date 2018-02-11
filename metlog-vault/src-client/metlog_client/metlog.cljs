@@ -134,18 +134,16 @@
             (when-let [ series-data (<! series-data-chan) ]
               (swap! series-state assoc :series-data series-data)
               (recur)))
-          (put! loop-control (range-ending-at plot-end-time  (parse-query-window query-window)))))
+          (put! loop-control (range-ending-at plot-end-time query-window))))
       
       :component-will-unmount
       (fn [ this ]
-        (when-let [loop-control (:data-loop-control @series-state)]
-          (close! loop-control)
-          (swap! series-state assoc :data-loop-control nil)))
-    
+        (close! (:data-loop-control @series-state)))
+
       :component-will-update
       (fn [ this [ _ _ plot-end-time query-window ]]
         (when-let [loop-control (:data-loop-control @series-state)]
-          (let [updated-query-window (range-ending-at plot-end-time (parse-query-window query-window))]
+          (let [updated-query-window (range-ending-at plot-end-time query-window)]
             (when (not (= updated-query-window
                           (:last-query-window @series-state)))
               (put! loop-control updated-query-window)
@@ -153,8 +151,7 @@
       
       :reagent-render
       (fn [ series-name plot-end-time query-window ]
-        [series-tsplot-view series-name (:series-data @series-state)
-         (range-ending-at plot-end-time (parse-query-window query-window))])})))
+        [series-tsplot-view series-name (:series-data @series-state) (range-ending-at plot-end-time query-window)])})))
 
 (defn- set-displayed-series! [ series-names ]
   (swap! dashboard-state merge {:displayed-series series-names})
@@ -180,7 +177,7 @@
   [:div
    (doall
     (for [ series (:displayed-series @dashboard-state) ]
-      ^{ :key series } [series-pane series @current-time @query-window]))])
+      ^{ :key series } [series-pane series @current-time (parse-query-window @query-window)]))])
 
 (defn header [ ]
   [:div.header
