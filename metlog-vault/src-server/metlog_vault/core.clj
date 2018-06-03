@@ -65,11 +65,9 @@
 
   (POST "/data" req
     (log/debug "Incoming data, content-type:" (:content-type req))
-    (data/store-data-samples
-     (if (= "application/transit+json" (:content-type req))       
-       (read-transit (slurp (:body req)))
-       (edn/read-string (slurp (:body req)))))
-    
+    (data/store-data-samples-monotonic (if (= "application/transit+json" (:content-type req))       
+                                         (read-transit (slurp (:body req)))
+                                         (edn/read-string (slurp (:body req)))))    
     "Incoming data accepted.")
   
   (GET "/dashboard" [] (render-dashboard))
