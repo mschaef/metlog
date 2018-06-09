@@ -34,3 +34,16 @@
      (mod (/ (- (System/currentTimeMillis) start-t) (minutes 4))
           3)))
 
+(defsensor* intermittent {:poll-interval (seconds 5)}
+  (let [rs (random-sampler)]
+    (fn []
+      (if (> 0.5 (Math/random))
+        (rs)))))
+
+(defsensor* intermittent-nested {:poll-interval (seconds 5)}
+  (let [rs (random-sampler)]
+    (fn []
+      (let [v (rs)]
+        {:c v
+         :i (if (> 0.5 (Math/random))
+              v)}))))

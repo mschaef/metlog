@@ -68,7 +68,12 @@
       false)))
 
 (defn process-sensor-reading [ sensor-name sensor-value ]
+  (log/trace "process-sensor-reading" [ sensor-name sensor-value ])
   (cond
+    (or (nil? sensor-value) 
+        (false? sensor-value))
+    (log/debug "No value for sensor" sensor-name)
+    
     (number? sensor-value)
     (enqueue-sensor-reading sensor-name sensor-value)
     
@@ -85,8 +90,7 @@
 (defn poll-sensors [ sensor-defs ]
   (log/trace "poll-sensors" (map :sensor-name sensor-defs))
   (doseq [ sensor-def sensor-defs ]
-    (if-let [ sensor-value (poll-sensor sensor-def)]
-      (process-sensor-reading (:sensor-name sensor-def) sensor-value))))
+    (process-sensor-reading (:sensor-name sensor-def) (poll-sensor sensor-def))))
 
 (defn take-result-queue-snapshot []
   (let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
