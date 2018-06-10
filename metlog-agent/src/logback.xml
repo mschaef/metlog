@@ -5,7 +5,7 @@
     </encoder>
   </appender>
 
-  <logger name="metlog-agent.core" level="TRACE"/>
+  <logger name="metlog-agent.core" level="INFO"/>
 
   <root level="WARN">
     <appender-ref ref="CONSOLE"/>

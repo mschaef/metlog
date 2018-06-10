@@ -47,3 +47,21 @@
         {:c v
          :i (if (> 0.5 (Math/random))
               v)}))))
+
+(defsensor* multiple {:poll-interval (seconds 10)}
+  (let [rs-1 (random-sampler)
+        rs-2 (random-sampler)
+        rs-3 (random-sampler)]
+    (fn []
+      [{:1 (rs-1)}
+       {:2 (rs-2)}
+       {:3 (rs-3)}])))
+
+(defsensor* timestamped-fn {:poll-interval (seconds 10)}
+  (let [rs (random-sampler)]
+    (fn [] (TimestampedValue. (java.util.Date.) (rs)))))
+
+(defsensor timestamped {:poll-interval (seconds 10)}
+  (TimestampedValue. (java.util.Date.) (Math/random)))
+
+

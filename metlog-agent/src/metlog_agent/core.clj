@@ -25,8 +25,15 @@
 
 (def sensor-result-queue (java.util.concurrent.LinkedBlockingQueue.))
 
-(defn enqueue-sensor-reading [ series-name val ]
-  (let [ reading {:t (java.util.Date.)
+(defrecord TimestampedValue [ t val ])
+
+(defn ensure-timestamped [ val ]
+  (if (instance? TimestampedValue val)
+    val
+    (TimestampedValue. (java.util.Date.) val)))
+
+(defn enqueue-sensor-reading [ t series-name val ]
+  (let [ reading {:t t
                   :series_name series-name
                   :val val}]
     (log/trace "enquing sensor reading" reading)
@@ -67,30 +74,34 @@
       (log/error "Error polling sensor" (:sensor-name sensor-def) (str ex))
       false)))
 
-(defn process-sensor-reading [ sensor-name sensor-value ]
-  (log/trace "process-sensor-reading" [ sensor-name sensor-value ])
-  (cond
-    (or (nil? sensor-value) 
-        (false? sensor-value))
-    (log/debug "No value for sensor" sensor-name)
+(defn process-sensor-reading [ sensor-name ts-sensor-reading ]
+  (log/trace "process-sensor-reading" [ sensor-name ts-sensor-reading ])
+  (let [t (:t ts-sensor-reading)]
+    (loop [sensor-name sensor-name
+           val (:val ts-sensor-reading)] 
+      (cond
+        (or (nil? val) (false? val))
+        (log/debug "No value for sensor" sensor-name)
+        
+        (number? val)
+        (enqueue-sensor-reading t sensor-name val)
     
-    (number? sensor-value)
-    (enqueue-sensor-reading sensor-name sensor-value)
-    
-    (map? sensor-value)
-    (doseq [[sub-name sub-value] sensor-value]
-      (process-sensor-reading (str sensor-name "-" (name sub-name))
-                              sub-value))
-    
-    :else
-    (log/error "Bad sensor value" sensor-value "(" (.getClass sensor-value) ")"
-               "from sensor" sensor-name)))
+        (map? val)
+        (doseq [[sub-name sub-value] val]
+          (process-sensor-reading (str sensor-name "-" (name sub-name)) (TimestampedValue. t sub-value)))
+        
+        :else
+        (log/error "Bad sensor value" val "(" (.getClass val) ")" "from sensor" sensor-name)))))
 
+(defn ->timestamped-readings [ obj ]
+  (log/trace "->timestamped-readings" obj)
+  (map ensure-timestamped (if (vector? obj) obj [ obj ])))
 
 (defn poll-sensors [ sensor-defs ]
   (log/trace "poll-sensors" (map :sensor-name sensor-defs))
   (doseq [ sensor-def sensor-defs ]
-    (process-sensor-reading (:sensor-name sensor-def) (poll-sensor sensor-def))))
+    (doseq [ ts-sensor-reading (->timestamped-readings (poll-sensor sensor-def)) ]
+      (process-sensor-reading (:sensor-name sensor-def) ts-sensor-reading))))
 
 (defn take-result-queue-snapshot []
   (let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]

@@ -7,7 +7,7 @@
   </appender>
 
   <logger name="metlog-vault.core" level="INFO"/>
-  <logger name="metlog-vault.data" level="INFO"/>
+  <logger name="metlog-vault.data" level="DEBUG"/>
 
   <root level="INFO">
     <appender-ref ref="CONSOLE"/>
