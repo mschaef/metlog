@@ -6,6 +6,7 @@
   
   :dependencies [[metlog-common "0.1.0-SNAPSHOT"]
                  [org.clojure/clojure "1.8.0"]
+                 [clj-time "0.14.4"]
                  [clj-http "3.1.0"
                   :exclusions [com.fasterxml.jackson.core/jackson-core]]
                  [overtone/at-at "1.2.0"]
