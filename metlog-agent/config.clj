@@ -111,3 +111,43 @@
   (if (> 0.5 (Math/random))
     (throw (Exception. "test failure"))
     (Math/random)))
+
+;; OC
+;; http https://api.darksky.net/forecast/587a8fa1a383bafeeef406acf12fb98a/39.2776,-74.5746\?exclude=minutely,hourly,daily,alerts,flags
+
+;; Wynnewood
+;; http https://api.darksky.net/forecast/587a8fa1a383bafeeef406acf12fb98a/39.9996,-75.2730\?exclude=minutely,hourly,daily,alerts,flags
+
+(def darksky-api-key "587a8fa1a383bafeeef406acf12fb98a")
+
+(def darksky-19096 "39.9996,-75.2730")
+(def darksky-08226 "39.2776,-74.5746")
+
+(defn request-json [ url ]
+  (let [response (http/get url)
+        body (safe-json-read-str (:body response))]
+    (and (= 200 (:status response))
+         body)))
+
+(defn read-darksky [ key location ]
+  (let [body (request-json (str "https://api.darksky.net/forecast/" key "/" location "?exclude=minutely,hourly,daily,alerts,flags"))]
+    (and body
+         (let [obv (get body "currently")]
+           {:temp-f (ensure-number (get obv "temperature" false))            
+            :apparent-temp-f (ensure-number (get obv "apparentTemperature" false))
+            :dew-point-f (ensure-number (get obv "dewPoint" false))
+            :humidity (ensure-number (get obv "humidity" false))
+            :ozone (ensure-number (get obv "ozone" false))
+            :precip-intensity (ensure-number (get obv "precipIntensity" false))
+            :precip-probability (ensure-number (get obv "precipProbability" false))
+            :pressure (ensure-number (get obv "pressure" false))
+            :uv-index (ensure-number (get obv "uvIndex" false))
+            :wind-bearing (ensure-number (get obv "windBearing" false))
+            :wind-gust (ensure-number (get obv "windGust" false))
+            :wind-speed (ensure-number (get obv "windSpeed" false))}))))
+
+(defsensor "darksky-19096" {:poll-interval (minutes 15)}
+  (read-darksky darksky-api-key darksky-19096))
+
+(defsensor "darksky-08226" {:poll-interval (minutes 15)}
+  (read-darksky darksky-api-key darksky-08226))
