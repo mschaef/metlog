@@ -16,7 +16,7 @@
             [metlog-vault.data :as data]
             [hiccup.core :as hiccup]))
 
-(def http-thread-count 4)
+(def http-thread-count 8)
 
 (defmacro get-version []
   ;; Capture compile-time property definition from Lein
