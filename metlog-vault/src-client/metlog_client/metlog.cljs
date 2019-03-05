@@ -63,15 +63,9 @@
                     {:width (.-clientWidth node)
                      :height (.-clientHeight node)})]])})))
 
-(defn range-ending-at [ end-t window-seconds ]
-  (let [begin-t (time/minus end-t (time/seconds window-seconds))]
-    {:begin-t (time-coerce/to-long begin-t)
-     :end-t (time-coerce/to-long end-t)}))
-
-(defn series-tsplot [ series-name plot-end-time query-window ]
+(defn series-tsplot [ series-name current-time query-window ]
   (let [series-data (reagent/atom [])
-        subscription (server/subscribe-plot-data series-name #(reset! series-data %))]
-    (server/update-plot-data-range subscription (range-ending-at plot-end-time query-window))
+        subscription (server/snap-and-subscribe-plot-data series-name query-window #(reset! series-data %))]
     (reagent/create-class
      {:display-name (str "series-tsplot-" series-name)
       
@@ -80,12 +74,15 @@
         (server/unsubscribe-plot-data subscription))
 
       :component-will-update
-      (fn [ this [ _ _ plot-end-time query-window ]]
-        (server/update-plot-data-range subscription (range-ending-at plot-end-time query-window)))
+      (fn [ this new-argv ]
+        (let [[ _ _ _ old-query-window ] (reagent/argv this)
+              [ _ _ _ query-window] new-argv ]
+          (when (not (= old-query-window query-window))
+            (server/update-plot-query-window subscription query-window))))
       
       :reagent-render
-      (fn [ series-name plot-end-time query-window ]
-        [series-tsplot-view series-name @series-data (range-ending-at plot-end-time query-window)])})))
+      (fn [ series-name current-time query-window ]
+        [series-tsplot-view series-name @series-data (server/range-ending-at current-time query-window)])})))
 
 (defn- set-displayed-series! [ series-names ]
   (swap! dashboard-state merge {:displayed-series series-names})
@@ -98,11 +95,11 @@
   (when (not (some #(= % new-series-name) (:displayed-series @dashboard-state)))
     (set-displayed-series! (conj (:displayed-series @dashboard-state) new-series-name))))
 
+
 (defn series-pane [ series-name current-time query-window ]
   [:div.series-pane
    [:div.series-pane-header
     [:span.series-name series-name]
-
     [:span.close-button {:onClick #(remove-series series-name) }
      "close"]]
    [series-tsplot series-name current-time query-window]])

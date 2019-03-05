@@ -2,9 +2,11 @@
   (:require-macros [cljs.core.async.macros :refer [ go go-loop ]])
   (:require [ajax.core :as ajax]
             [cljs-time.core :as time]
-            [cljs.core.async :refer [put! close! chan <!]]
+            [cljs.core.async :refer [put! close! chan <! >! sliding-buffer pub sub unsub]]
+            [cljs-time.coerce :as time-coerce]            
             [metlog-client.util :refer [ <<< ]]            
             [metlog-client.logger :as log]))
+
 
 (defn ajax-get
   ([ url params callback ]
@@ -27,14 +29,16 @@
   (ajax-get "/series-names" then))
 
 (defn fetch-series-data [ series-name query-range then ]
-  (let [ request-t (time/now) ]
-    (log/debug :fetch-series-data series-name request-t (:end-t query-range) (- (:end-t query-range) (:begin-t query-range)))
-    (ajax-get (str "/data/" series-name) query-range
-              #(then (merge {:series-points %
-                             :series-name series-name
-                             :request-t request-t
-                             :response-t (time/now)}
-                            query-range)))))
+  (if query-range
+    (let [ request-t (time/now) ]
+      (log/debug :fetch-series-data series-name request-t (:end-t query-range) (- (:end-t query-range) (:begin-t query-range)))
+      (ajax-get (str "/data/" series-name) query-range
+                #(then (merge {:series-points %
+                               :series-name series-name
+                               :request-t request-t
+                               :response-t (time/now)}
+                              query-range))))
+    (then nil)))
 
 (defn- normalize-points [ points ]
   (vec (distinct (sort-by :t points))))
@@ -45,13 +49,13 @@
          {:begin-t (:t (get series-points 0))
           :end-t (:t (get series-points (- (count series-points) 1)))})))
 
-(defn- find-historical-query-range [ current-data desired-data-range ]
+(defn- historical-query [ current-data desired-data-range ]
   (and (< (:begin-t desired-data-range)
           (:begin-t current-data))
        {:begin-t (:begin-t desired-data-range)
         :end-t (:begin-t current-data)}))
 
-(defn- find-update-query-range [ current-data desired-data-range ]
+(defn- update-query [ current-data desired-data-range ]
   (if-let [ current-data-range (points-range current-data)]
     (and (> (:end-t desired-data-range)
             (:end-t current-data-range))
@@ -60,34 +64,67 @@
     desired-data-range))
 
 (defn merge-series-data [ current-data new-data ]
-  {:series-points (normalize-points (concat (or (:series-points current-data) [])
-                                            (:series-points new-data)))
-   :begin-t (min (or (:begin-t current-data)
-                     (.-MAX_VALUE js/Number))
-                 (:begin-t new-data))
-   :end-t (max (or (:end-t current-data)
-                   (.-MIN_VALUE js/Number))
-               (:end-t new-data))})
+  (if new-data
+    {:series-points (normalize-points (concat (or (:series-points current-data) [])
+                                              (:series-points new-data)))
+     :begin-t (min (or (:begin-t current-data) (.-MAX_VALUE js/Number))
+                   (:begin-t new-data))
+     :end-t (max (or (:end-t current-data) (.-MIN_VALUE js/Number))
+                 (:end-t new-data))}
+    current-data))
 
-(defn subscribe-plot-data [ series-name update-fn ]
-  (let [control-channel (chan 1 (dedupe))]
-    (go-loop [ current-data nil ]
-      (when-let [ desired-data-range (<! control-channel) ]
-        (let [ updated-data
-              (let [ data (if-let [ historical-query-range (find-historical-query-range current-data desired-data-range) ]
-                            (merge-series-data current-data (<! (<<< fetch-series-data series-name historical-query-range)))
-                            current-data)]
-                (if-let [ update-query-range (find-update-query-range data desired-data-range )]
-                  (merge-series-data data (<! (<<< fetch-series-data series-name update-query-range)))
-                  data))]
-          (when updated-data
-            (update-fn updated-data))
-          (recur updated-data))))
+;;;; Subscription
+
+(defonce current-time-chan (chan))
+
+(defonce current-time-pub (pub current-time-chan :event))
+
+(defn update-subscriptions []
+  (log/debug :update-subscriptions)
+  (go (>! current-time-chan { :event :current-time :t (time/now)})))
+
+(defonce subscription-update-interval (js/setInterval #(update-subscriptions) 5000))
+
+(defn update-plot-query-window [ control-channel query-window ]
+  (put! control-channel {:event :query-window :query-window query-window}))
+
+(defn range-ending-at [ end-t window-seconds ]
+  (let [begin-t (time/minus end-t (time/seconds window-seconds))]
+    {:begin-t (time-coerce/to-long begin-t)
+     :end-t (time-coerce/to-long end-t)}))
+
+(defn start-subscription-loop [ control-channel series-name update-fn ]
+  (go-loop [current-time (time/now)
+            query-window nil
+            current-data nil ]
+    (when-let [ message (<! control-channel) ]
+      (case (:event message)
+        :query-window
+        (let [ range (range-ending-at current-time (:query-window message)) ]
+          (let [ updated-data
+                (-> current-data
+                    (merge-series-data (<! (<<< fetch-series-data series-name (historical-query current-data range))))
+                    (merge-series-data (<! (<<< fetch-series-data series-name (update-query current-data range)))))]
+            (when updated-data
+              (update-fn updated-data))
+            (recur current-time (:query-window message) updated-data )))
+
+        :current-time
+        (do
+          (update-plot-query-window control-channel query-window)
+          (recur (:t message) query-window current-data))
+
+        (recur current-time query-window current-data)))))
+
+(defn snap-and-subscribe-plot-data [ series-name query-window update-fn ]
+  (let [control-channel (chan (sliding-buffer 1))]
+    (update-plot-query-window control-channel query-window)
+    (start-subscription-loop control-channel series-name update-fn)
+    (sub current-time-pub :current-time control-channel)
     control-channel))
 
 (defn unsubscribe-plot-data [ control-channel ]
+  (unsub current-time-pub :current-time control-channel)
   (close! control-channel))
 
-(defn update-plot-data-range [ control-channel range ]
-  (put! control-channel range))
 
