@@ -206,12 +206,11 @@
   (let [update-interval-id
         (or (:update-interval-id @dashboard-state)
             (js/setInterval update-current-time update-interval-ms))]
-    (go
-      (let [all-series (<! (<<< server/fetch-series-names))
-            series-names (<! (<<< server/fetch-dashboard-series))]
-        (swap! dashboard-state merge {:all-series all-series
-                                      :update-interval-id update-interval-id
-                                      :displayed-series series-names})))))
+    (swap! dashboard-state merge {:update-interval-id update-interval-id})
+
+    (server/fetch-series-names #(swap! dashboard-state merge {:all-series %}))
+    (server/fetch-dashboard-series #(swap! dashboard-state merge {:displayed-series %}))
+    (log/debug "init complete.")))
 
 (run)
 
