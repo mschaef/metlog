@@ -69,27 +69,23 @@
      :end-t (time-coerce/to-long end-t)}))
 
 (defn series-tsplot [ series-name plot-end-time query-window ]
-  (let [series-state (reagent/atom {})]
+  (let [series-data (reagent/atom [])
+        subscription (server/subscribe-plot-data series-name #(reset! series-data %))]
+    (server/update-plot-data-range subscription (range-ending-at plot-end-time query-window))
     (reagent/create-class
      {:display-name (str "series-tsplot-" series-name)
-
-      :component-did-mount
-      (fn [ this ]
-        (let [loop-control (server/subscribe-plot-data series-name #(swap! series-state assoc :series-data %))]
-          (swap! series-state assoc :data-loop-control loop-control)
-          (server/update-plot-data-range loop-control (range-ending-at plot-end-time query-window))))
       
       :component-will-unmount
       (fn [ this ]
-        (server/unsubscribe-plot-data (:data-loop-control @series-state)))
+        (server/unsubscribe-plot-data subscription))
 
       :component-will-update
       (fn [ this [ _ _ plot-end-time query-window ]]
-        (server/update-plot-data-range (:data-loop-control @series-state) (range-ending-at plot-end-time query-window)))
+        (server/update-plot-data-range subscription (range-ending-at plot-end-time query-window)))
       
       :reagent-render
       (fn [ series-name plot-end-time query-window ]
-        [series-tsplot-view series-name (:series-data @series-state) (range-ending-at plot-end-time query-window)])})))
+        [series-tsplot-view series-name @series-data (range-ending-at plot-end-time query-window)])})))
 
 (defn- set-displayed-series! [ series-names ]
   (swap! dashboard-state merge {:displayed-series series-names})
