@@ -136,21 +136,19 @@
 (log/set-configuration! {"" :debug })
 
 (defn update-current-time []
-  (log/debug "update-current-time")
-  (reset! current-time (time/now)))
+  (let [t (time/now)]
+    (log/debug "update-current-time: " t)
+    (reset! current-time t)))
+
+(defonce update-interval-id
+  (js/setInterval update-current-time update-interval-ms))
 
 (defn ^:export run []
-  (reagent/render [dashboard]
-                  (js/document.getElementById "metlog"))
+  (reagent/render [dashboard] (js/document.getElementById "metlog"))
   (.addEventListener js/window "resize" on-window-resize)
-  (let [update-interval-id
-        (or (:update-interval-id @dashboard-state)
-            (js/setInterval update-current-time update-interval-ms))]
-    (swap! dashboard-state merge {:update-interval-id update-interval-id})
-
-    (server/fetch-series-names #(swap! dashboard-state merge {:all-series %}))
-    (server/fetch-dashboard-series #(swap! dashboard-state merge {:displayed-series %}))
-    (log/debug "init complete.")))
+  (server/fetch-series-names #(swap! dashboard-state merge {:all-series %}))
+  (server/fetch-dashboard-series #(swap! dashboard-state merge {:displayed-series %}))
+  (log/debug "init complete. update-interval-id:" update-interval-id))
 
 (run)
 
