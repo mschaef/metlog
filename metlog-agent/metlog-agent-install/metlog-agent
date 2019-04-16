@@ -55,7 +55,7 @@ if [ "$AUTHBIND" = "yes" -a "$1" = "start" ]; then
    JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true"
 fi
 
-METLOG_SH="$JAVA $JAVA_OPTS"
+METLOG_SH="$JAVA $JAVA_OPTS > /var/log/${SERVICE_NAME}/${SERVICE_NAME}-console.log 2>&1"
 
 if [ "$AUTHBIND" = "yes" ]; then
    METLOG_SH="/usr/bin/authbind --deep /bin/bash -c '$METLOG_SH'"
