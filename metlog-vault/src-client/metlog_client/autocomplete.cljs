@@ -29,17 +29,31 @@
                       :selected-index -1
                       :update-filter-text true}))
 
+(defn- ensure-entry-visible [ container-elem entry-elem ]
+  (cond
+    (< (.-offsetTop entry-elem)
+       (.-scrollTop container-elem))
+    (aset container-elem "scrollTop" (.-offsetTop entry-elem))
+
+    (> (+ (.-offsetTop entry-elem) (.-clientHeight entry-elem))
+       (+ (.-scrollTop container-elem) (.-clientHeight container-elem)))
+    ;; Place the bottom edge of the entry against the bottom edge
+    ;; of the container.
+    (aset container-elem "scrollTop" (- (.-offsetTop entry-elem)
+                                        (- (.-clientHeight container-elem)
+                                           (.-clientHeight entry-elem))))))
+
 (defn autocomplete-entry [ ]
   (reagent/create-class
    {:component-did-update
     (fn [ this old-argv ]
       (let [[ _ _ _ was-selected? ] old-argv
-            [ _ container-node _ is-selected? ] (reagent/argv this) ]
+            [ _ container-elem _ is-selected? ] (reagent/argv this) ]
         (when (and is-selected? (not was-selected?))
-          (aset container-node "scrollTop" (.-offsetTop (reagent/dom-node this))))))
+          (ensure-entry-visible container-elem (reagent/dom-node this)))))
     
     :reagent-render
-    (fn [ container-node content selected? ]
+    (fn [ container-elem content selected? ]
       [:div {:class (str "autocomplete-completion-entry "
                          (if selected? "selected"))}
        content])}))
