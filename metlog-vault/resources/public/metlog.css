@@ -130,7 +130,7 @@ div.series-pane div.series-pane-header span.close-button:hover {
     box-sizing: border-box;
 
     max-height: 200px;
-    overflow-y: auto;
+    overflow-y: scroll;
 }
 
 .autocomplete-no-results {

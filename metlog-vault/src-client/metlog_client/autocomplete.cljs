@@ -1,6 +1,7 @@
 (ns metlog-client.autocomplete
   (:require [reagent.core :as reagent]
-            [reagent.debug :as debug]))
+            [reagent.debug :as debug]
+            [metlog-client.logger :as log]))
 
 (defn- filter-completions [ completions filter-string ]
   (filter #(> (.indexOf % filter-string) -1)
@@ -28,32 +29,36 @@
                       :selected-index -1
                       :update-filter-text true}))
 
-(defn- autocomplete-entry [ _ _ ]
+(defn autocomplete-entry [ ]
   (reagent/create-class
    {:component-did-update
-    (fn [ this [ _ _ was-selected? _ ] ]
-      (let [ [ _ _ is-selected? _ ] (reagent/argv this)]
+    (fn [ this old-argv ]
+      (let [[ _ _ _ was-selected? ] old-argv
+            [ _ container-node _ is-selected? ] (reagent/argv this) ]
         (when (and is-selected? (not was-selected?))
-          (.-scrollIntoView (reagent/dom-node this)))))
-      
+          (aset container-node "scrollTop" (.-offsetTop (reagent/dom-node this))))))
+    
     :reagent-render
-    (fn [ content selected? ]
+    (fn [ container-node content selected? ]
       [:div {:class (str "autocomplete-completion-entry "
                          (if selected? "selected"))}
        content])}))
 
 (defn autocomplete-completions [ _ _ ]
-  (reagent/create-class
-   {
-    :reagent-render
-    (fn [ completions state ]
-      (let [selected-index (:selected-index @state)]
+  (let [ dom-node (reagent/atom nil ) ]
+    (reagent/create-class
+     {:component-did-mount
+      (fn [ this ]
+        (reset! dom-node (reagent/dom-node this)))
+
+      :reagent-render
+      (fn [ completions selected-index ]
         [:div.autocomplete-completions
          (if (empty? completions)
            [:div.autocomplete-no-results "No Matching Values"]
            (doall
             (for [ [ii completion] (number-elements completions)]
-              #^{:key completion} [autocomplete-entry completion (= ii selected-index)])))]))}))
+              #^{:key completion} [autocomplete-entry @dom-node completion (= ii selected-index)])))])})))
 
 (defn accept-text [ state new-text ]
   (swap! state assoc :current-text new-text)
@@ -95,4 +100,4 @@
                   :onKeyPress #(autocomplete-handle-keypress state %)
                   :onChange #(accept-text state (.. % -target -value))}]
          (when (:display-completions @state)
-           [autocomplete-completions completions state])]))))
+           [autocomplete-completions completions (:selected-index @state)])]))))
