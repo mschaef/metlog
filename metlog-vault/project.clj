@@ -4,21 +4,21 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/clojurescript "1.9.93"]
-                 [clj-time "0.14.4"]
+  :dependencies [[org.clojure/clojure "1.10.0"]
+                 [org.clojure/clojurescript "1.10.520"]
+                 [clj-time "0.15.1"]
                  [com.mschaef/sql-file "0.4.0"]                 
-                 [ring/ring-jetty-adapter "1.5.0"]
+                 [ring/ring-jetty-adapter "1.7.1"]
                  [slester/ring-browser-caching "0.1.1"]
-                 [com.cognitect/transit-clj "0.8.285"]                 
-                 [compojure "1.5.1"
+                 [com.cognitect/transit-clj "0.8.313"]
+                 [compojure "1.6.1"
                   :exclusions [commons-codec]]
                  [hiccup "1.0.5"]
                  
-                 [org.clojure/core.async "0.2.385"]
-                 [cljs-ajax "0.5.8"] 
-                 [reagent "0.5.1"]
-                 [com.andrewmcveigh/cljs-time "0.4.0"]
+                 [org.clojure/core.async "0.4.490"]
+                 [cljs-ajax "0.8.0"] 
+                 [reagent "0.8.1"]
+                 [com.andrewmcveigh/cljs-time "0.5.2"]
 
                  [metlog-common "0.1.0-SNAPSHOT"]]
 
@@ -54,12 +54,12 @@
              :server-logfile "log/figwheel.log"}
   
   :profiles {:dev
-             {:dependencies [[figwheel "0.5.4-7"]
-                             [figwheel-sidecar "0.5.4-7"]
-                             [com.cemerick/piggieback "0.2.1"]
-                             [org.clojure/tools.nrepl "0.2.12"]]
+             {:dependencies [[figwheel "0.5.18"]
+                             [figwheel-sidecar "0.5.18"]
+                             [com.cemerick/piggieback "0.2.2"]
+                             [org.clojure/tools.nrepl "0.2.13"]]
               :jvm-opts ["--add-modules" "java.xml.bind"]
-              :plugins [[lein-figwheel "0.5.4-7"]]
+              :plugins [[lein-figwheel "0.5.18"]]
 
               :cljsbuild {:builds
                           {:test
