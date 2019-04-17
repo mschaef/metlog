@@ -8,7 +8,9 @@
             [sql-file.core :as sql-file]))
 
 (def db-connection
-  (delay (sql-file/open-hsqldb-file-conn (config-property "db.subname" "metlog-db")  "metlog" 1)))
+  (delay (-> (sql-file/open-pool {:name (config-property "db.subname" "metlog-db")
+                                  :schema-path [ "sql/" ]})
+             (sql-file/ensure-schema [ "metlog" 1 ]))))
 
 (def ^:dynamic *db* nil)
 

@@ -7,8 +7,7 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.9.93"]
                  [clj-time "0.14.4"]
-                 [com.ksmpartners/sql-file "0.1.0"
-                  :exclusions [org.clojure/java.jdbc]]                 
+                 [com.mschaef/sql-file "0.4.0"]                 
                  [ring/ring-jetty-adapter "1.5.0"]
                  [slester/ring-browser-caching "0.1.1"]
                  [com.cognitect/transit-clj "0.8.285"]                 
