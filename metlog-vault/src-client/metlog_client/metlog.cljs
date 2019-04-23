@@ -36,32 +36,44 @@
 (defonce window-width
   (reagent/atom nil))
 
+(defn- setup-canvas [ canvas width height ]
+  (let [dpr (or  (.-devicePixelRatio js/window) 1)
+        ctx (.getContext canvas "2d")]
+
+    (aset canvas "width" (* dpr width))
+    (aset canvas "height" (* dpr height))
+    (aset (.-style canvas) "width" (str width "px"))
+    (aset (.-style canvas) "height" (str height "px"))
+    (.scale ctx dpr dpr)))
+
 (defn series-tsplot-view [ series series-data series-range ]
-  (let [dom-node (reagent/atom nil)]
+  (let [ dom-node (reagent/atom nil)]
     (reagent/create-class
      {:display-name (str "series-tsplot-view-" series)
+
+      :component-did-mount
+      (fn [ this ]
+        (reset! dom-node (reagent/dom-node this)))
       
       :component-did-update
       (fn [ this _ ]
         (let [[ _ _ series-data series-range ] (reagent/argv this)
               canvas (.-firstChild @dom-node)
               ctx (.getContext canvas "2d")]
+          (setup-canvas canvas (.-clientWidth @dom-node) (.-clientHeight @dom-node))
           (tsplot/draw ctx (.-clientWidth canvas) (.-clientHeight canvas)
                        (:series-points series-data)
                        (:begin-t series-range)
                        (:end-t series-range))))
-
-      :component-did-mount
-      (fn [ this ]
-        (reset! dom-node (reagent/dom-node this)))
       
-      :reagent-render
-      (fn [ series series-data series-range ]
-        @window-width
-        [:div
-         [:canvas (if-let [ node @dom-node ]
-                    {:width (.-clientWidth node)
-                     :height (.-clientHeight node)})]])})))
+      :render
+      (fn [ this]
+        (let  [[ series series-data series-range ] (reagent/argv this)]
+          @window-width
+          [:div
+           [:canvas (if-let [ node @dom-node]
+                      {:width (.-clientWidth node)
+                       :height (.-clientHeight node)})]]))})))
 
 (defn series-tsplot [ series-name current-time query-window ]
   (let [series-data (reagent/atom [])
@@ -133,7 +145,7 @@
 (defn on-window-resize [ evt ]
   (reset! window-width (.-innerWidth js/window)))
 
-(log/set-configuration! {"" :debug })
+(log/set-configuration! {"" :info})
 
 (defn update-current-time []
   (let [t (time/now)]
