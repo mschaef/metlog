@@ -1,4 +1,4 @@
-(defproject metlog-common "0.1.0"
+(defproject metlog-common "0.1.1-SNAPSHOT"
   :description "Code common between the metlog agent and vault."
 
   :license {:name "Eclipse Public License"
