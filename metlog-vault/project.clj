@@ -22,7 +22,7 @@
                  [reagent "0.8.1"]
                  [com.andrewmcveigh/cljs-time "0.5.2"]
 
-                 [metlog-common "0.1.0-SNAPSHOT"]]
+                 [metlog-common "0.1.0"]]
 
   :plugins [[lein-cljsbuild "1.1.4"]
             [lein-tar "3.3.0"]]
