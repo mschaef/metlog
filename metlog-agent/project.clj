@@ -6,13 +6,14 @@
 
   :scm {:dir ".."}
   
-  :dependencies [[metlog-common "0.1.0-SNAPSHOT"]
-                 [org.clojure/clojure "1.8.0"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
                  [clj-time "0.14.4"]
                  [clj-http "3.1.0"
                   :exclusions [com.fasterxml.jackson.core/jackson-core]]
                  [overtone/at-at "1.2.0"]
-                 [com.cognitect/transit-clj "0.8.285"]]
+                 [com.cognitect/transit-clj "0.8.285"]
+
+                 [metlog-common "0.1.0"]]
   
   :main ^:skip-aot metlog-agent.core
   :target-path "target/%s"
@@ -31,7 +32,7 @@
   :release-tasks [["vcs" "assert-committed"]
                   ["change" "version" "leiningen.release/bump-version" "release"]
                   ["vcs" "commit"]
-                  ["vcs" "tag" "metlog-vault-" "--no-sign"]
+                  ["vcs" "tag" "metlog-agent-" "--no-sign"]
                   ["tar"]
                   ["change" "version" "leiningen.release/bump-version"]
                   ["vcs" "commit"]
