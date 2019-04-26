@@ -1,8 +1,20 @@
 #!/bin/sh
 
-POM_PROPERTIES_FILE=./target/uberjar/classes/META-INF/maven/metlog-agent/metlog-agent/pom.properties
+if [ -z "$1" ] ; then
+   echo "No Release Level Specified"
+   exit 1
+fi
 
-lein clean && lein uberjar
+if [ "$1" != "major" ] && [ "$1" != "minor" ] && [ "$1" != "patch" ] && \
+   [ "$1" != "alpha" ] && [ "$1" != "beta" ] && [ "$1" != "rc" ] ; then
+
+    echo "Release level \"$1\" must be one of :major , :minor , :patch , :alpha , :beta , or :rc."
+    exit 1
+fi
+          
+echo "Releasing level: $1"
+
+lein clean && lein release $1
 
 if [ $? -ne 0 ]
 then
@@ -10,14 +22,3 @@ then
     exit 1
 fi
 
-if [ ! -r $POM_PROPERTIES_FILE ]
-then
-    echo "Cannot find POM properties file."
-    exit 1
-fi
-
-cp target/uberjar/metlog-agent-standalone.jar metlog-agent-install
-
-PROJECT_VERSION=`grep version ${POM_PROPERTIES_FILE} | cut -d= -f2`
-
-tar czvf metlog-agent-install-${PROJECT_VERSION}.tgz --exclude="*~" metlog-agent-install 

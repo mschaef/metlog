@@ -3,6 +3,8 @@
   
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
+
+  :scm {:dir ".."}
   
   :dependencies [[metlog-common "0.1.0-SNAPSHOT"]
                  [org.clojure/clojure "1.8.0"]
@@ -15,6 +17,22 @@
   :main ^:skip-aot metlog-agent.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}}
+
+  :plugins [[lein-tar "3.3.0"]]
+  
+  :tar {:uberjar true
+        :format :tar-gz
+        :output-dir "."
+        :leading-path "metlog-agent-install"}
   
   :jar-name "metlog-agent.jar"
-  :uberjar-name "metlog-agent-standalone.jar")
+  :uberjar-name "metlog-agent-standalone.jar"
+
+  :release-tasks [["vcs" "assert-committed"]
+                  ["change" "version" "leiningen.release/bump-version" "release"]
+                  ["vcs" "commit"]
+                  ["vcs" "tag" "metlog-vault-" "--no-sign"]
+                  ["tar"]
+                  ["change" "version" "leiningen.release/bump-version"]
+                  ["vcs" "commit"]
+                  ["vcs" "push"]]  )

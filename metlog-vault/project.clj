@@ -4,6 +4,8 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
+  :scm {:dir ".."}
+  
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/clojurescript "1.10.520"]
                  [clj-time "0.15.1"]
@@ -22,10 +24,14 @@
 
                  [metlog-common "0.1.0-SNAPSHOT"]]
 
-  :plugins [[lein-cljsbuild "1.1.4"]]
+  :plugins [[lein-cljsbuild "1.1.4"]
+            [lein-tar "3.3.0"]]
 
-  :min-lein-version "2.5.3"
-
+  :tar {:uberjar true
+        :format :tar-gz
+        :output-dir "."
+        :leading-path "metlog-vault-install"}
+  
   :source-paths ["src-server"]
 
   :clean-targets ^{:protect false} [:target-path :compile-path "resources/public/compiled"]
@@ -36,10 +42,10 @@
 
   :target-path "target/%s"
 
-    :cljsbuild {:builds
+  :cljsbuild {:builds
               {:app
                {:source-paths ["src-client"]
-
+                
                 :figwheel true
 
                 :compiler {:main metlog-client.metlog
@@ -78,4 +84,13 @@
                            {:source-paths ^:replace ["src-client"]
                             :compiler
                             {:optimizations :advanced
-                             :pretty-print false}}}}}})
+                             :pretty-print false}}}}}}
+
+    :release-tasks [["vcs" "assert-committed"]
+                    ["change" "version" "leiningen.release/bump-version" "release"]
+                    ["vcs" "commit"]
+                    ["vcs" "tag" "metlog-vault-" "--no-sign"]
+                    ["tar"]
+                    ["change" "version" "leiningen.release/bump-version"]
+                    ["vcs" "commit"]
+                    ["vcs" "push"]])
