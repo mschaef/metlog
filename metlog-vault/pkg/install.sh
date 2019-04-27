@@ -30,7 +30,7 @@ fi
 # Install jar in /usr/share
 
 install -v --group=root --owner=root --directory /usr/share/${METLOG_SERVICE_NAME}
-install -v --group=root --owner=root ${METLOG_SERVICE_NAME}-standalone.jar /usr/share/${METLOG_SERVICE_NAME}
+install -v --group=root --owner=root lib/uberjar/${METLOG_SERVICE_NAME}-standalone.jar /usr/share/${METLOG_SERVICE_NAME}
 
 # create log directory
 
