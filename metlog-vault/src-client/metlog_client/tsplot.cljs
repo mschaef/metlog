@@ -111,8 +111,11 @@
                (if (< val min) val min)
                (if (> val max) val max))))))
 
-(defn rescale-range [ range factor ]
-  (let [ scaled-delta (* (/ (- factor 1) 2) (range-magnitude range)) ]
+(def epsilon 0.001)
+
+(defn rescale-y-range [ range factor ]
+  (let [magnitude (.max js/Math (range-magnitude range) factor)
+        scaled-delta (* (/ (- factor 1) 2) magnitude)]
     {:max (+ (:max range) scaled-delta)
      :min (- (:min range) scaled-delta)}))
 
@@ -240,7 +243,7 @@
     (set-stroke-style ctx :series-line)
     (aset ctx "font" "12px Arial")
     (let [ data (restrict-data data x-range) ]
-      (let [y-range (rescale-range (s-yrange data) 1.1)]
+      (let [y-range (rescale-y-range (s-yrange data) 1.1)]
         (unless (empty? data)
                 (draw-y-grid ctx w h y-range)
                 (draw-x-grid ctx w h x-range)

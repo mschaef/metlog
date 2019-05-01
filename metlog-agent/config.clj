@@ -1,5 +1,6 @@
 (def start-t (System/currentTimeMillis))
 
+
 (defn random-sampler [ ]
   (let [current (atom 0.0)]
     (fn [ ]
@@ -24,6 +25,9 @@
 (defsensor* random-very-negative {:poll-interval (seconds 10)}
   (let [rs (random-sampler)]
     (fn [] (- -10 (Math/abs (rs))))))
+
+(defsensor constant-value {:poll-interval (seconds 10)}
+  1.5)
 
 (defsensor math {:poll-interval (seconds 10)}
   {:sine (+ 0.3 (Math/sin (/ (- (System/currentTimeMillis) start-t) (minutes 1))))
