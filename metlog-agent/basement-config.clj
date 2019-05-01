@@ -1,4 +1,8 @@
-(def vault-url "http://dunitall.com:8080/data")
+;; config.clj
+;;
+;; Custom configuration goes here
+
+(def vault-url "http://metrics.mschaef.com/data")
 
 (defn constrain-sensor-range [ sensor-val low high ]
   (and sensor-val
@@ -12,41 +16,41 @@
     (and (= 200 (:status response))
          body)))
 
-(defn read-wunderground-temp [ key location ]
-  (let [body (request-json (str "http://api.wunderground.com/api/" key "/conditions/q/" location ".json"))]
-    (and body
-         (let [obv (get body "current_observation")]
-           {:temp-c (ensure-number (get obv "temp_c" false))
-            :pressure-in (ensure-number (get obv "pressure_in" false))
-            :wind-degrees (ensure-number (get obv "wind_degrees" false))
-            :wind-mph  (ensure-number (get obv "wind_mph" false))
-            :wind-gust-mph (ensure-number (get obv "wind_gust_mph" false))
-            :relative-humidity (try-parse-percentage (get obv "relative_humidity" false))          
-            :precip-1hr-in (ensure-number (get obv "precip_1hr_in" false))
-            :precip-today-in (ensure-number (get obv "precip_today_in" false))}))))
-
 (defn read-w1-sensor-at-path [ sensor-path ]
   (with-open [rdr (jio/reader sensor-path)]
     (let [ line (second (line-seq rdr)) ]
       (and (not (nil? line))
            (/ (Double/valueOf (.substring line 29)) 1000.0)))))
 
-(defsensor "upstairs-temp-f" {:poll-interval (minutes 1)}
-   (let [body (request-json "http://192.168.1.150/tstat")]
-     (and body
-        (constrain-sensor-range (ensure-number (get body "temp" false)) 20 120))))
+(defsensor "phl-basement-temp" {:poll-interval (seconds 15)}
+  (read-w1-sensor-at-path "/sys/bus/w1/devices/28-0000068f7d15/w1_slave"))
 
-(defsensor "upstairs-humidity" {:poll-interval (minutes 1)}
-   (let [body (request-json "http://192.168.1.150/tstat/humidity")]
+(defsensor "phl-basement-window-frame" {:poll-interval (seconds 15)}
+  (read-w1-sensor-at-path "/sys/bus/w1/devices/28-0000068f415f/w1_slave"))
+
+(defsensor "phl-downstairs-humidity" {:poll-interval (minutes 1)}
+   (let [body (request-json "http://10.0.0.150/tstat/humidity")]
      (and body
         (ensure-number (get body "humidity" false)))))
 
-(defsensor "basement-temp"
-  (read-w1-sensor-at-path "/sys/bus/w1/devices/28-00000690f5b9/w1_slave"))
-    
-(defsensor "weather-19096" {:poll-interval (minutes 15)}
-   (read-wunderground-temp "965408b79c41f708" "19096"))
+(defsensor "phl-upstairs-humidity" {:poll-interval (minutes 1)}
+   (let [body (request-json "http://10.0.0.151/tstat/humidity")]
+     (and body
+        (ensure-number (get body "humidity" false)))))
 
-(defsensor "weather-08226" {:poll-interval (minutes 15)}
-   (read-wunderground-temp "965408b79c41f708" "08226"))
+(defn poll-ct-80 [ url ]
+  (let [body (request-json url)]
+    (and body
+         (->
+          {:temp-f (constrain-sensor-range (ensure-number (get body "temp" false)) 20 120)
+           :tmode (ensure-number (get body "tmode" false))
+           :fmode (ensure-number (get body "fmode" false))
+           :cool-setpoint-f (or (ensure-number (get body "t_cool" false)) -1)
+           :heat-setpoint-f (or (ensure-number (get body "t_heat" false)) -1)}))))
+
+(defsensor "phl-downstairs" {:poll-interval (minutes 1)}
+  (poll-ct-80 "http://10.0.0.150/tstat"))
+
+(defsensor "phl-upstairs" {:poll-interval (minutes 1)}
+  (poll-ct-80 "http://10.0.0.151/tstat"))
 
