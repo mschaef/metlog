@@ -29,8 +29,6 @@ JAVA=/usr/bin/java
 
 PIDFILE=/var/run/${SERVICE_NAME}.pid
 
-AUTHBIND=no
-
 JAVA_OPTS=""
 
 METLOG_USER=${SERVICE_NAME}
@@ -51,18 +49,9 @@ JAVA_OPTS="$JAVA_OPTS -Dagent.configurationFile=${METLOG_CONFIG_PATH}"
 
 JAVA_OPTS="$JAVA_OPTS -jar /usr/share/${SERVICE_NAME}/${METLOG_JAR}"
 
-if [ "$AUTHBIND" = "yes" -a "$1" = "start" ]; then
-   JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true"
-fi
-
-METLOG_SH="$JAVA $JAVA_OPTS > /var/log/${SERVICE_NAME}/${SERVICE_NAME}-console.log 2>&1"
-
-if [ "$AUTHBIND" = "yes" ]; then
-   METLOG_SH="/usr/bin/authbind --deep /bin/bash -c '$METLOG_SH'"
-fi
+METLOG_SH="$JAVA $JAVA_OPTS >> /var/log/${SERVICE_NAME}/${SERVICE_NAME}-console.log 2>&1"
 
 ### Functions
-
 
 function require_root() {
     if [ `id -u` -ne 0 ]; then
@@ -82,7 +71,7 @@ do_start()
 
 	start-stop-daemon --start --quiet --pidfile $PIDFILE  --background \
                       --make-pidfile --chuid ${METLOG_USER} \
-                      --exec /bin/bash -- -c "$METLOG_SH" \
+                      --startas /bin/bash -- -c "exec $METLOG_SH" \
 		|| return 2 # daemon could not be started
 }
 
