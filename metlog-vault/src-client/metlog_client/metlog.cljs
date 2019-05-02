@@ -137,7 +137,7 @@
                              :on-enter #(reset! query-window %)}]]])
 
 (defn dashboard [ ]
-  [:div
+  [:div.dashboard
    [header]
    [:div.content
     [series-list]]])

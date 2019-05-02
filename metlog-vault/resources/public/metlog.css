@@ -1,83 +1,122 @@
 body {
     margin: 0;
     font-family:Helvetica,Arial,Verdana,sans-serif;
-    font-size: 13px;
-    line-height:1.2;
+    font-size: 30px;
+    line-height: 1.2;
 
     background-color: #e7e7e7;
+
+    height: 100vh;
+    overflow-y: hidden;
 }
 
-div.content {
-    padding-top: 2.5em;
+input {
+    font-size: 80%;
 }
 
-div.header {
+@media only screen and (min-device-width : 960px) {
+    body {
+        font-size: 12px;
+    }
+
+    input {
+        font-size: 80%;
+    }
+}
+
+#metlog {
+    height: inherit;
+    overflow-y: hidden;    
+}
+
+.dashboard {
+    display: flex;
+    flex-direction: column;
+
+    height: inherit;
+    overflow-y: hidden;
+}
+
+.header {
+    display: flex;
+    flex: 0 0 auto;
     background-color: white;
     color: black;
     padding-left: 1em;
-    top: 0px;
-    left: 0px;
-    position: fixed;
-    width: 100%;
+    padding-right: 1em;
 
-    height: 2.5em;
-    line-height: 2.5em;
-    
     box-shadow: 1px 1px 2px 0px rgba(0,0,0,0.5);
 
-    vertical-align: middle;
+    align-items: center;
+
+    z-index: 2;
 }
 
-div.header input {
+.content {
+    flex: 1 0 auto;
+    overflow-y: scroll;
+    height: inherit;
+}
+
+.header input {
     border: 0px;
     background: #e0e0e0;
-    padding: 0.333em;
-    padding-top: 0.33em;
-    padding-bottom: 0.33em;
-    margin-right: 0.33em;
+    margin: 0.66em;
+
+    padding: 0.33em;
+
     box-sizing: border-box;
     width:100%
 }
 
-div.header div.header-element {
-    display: inline-block;
+.header .header-element {
     margin-right: 5px;
 }
 
-div#query-window {
-    width: 10em;
+.header span#app-name {
+    font-weight: bold;
+    padding-right: 0.66em;
+    flex: 0 0 auto;
 }
 
 div#add-series {
-    width: 30em;
+    flex: 1 0 auto;
+    padding-right: 0.33em;
 }
 
-div.header input.uncommitted.invalid {
+div#query-window {
+    flex: 0 0 100px;
+}
+
+.header input.uncommitted.invalid {
     background: #ffd0d0;
     border: 1px solod red;
 }
 
-div.header input.uncommitted {
+.header input.uncommitted {
     background: #ffffd0;
     border: 1px solod red;
 }
 
-div.header span#app-name {
-    font-weight: bold;
-    padding-right: 0.66em;
-}
-
 /* series-pane */
 
-div.series-pane {
-    margin: 0.5em;
-    
-    box-shadow: 1px 1px 1px 0px rgba(0,0,0,0.2);
+.series-pane {
+    border-bottom: 1px solid #e0e0e0;
 
     background-color: white;
 }
 
-div.series-pane div.series-pane-header {
+@media only screen and (min-device-width : 960px) {
+    .series-pane {
+        border-bottom: none;
+        margin: 0.66em;
+        box-shadow: 1px 1px 1px 0px rgba(0,0,0,0.2);
+    }
+}
+
+
+
+.series-pane .series-pane-header {
     border-bottom: 1px solid #f0f0f0;
     background-color: white;
     padding-left: 0.25em;
@@ -86,13 +125,13 @@ div.series-pane div.series-pane-header {
     margin-bottom: 0.25em;
 }
 
-div.series-pane div.series-pane-header span.series-name {
+.series-pane .series-pane-header span.series-name {
     font-weight: bold;
     padding-left: 0.66em;
     padding-right: 0.66em;
 }
 
-div.series-pane div.series-pane-header span.close-button {
+.series-pane .series-pane-header span.close-button {
     float: right;
     padding-right: 10px;
     font-weight: bold;
@@ -100,7 +139,7 @@ div.series-pane div.series-pane-header span.close-button {
     cursor: pointer;
 }
 
-div.series-pane div.series-pane-header span.close-button:hover {
+.series-pane .series-pane-header span.close-button:hover {
     color: blue;
 }
 

@@ -42,7 +42,9 @@
 (defn render-dashboard []
   (hiccup/html
    [:html
-    [:head
+    [:head {:name "viewport"
+           ;; user-scalable=no fails to work on iOS n where n > 10
+           :content "width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0"}
      [:link {:href "/metlog.css"
              :rel "stylesheet"
              :type "text/css"}]
