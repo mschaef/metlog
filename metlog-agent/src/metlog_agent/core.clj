@@ -105,7 +105,7 @@
     (doseq [ ts-sensor-reading (->timestamped-readings (poll-sensor sensor-def)) ]
       (process-sensor-reading (:sensor-name sensor-def) ts-sensor-reading))))
 
-(defn take-result-queue-snapshot []
+(defn take-result-queue-snapshot [ ]
   (let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
     (locking sensor-result-queue
       (.drainTo sensor-result-queue snapshot))
@@ -116,19 +116,20 @@
 (defn clean-readings [ unclean ]
   (map #(assoc % :val (double (:val %))) unclean))
 
+(defn post-readings [ url readings ]
+  (log/debug "Posting" (count readings) "reading(s) to" url)
+  (let [post-response
+        (http/post url {:content-type "application/transit+json"
+                        :body (pr-transit readings)}) ]
+    (= (:status post-response) 200)))
+
 (defn update-vault []
   (locking update-queue
     (when-let [ snapshot (take-result-queue-snapshot) ]
       (.addAll update-queue snapshot))
     (unless (.isEmpty update-queue)
-            (let [url vault-url
-                  readings (clean-readings (seq update-queue))]
-              (log/debug "Posting" (count readings) "reading(s) to" url)
-              (let [post-response
-                    (http/post url {:content-type "application/transit+json"
-                                    :body (pr-transit readings)}) ]
-                (when (= (:status post-response) 200)
-                  (.clear update-queue)))))))
+            (when (post-readings vault-url (clean-readings (seq update-queue)))
+              (.clear update-queue)))))
 
 (defn maybe-load-config-file [ filename ]
   (binding [ *ns* (find-ns 'metlog-agent.core)]
