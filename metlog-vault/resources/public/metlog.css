@@ -26,7 +26,7 @@ input {
 
 #metlog {
     height: inherit;
-    overflow-y: hidden;    
+    overflow-y: hidden;
 }
 
 .dashboard {
@@ -173,19 +173,24 @@ div#query-window {
 }
 
 .autocomplete-no-results {
-    padding: 0.2em;
+    padding: 6px;
     color: #707070;
 }
 
 .autocomplete-completion-entry {
-    padding: 0.2em;
+    padding: 6px;
+    cursor: pointer;
+
     white-space: nowrap;
     border-left: 4px solid white;
+}
+
+.autocomplete-completion-entry:hover {
+    background: #e7e7e7;
 }
 
 .autocomplete-completion-entry.selected {
     background: #f0f0f0;
     text-color: white;
     border-left: 4px solid blue;
-    
 }
