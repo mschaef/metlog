@@ -47,15 +47,16 @@
   (reagent/create-class
    {:component-did-update
     (fn [ this old-argv ]
-      (let [[ _ _ _ was-selected? ] old-argv
-            [ _ container-elem _ is-selected? ] (reagent/argv this) ]
+      (let [[ _ _ _ was-selected? _ ] old-argv
+            [ _ container-elem _ is-selected? _ ] (reagent/argv this) ]
         (when (and is-selected? (not was-selected?))
           (ensure-entry-visible container-elem (reagent/dom-node this)))))
-    
+
     :reagent-render
-    (fn [ container-elem content selected? ]
+    (fn [ container-elem content selected? do-choose-entry ]
       [:div {:class (str "autocomplete-completion-entry "
-                         (if selected? "selected"))}
+                         (if selected? "selected"))
+             :on-click (fn [ evt ] (do-choose-entry content))}
        content])}))
 
 (defn autocomplete-completions [ _ _ ]
@@ -66,13 +67,14 @@
         (reset! dom-node (reagent/dom-node this)))
 
       :reagent-render
-      (fn [ completions selected-index ]
+      (fn [ completions selected-index do-choose-entry ]
         [:div.autocomplete-completions
          (if (empty? completions)
            [:div.autocomplete-no-results "No Matching Values"]
            (doall
             (for [ [ii completion] (number-elements completions)]
-              #^{:key completion} [autocomplete-entry @dom-node completion (= ii selected-index)])))])})))
+              #^{:key completion}
+              [autocomplete-entry @dom-node completion (= ii selected-index) do-choose-entry])))])})))
 
 (defn accept-text [ state new-text ]
   (swap! state assoc :current-text new-text)
@@ -107,11 +109,16 @@
     (fn []
       (let [ completions (filter-completions (get-completions) (:filter-text @state))]
         [:div.autocomplete
-         [:input {:value (:current-text @state)
+         [:input {:type "text"
+                  :value (:current-text @state)
                   :placeholder placeholder
-                  :onBlur #(swap! state assoc :display-completions false)
                   :onKeyDown #(autocomplete-handle-keydown completions state on-enter %)
                   :onKeyPress #(autocomplete-handle-keypress state %)
-                  :onChange #(accept-text state (.. % -target -value))}]
+                  :onChange #(accept-text state (.. % -target -value))
+                  :ref #(swap! state merge {:input-ref %})}]
          (when (:display-completions @state)
-           [autocomplete-completions completions (:selected-index @state)])]))))
+           [autocomplete-completions completions (:selected-index @state)
+            (fn [ text ]
+              (swap! state merge {:display-completions false
+                                  :current-text text})
+              (.focus (:input-ref @state)))])]))))

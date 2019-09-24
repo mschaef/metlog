@@ -3,7 +3,7 @@
             [reagent.debug :as debug]
             [cljs-time.core :as time]
             [cljs-time.coerce :as time-coerce]
-            [metlog-client.logger :as log]            
+            [metlog-client.logger :as log]
             [metlog-client.server :as server]
             [metlog-client.tsplot :as tsplot]
             [metlog-client.components :as components]
@@ -54,7 +54,7 @@
       :component-did-mount
       (fn [ this ]
         (reset! dom-node (reagent/dom-node this)))
-      
+
       :component-did-update
       (fn [ this _ ]
         (let [[ _ _ series-data series-range ] (reagent/argv this)
@@ -65,7 +65,7 @@
                        (:series-points series-data)
                        (:begin-t series-range)
                        (:end-t series-range))))
-      
+
       :render
       (fn [ this]
         (let  [[ series series-data series-range ] (reagent/argv this)]
@@ -80,7 +80,7 @@
         subscription (server/snap-and-subscribe-plot-data series-name query-window #(reset! series-data %))]
     (reagent/create-class
      {:display-name (str "series-tsplot-" series-name)
-      
+
       :component-will-unmount
       (fn [ this ]
         (server/unsubscribe-plot-data subscription))
@@ -91,7 +91,7 @@
               [ _ _ _ query-window] new-argv ]
           (when (not (= old-query-window query-window))
             (server/update-plot-query-window subscription query-window))))
-      
+
       :reagent-render
       (fn [ series-name current-time query-window ]
         [series-tsplot-view series-name @series-data (server/range-ending-at current-time query-window)])})))
@@ -163,4 +163,3 @@
   (log/debug "init complete. update-interval-id:" update-interval-id))
 
 (run)
-
