@@ -9,6 +9,8 @@
             [clj-time.format :as time-format]
             [clj-time.coerce :as time-coerce]))
 
+(def update-size-limit 200)
+
 (defn pr-transit [ val ]
   (let [out (java.io.ByteArrayOutputStream. 4096)
         writer (transit/writer out :json)]
@@ -73,7 +75,8 @@
   (try 
     ((:sensor-fn sensor-def))
     (catch Exception ex
-      (log/error "Error polling sensor" (:sensor-name sensor-def) (str ex))
+      (log/error (str "Error polling sensor: " (:sensor-name sensor-def)
+                      " (" (.getMessage ex) ")"))
       false)))
 
 (defn process-sensor-reading [ sensor-name ts-sensor-reading ]
@@ -105,10 +108,11 @@
     (doseq [ ts-sensor-reading (->timestamped-readings (poll-sensor sensor-def)) ]
       (process-sensor-reading (:sensor-name sensor-def) ts-sensor-reading))))
 
-(defn take-result-queue-snapshot [ ]
+(defn take-result-queue-snapshot [ snapshot-size-limit ]
   (let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
     (locking sensor-result-queue
-      (.drainTo sensor-result-queue snapshot))
+      (log/info "Taking snapshot queue with n:" (.size sensor-result-queue) ", limit:" snapshot-size-limit)
+      (.drainTo sensor-result-queue snapshot snapshot-size-limit ))
     (seq snapshot)))
 
 (def update-queue (java.util.concurrent.LinkedBlockingQueue.))
@@ -119,17 +123,38 @@
 (defn post-readings [ url readings ]
   (log/debug "Posting" (count readings) "reading(s) to" url)
   (let [post-response
-        (http/post url {:content-type "application/transit+json"
-                        :body (pr-transit readings)}) ]
+        (try
+          (http/post url {:content-type "application/transit+json"
+                          :body (pr-transit readings)})
+          (catch java.net.ConnectException ex
+            ;; Pretend connection errors are HTTP errors
+            (log/error (str "Error posting readings to " url " (" (.getMessage ex) ")"))
+            {:status 400})) ]
     (= (:status post-response) 200)))
 
-(defn update-vault []
+(defn snapshot-to-update-queue []
   (locking update-queue
-    (when-let [ snapshot (take-result-queue-snapshot) ]
-      (.addAll update-queue snapshot))
-    (unless (.isEmpty update-queue)
-            (when (post-readings vault-url (clean-readings (seq update-queue)))
-              (.clear update-queue)))))
+    (let [snapshot (take-result-queue-snapshot
+                    (min update-size-limit
+                         (- update-size-limit (.size update-queue)))) ]
+      (when snapshot
+        (.addAll update-queue snapshot))
+      snapshot)))
+
+(defn post-update []
+  (locking update-queue
+    (or (.isEmpty update-queue)
+        (and (post-readings vault-url (clean-readings (seq update-queue)))
+             (do
+               (.clear update-queue)
+               true)))))
+
+(defn update-vault []
+  (loop []
+    (let [snapshot (snapshot-to-update-queue)]
+      (when (and (post-update)
+                 (> (count snapshot) 0))
+        (recur)))))
 
 (defn maybe-load-config-file [ filename ]
   (binding [ *ns* (find-ns 'metlog-agent.core)]
