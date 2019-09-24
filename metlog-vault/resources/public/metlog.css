@@ -58,7 +58,7 @@ input {
     height: inherit;
 }
 
-.header input {
+.header input[type=text] {
     border: 0px;
     background: #e0e0e0;
     margin: 0.66em;

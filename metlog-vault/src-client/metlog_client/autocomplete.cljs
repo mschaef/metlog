@@ -109,15 +109,16 @@
     (fn []
       (let [ completions (filter-completions (get-completions) (:filter-text @state))]
         [:div.autocomplete
-         [:input {:value (:current-text @state)
+         [:input {:type "text"
+                  :value (:current-text @state)
                   :placeholder placeholder
                   :onKeyDown #(autocomplete-handle-keydown completions state on-enter %)
                   :onKeyPress #(autocomplete-handle-keypress state %)
-                  :onChange #(accept-text state (.. % -target -value))}]
+                  :onChange #(accept-text state (.. % -target -value))
+                  :ref #(swap! state merge {:input-ref %})}]
          (when (:display-completions @state)
            [autocomplete-completions completions (:selected-index @state)
             (fn [ text ]
               (swap! state merge {:display-completions false
-                                  :current-text text}))])]))))
-
-
+                                  :current-text text})
+              (.focus (:input-ref @state)))])]))))

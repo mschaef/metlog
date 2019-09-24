@@ -10,7 +10,8 @@
       (when (not (= text (:initial-text @state)))
         (swap! state merge  (initial-state text)))
       (let [valid? (text-valid? (:current-text @state))]
-        [:input {:value (:current-text @state)
+        [:input {:type "text"
+                 :value (:current-text @state)
                  :class (str (if (not valid?) "invalid")
                              (if (:uncommitted? @state) " uncommitted"))
                  :onChange #(swap! state merge {:current-text (.. % -target -value)
