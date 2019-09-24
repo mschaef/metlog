@@ -69,7 +69,7 @@
   (let [ current-sensor-defs @sensor-defs ]
     (map (fn [ sensor-name ]
            (merge (get current-sensor-defs sensor-name) {:sensor-name sensor-name}))
-         (keys current-sensor-defs)))  )
+         (keys current-sensor-defs))))
 
 (defn poll-sensor [ sensor-def ]
   (try 
@@ -130,6 +130,7 @@
             ;; Pretend connection errors are HTTP errors
             (log/error (str "Error posting readings to " url " (" (.getMessage ex) ")"))
             {:status 400})) ]
+    (log/debug "Post readings response:" post-response)
     (= (:status post-response) 200)))
 
 (defn snapshot-to-update-queue []
@@ -152,6 +153,12 @@
 (defn update-vault []
   (loop []
     (let [snapshot (snapshot-to-update-queue)]
+      ;; TODO: If the update queue was not extended in this cycle (ie:
+      ;; the queue is already full, this will not loop around to try
+      ;; to check for additional samples that might be still in the
+      ;; result queue. This introduces an update-vault period's worth
+      ;; of additional latency in recovery scenarios, which would ideally
+      ;; be eliminated.
       (when (and (post-update)
                  (> (count snapshot) 0))
         (recur)))))
