@@ -8,7 +8,6 @@
 
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/clojurescript "1.10.520"]
-                 [clj-time "0.15.1"]
                  [com.mschaef/sql-file "0.4.0"]
                  [ring/ring-jetty-adapter "1.7.1"]
                  [slester/ring-browser-caching "0.1.1"]
