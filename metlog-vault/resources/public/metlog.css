@@ -52,12 +52,6 @@ input {
     z-index: 2;
 }
 
-.content {
-    flex: 1 0 auto;
-    overflow-y: scroll;
-    height: inherit;
-}
-
 .header input[type=text] {
     border: 0px;
     background: #e0e0e0;
@@ -99,6 +93,10 @@ div#query-window {
 }
 
 /* series-pane */
+
+.series-list {
+    overflow-y: scroll;
+}
 
 .series-pane {
     border-bottom: 1px solid #e0e0e0;
