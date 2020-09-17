@@ -2,8 +2,6 @@
   (:use metlog-common.core
         compojure.core)
   (:require [clojure.tools.logging :as log]
-            [clj-time.core :as time]
-            [clj-time.coerce :as coerce]
             [clojure.java.jdbc :as jdbc]
             [sql-file.core :as sql-file]))
 
@@ -58,30 +56,49 @@
         (or (get-series-id series-name)
             (add-series-name series-name))))))
 
-(defquery get-series-latest-sample-time [ series-name ]
+(def latest-sample-times (atom {}))
+
+(defquery query-series-latest-sample-time [ series-name ]
   (if-let [ t (query-scalar *db* [(str "SELECT MAX(t) FROM sample"
                                        " WHERE series_id = ?")
                                   (get-series-id series-name)])]
-    (coerce/from-sql-time t)))
+    t))
+
+(defn get-series-latest-sample-time [ series-name ]
+  (let [series-id (intern-series-name series-name)]
+    (if-let [latest-t (@latest-sample-times series-id)]
+      latest-t
+      (let [query-latest-t (query-series-latest-sample-time series-name)]
+        (swap! latest-sample-times assoc series-id query-latest-t)
+        (log/info [:lst latest-sample-times])
+        query-latest-t))))
 
 (defn restrict-to-series [ samples series-name ]
   (filter #(= series-name (:series_name %)) samples))
 
+(defn check-latest-series-time [series-id t]
+  (if-let [cached-latest-t (@latest-sample-times series-id)]
+    (if (.after t cached-latest-t)
+      (swap! latest-sample-times assoc series-id t))))
+
 (defquery store-data-samples [ samples ]
   (doseq [ sample samples ]
     (log/debug "Inserting sample: " sample)
-    (jdbc/insert! *db* :sample
-                  {:series_id (intern-series-name (:series_name sample))
-                   :t (:t sample)
-                   :val (:val sample)})))
+    (let [series-id (intern-series-name (:series_name sample))]
+      (check-latest-series-time series-id (:t sample))
+      (jdbc/insert! *db* :sample
+                    {:series_id series-id
+                     :t (:t sample)
+                     :val (:val sample)}))))
 
 (defn store-data-samples-monotonic [ samples ]
-  (doseq [ series-samples (map #(restrict-to-series samples %) (set (map :series_name samples))) ]
+  (doseq [series-samples (map #(restrict-to-series samples %) (set (map :series_name samples))) ]
     (let [series-name (:series_name (first series-samples))
-          latest-t (get-series-latest-sample-time series-name)]
-      (store-data-samples (if latest-t
-                            (filter #(time/after? (coerce/from-date (:t %)) latest-t) series-samples)
-                            series-samples)))))
+          latest-t (get-series-latest-sample-time series-name)
+          samples (if latest-t
+                    (filter #(.after (:t %) latest-t) series-samples)
+                    series-samples)]
+      (store-data-samples samples))))
 
 (defquery get-series-names []
   (map :series_name

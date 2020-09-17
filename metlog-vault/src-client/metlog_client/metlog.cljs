@@ -117,7 +117,7 @@
    [series-tsplot series-name current-time query-window]])
 
 (defn series-list [ ]
-  [:div
+  [:div.series-list
    (doall
     (for [ series (:displayed-series @dashboard-state) ]
       ^{ :key series } [series-pane series @current-time (parse-query-window @query-window)]))])
@@ -139,8 +139,7 @@
 (defn dashboard [ ]
   [:div.dashboard
    [header]
-   [:div.content
-    [series-list]]])
+   [series-list]])
 
 (defn on-window-resize [ evt ]
   (reset! window-width (.-innerWidth js/window)))

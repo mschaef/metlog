@@ -7,6 +7,8 @@
   (filter #(> (.indexOf % filter-string) -1)
           completions))
 
+
+
 (defn- number-elements [ seq ]
   (map list (range) seq))
 
