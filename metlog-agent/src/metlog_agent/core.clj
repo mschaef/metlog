@@ -144,23 +144,16 @@
 
 (defn post-update []
   (locking update-queue
-    (or (.isEmpty update-queue)
-        (and (post-readings vault-url (clean-readings (seq update-queue)))
-             (do
-               (.clear update-queue)
-               true)))))
+    (and (not (.isEmpty update-queue))
+         (post-readings vault-url (clean-readings (seq update-queue)))
+         (do
+           (.clear update-queue)
+           true))))
 
 (defn update-vault []
   (loop []
     (let [snapshot (snapshot-to-update-queue)]
-      ;; TODO: If the update queue was not extended in this cycle (ie:
-      ;; the queue is already full, this will not loop around to try
-      ;; to check for additional samples that might be still in the
-      ;; result queue. This introduces an update-vault period's worth
-      ;; of additional latency in recovery scenarios, which would ideally
-      ;; be eliminated.
-      (when (and (post-update)
-                 (> (count snapshot) 0))
+      (when (post-update)
         (recur)))))
 
 (defn maybe-load-config-file [ filename ]
