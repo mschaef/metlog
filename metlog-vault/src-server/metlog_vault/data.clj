@@ -8,7 +8,7 @@
             [sql-file.core :as sql-file]))
 
 (def db-connection
-  (delay (-> (sql-file/open-pool {:name (config-property "db.subname" "metlog-db")
+  (delay (-> (sql-file/open-pool {:name (config-property "db.subname" "metlog-vault")
                                   :schema-path [ "sql/" ]})
              (sql-file/ensure-schema [ "metlog" 1 ]))))
 
