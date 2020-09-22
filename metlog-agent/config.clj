@@ -100,7 +100,7 @@
 
 (def variable-names
   {45807042 :water-temp
-   45807202 :water-level})
+   52333388 :water-level})
 
 (defn to-timestamped [ var ]
   (TimestampedValue. (:t var) { (variable-names (:variable-id var)) (:val var)}))

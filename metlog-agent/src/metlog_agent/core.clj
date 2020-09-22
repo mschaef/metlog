@@ -92,8 +92,9 @@
         (enqueue-sensor-reading t sensor-name val)
     
         (map? val)
-        (doseq [[sub-name sub-value] val]
-          (process-sensor-reading (str sensor-name "-" (name sub-name)) (TimestampedValue. t sub-value)))
+        (do
+          (doseq [[sub-name sub-value] val]
+            (process-sensor-reading (str sensor-name "-" (name sub-name)) (TimestampedValue. t sub-value))))
         
         :else
         (log/error "Bad sensor value" val "(" (.getClass val) ")" "from sensor" sensor-name)))))
@@ -111,7 +112,7 @@
 (defn take-result-queue-snapshot [ snapshot-size-limit ]
   (let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
     (locking sensor-result-queue
-      (log/info "Taking snapshot queue with n:" (.size sensor-result-queue) ", limit:" snapshot-size-limit)
+      (log/debug "Taking snapshot queue with n:" (.size sensor-result-queue) ", limit:" snapshot-size-limit)
       (.drainTo sensor-result-queue snapshot snapshot-size-limit ))
     (seq snapshot)))
 
@@ -121,16 +122,18 @@
   (map #(assoc % :val (double (:val %))) unclean))
 
 (defn post-readings [ url readings ]
-  (log/debug "Posting" (count readings) "reading(s) to" url)
-  (let [post-response
+  (log/info "Posting" (count readings) "reading(s) to" url)
+  (let [begin-t (System/currentTimeMillis)
+        post-response
         (try
           (http/post url {:content-type "application/transit+json"
                           :body (pr-transit readings)})
           (catch java.net.ConnectException ex
             ;; Pretend connection errors are HTTP errors
             (log/error (str "Error posting readings to " url " (" (.getMessage ex) ")"))
-            {:status 400})) ]
-    (log/debug "Post readings response:" post-response)
+            {:status 400}))]
+    (log/info "Post readings response, status" (:status post-response)
+              "(" (- (System/currentTimeMillis) begin-t) "msec. )")
     (= (:status post-response) 200)))
 
 (defn snapshot-to-update-queue []
