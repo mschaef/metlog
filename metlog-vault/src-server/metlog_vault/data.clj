@@ -22,7 +22,7 @@
       (app req))))
 
 (defn call-with-query-logging [ name actual-args fn ]
-  (log/debug "query" name actual-args)
+  (log/trace "query" name actual-args)
   (let [begin-t (. System (nanoTime))
         result (fn)]
     (log/debug "query time" name "-" (/ (- (. System (nanoTime)) begin-t) 1000000.0))
@@ -48,20 +48,22 @@
                (jdbc/insert! *db* :series
                              {:series_name series-name}))))
 
-(defn intern-series-name [ series-name ]
-  (let [ series-name (.trim (name (or series-name ""))) ]
-    (if (= 0 (.length series-name))
-      nil
-      (with-transaction
-        (or (get-series-id series-name)
-            (add-series-name series-name))))))
+(def intern-series-name
+  (memoize
+   (fn [ series-name ]
+     (let [ series-name (.trim (name (or series-name ""))) ]
+       (if (= 0 (.length series-name))
+         nil
+         (with-transaction
+           (or (get-series-id series-name)
+               (add-series-name series-name))))))))
 
 (def latest-sample-times (atom {}))
 
 (defquery query-series-latest-sample-time [ series-name ]
   (if-let [ t (query-scalar *db* [(str "SELECT MAX(t) FROM sample"
                                        " WHERE series_id = ?")
-                                  (get-series-id series-name)])]
+                                  (intern-series-name series-name)])]
     t))
 
 (defn get-series-latest-sample-time [ series-name ]
@@ -70,7 +72,7 @@
       latest-t
       (let [query-latest-t (query-series-latest-sample-time series-name)]
         (swap! latest-sample-times assoc series-id query-latest-t)
-        (log/info [:lst latest-sample-times])
+        (log/info "Latest sample times from DB" @latest-sample-times)
         query-latest-t))))
 
 (defn restrict-to-series [ samples series-name ]
@@ -83,7 +85,7 @@
 
 (defquery store-data-samples [ samples ]
   (doseq [ sample samples ]
-    (log/debug "Inserting sample: " sample)
+    (log/trace "Inserting sample: " sample)
     (let [series-id (intern-series-name (:series_name sample))]
       (check-latest-series-time series-id (:t sample))
       (jdbc/insert! *db* :sample
@@ -113,7 +115,7 @@
                          "   AND UNIX_MILLIS(t-session_timezone()) > ?"
                          "   AND UNIX_MILLIS(t-session_timezone()) < ?"
                          " ORDER BY t")
-                    (get-series-id series-name)
+                    (intern-series-name series-name)
                     begin-t
                     end-t])))
 
