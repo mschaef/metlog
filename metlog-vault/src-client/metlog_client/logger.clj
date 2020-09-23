@@ -18,3 +18,13 @@
   
   ([ level expr ]
    `(log ~level "WATCH" (pr-str '~expr) "=>" ~expr)))
+
+(defmacro spy
+  ([ expr ]
+   `(spy :debug ~expr))
+  
+  ([ level expr ]
+   `(let [value# ~expr]
+      (log ~level "SPY" (pr-str '~expr) "=>" value#)
+      value#)))
+
