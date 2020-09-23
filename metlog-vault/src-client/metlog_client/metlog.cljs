@@ -61,10 +61,11 @@
               canvas (.-firstChild @dom-node)
               ctx (.getContext canvas "2d")]
           (setup-canvas canvas (.-clientWidth @dom-node) (.-clientHeight @dom-node))
-          (tsplot/draw ctx (.-clientWidth canvas) (.-clientHeight canvas)
-                       (:series-points series-data)
-                       (:begin-t series-range)
-                       (:end-t series-range))))
+          (when series-data
+            (tsplot/draw ctx (.-clientWidth canvas) (.-clientHeight canvas)
+                         (:series-points series-data)
+                         (:begin-t series-range)
+                         (:end-t series-range)))))
 
       :render
       (fn [ this]
@@ -76,7 +77,7 @@
                        :height (.-clientHeight node)})]]))})))
 
 (defn series-tsplot [ series-name current-time query-window ]
-  (let [series-data (reagent/atom [])
+  (let [series-data (reagent/atom nil)
         subscription (server/snap-and-subscribe-plot-data series-name query-window #(reset! series-data %))]
     (reagent/create-class
      {:display-name (str "series-tsplot-" series-name)
