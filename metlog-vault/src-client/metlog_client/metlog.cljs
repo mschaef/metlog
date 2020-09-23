@@ -68,7 +68,8 @@
                            (:begin-t series-range)
                            (:end-t series-range))
               (catch :default e
-                (log/error "Uncaught exception rendering plot for " series " (" e ")"))))))
+                (log/error "Uncaught exception rendering plot for " series " (" e ")")
+                (log/info "series-data" series-data))))))
 
       :render
       (fn [ this]
