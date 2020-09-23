@@ -1,4 +1,4 @@
-(defproject metlog-vault "0.4.0-SNAPSHOT"
+(defproject metlog-vault "0.4.0"
   :description "Repository for long term storage of series data."
 
   :license {:name "Eclipse Public License"
