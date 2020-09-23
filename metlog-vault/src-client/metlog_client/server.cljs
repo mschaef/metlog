@@ -45,6 +45,7 @@
 
 (defn- points-range [ data ]
   (and data
+       (> (count (:series-points data)) 0)
        (let [ series-points (:series-points data) ]
          {:begin-t (:t (get series-points 0))
           :end-t (:t (get series-points (- (count series-points) 1)))})))
@@ -104,7 +105,8 @@
           (let [ updated-data
                 (-> current-data
                     (merge-series-data (<! (<<< fetch-series-data series-name (historical-query current-data range))))
-                    (merge-series-data (<! (<<< fetch-series-data series-name (update-query current-data range)))))]
+                    (merge-series-data (<! (<<< fetch-series-data series-name (update-query current-data range))))
+                    )]
             (when updated-data
               (update-fn updated-data))
             (recur current-time (:query-window message) updated-data )))
