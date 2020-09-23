@@ -62,10 +62,13 @@
               ctx (.getContext canvas "2d")]
           (setup-canvas canvas (.-clientWidth @dom-node) (.-clientHeight @dom-node))
           (when series-data
-            (tsplot/draw ctx (.-clientWidth canvas) (.-clientHeight canvas)
-                         (:series-points series-data)
-                         (:begin-t series-range)
-                         (:end-t series-range)))))
+            (try
+              (tsplot/draw ctx (.-clientWidth canvas) (.-clientHeight canvas)
+                           (:series-points series-data)
+                           (:begin-t series-range)
+                           (:end-t series-range))
+              (catch :default e
+                (log/error "Uncaught exception rendering plot for " series " (" e ")"))))))
 
       :render
       (fn [ this]
