@@ -94,7 +94,7 @@
 (defn first-that [ pred? xs ]
   (first (filter pred? xs)))
 
-(defn draw-line [ ctx [ x-1 y-1 ] [ x-2 y-2 ] ]
+(defn draw-line [ ctx x-1 y-1 x-2 y-2 ]
   (.beginPath ctx)
   (.moveTo ctx x-1 y-1)
   (.lineTo ctx x-2 y-2)
@@ -189,7 +189,7 @@
   (with-preserved-ctx ctx
     (draw-ylabel ctx (format-ylabel value) -2 y)
     (set-stroke-style ctx (if emphasize? :grid-emphasis :grid))
-    (draw-line ctx [ 0 y ] [ w y ])))
+    (draw-line ctx 0 y w y)))
 
 (defn adjust-range-to-interval [ range interval ]
   {:min (* interval (.floor js/Math (/ (+ (:min range) interval) interval)))
@@ -213,7 +213,7 @@
   (with-preserved-ctx ctx
     (draw-xlabel ctx (format-xlabel value) x h)
     (set-stroke-style ctx :grid)
-    (draw-line ctx [ x 0 ] [ x h ])))
+    (draw-line ctx x 0 x h)))
 
 (defn find-x-grid-interval [ w x-range ]
   (let [magnitude (range-magnitude x-range)
@@ -259,7 +259,7 @@
 (defn draw-frame [ ctx w h ]
   (with-preserved-ctx ctx
     (set-stroke-style ctx :frame)
-    (draw-line ctx [ 0.5 0.5 ] [ 0.5 (- h 0.5) ] )))
+    (draw-line ctx 0.5 0.5 0.5 (- h 0.5))))
 
 (defn draw [ ctx w h data begin-t end-t ]
   (draw-series-background ctx w h)
