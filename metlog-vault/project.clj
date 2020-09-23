@@ -70,19 +70,20 @@
                            {:source-paths ["src-client"]
                             :compiler
                             {:optimizations :none
-                             :pretty-print true}}}}}
+                             :pretty-print true}
+                            }}}}
 
              :uberjar
              {:source-paths ^:replace ["src-server"]
               :hooks [leiningen.cljsbuild]
-              :omit-source true
               :aot :all
               :cljsbuild {:builds
                           {:app
                            {:source-paths ^:replace ["src-client"]
                             :compiler
-                            {:optimizations :advanced
-                             :pretty-print false}}}}}}
+                            {:optimizations :none
+                             :pretty-print true}
+                            }}}}}
 
     :release-tasks [["vcs" "assert-committed"]
                     ["change" "version" "leiningen.release/bump-version" "release"]
