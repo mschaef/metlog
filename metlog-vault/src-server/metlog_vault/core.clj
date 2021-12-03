@@ -18,9 +18,20 @@
 
 (def my-pool (at-at/mk-pool))
 
+(defn make-sample [ series-name value ]
+  {:t (java.util.Date.)
+   :series_name series-name
+   :val value})
+
 (defn queued-data-sink [ db-pool ]
   (let [ sample-queue (java.util.concurrent.LinkedBlockingQueue.) ]
-    (at-at/every 30
+    (at-at/every 15000
+                 (exception-barrier
+                  #(.add sample-queue (make-sample "vault-ingress-queue-size"
+                                                   (.size sample-queue)))
+                  "Record ingress queue size")
+                 my-pool)
+    (at-at/every 60000
                  (exception-barrier
                   #(let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
                      (locking sample-queue
@@ -29,11 +40,12 @@
                        (log/info "Storing " (count snapshot) " samples.")
                        (data/with-db-connection db-pool
                          (data/store-data-samples (seq snapshot)))))
-                  "Store inbound queue")
+                  "Store ingress queue contents")
                  my-pool)
     (fn [ samples ]
       (log/info "Enqueuing " (count samples) " samples for later storage.")
       (doseq [ sample samples ]
+        (log/info "sample" sample)
         (.add sample-queue sample)))))
 
 (defmacro get-version []
@@ -73,7 +85,6 @@
                :type "text/javascript"}]]]))
 
 (defn all-routes [ store-samples ]
-  (log/info "data sink" store-samples )
   (routes
    (GET "/series-names" []
      (transit-response
