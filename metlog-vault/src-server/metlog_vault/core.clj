@@ -1,4 +1,4 @@
-(ns metlog-vault.core
+ (ns metlog-vault.core
   (:gen-class :main true)
   (:use metlog-common.core
         compojure.core
@@ -9,11 +9,32 @@
   (:require [clojure.tools.logging :as log]
             [ring.util.response :as ring]
             [compojure.route :as route]
+            [overtone.at-at :as at-at]
             [cognitect.transit :as transit]
             [clojure.edn :as edn]
             [hiccup.core :as hiccup]
             [metlog-vault.data :as data]
             [metlog-vault.web :as web]))
+
+(def my-pool (at-at/mk-pool))
+
+(defn queued-data-sink [ db-pool ]
+  (let [ sample-queue (java.util.concurrent.LinkedBlockingQueue.) ]
+    (at-at/every 30
+                 (exception-barrier
+                  #(let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
+                     (locking sample-queue
+                       (.drainTo sample-queue snapshot))
+                     (when (> (count snapshot) 0)
+                       (log/info "Storing " (count snapshot) " samples.")
+                       (data/with-db-connection db-pool
+                         (data/store-data-samples (seq snapshot)))))
+                  "Store inbound queue")
+                 my-pool)
+    (fn [ samples ]
+      (log/info "Enqueuing " (count samples) " samples for later storage.")
+      (doseq [ sample samples ]
+        (.add sample-queue sample)))))
 
 (defmacro get-version []
   ;; Capture compile-time property definition from Lein
@@ -51,7 +72,8 @@
      [:script {:src "/compiled/metlog.js"
                :type "text/javascript"}]]]))
 
-(defn all-routes []
+(defn all-routes [ store-samples ]
+  (log/info "data sink" store-samples )
   (routes
    (GET "/series-names" []
      (transit-response
@@ -65,9 +87,10 @@
 
    (POST "/data" req
      (log/debug "Incoming data, content-type:" (:content-type req))
-     (data/store-data-samples (if (= "application/transit+json" (:content-type req))
+     (let [ samples (if (= "application/transit+json" (:content-type req))
                                 (read-transit (slurp (:body req)))
-                                (edn/read-string (slurp (:body req)))))
+                                (edn/read-string (slurp (:body req))))]
+       (store-samples samples))
      "Incoming data accepted.")
 
    (GET "/dashboard" [] (render-dashboard))
@@ -91,6 +114,7 @@
 (defn -main
   []
   (log/info "Starting Vault -" (get-version))
-  (let [db-pool (data/open-db-pool)]
-    (web/start-webserver (config-property "http.port" 8080) db-pool (all-routes)))
+  (let [db-pool (data/open-db-pool)
+        data-sink (queued-data-sink db-pool)]
+    (web/start-webserver (config-property "http.port" 8080) db-pool (all-routes data-sink)))
   (log/info "end run."))

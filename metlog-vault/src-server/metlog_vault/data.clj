@@ -14,9 +14,13 @@
 
 (def ^:dynamic *db* nil)
 
+(defmacro with-db-connection [ db-pool & body ]
+  `(binding [ *db* ~db-pool]
+     ~@body))
+
 (defn wrap-db-connection [ app db-pool ]
   (fn [ req ]
-    (binding [ *db* db-pool]
+    (with-db-connection db-pool
       (app req))))
 
 (defn call-with-query-logging [ name actual-args fn ]
