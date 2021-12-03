@@ -5,6 +5,8 @@
             [clojure.java.jdbc :as jdbc]
             [sql-file.core :as sql-file]))
 
+(def sample-batch-size 200)
+
 (def db-connection
   (delay (-> (sql-file/open-pool {:name (config-property "db.subname" "metlog-vault")
                                   :schema-path [ "sql/" ]})
@@ -44,7 +46,7 @@
                       (str series-name)]))
 
 (defquery add-series-name [ series-name ]
-  (:series_id (first 
+  (:series_id (first
                (jdbc/insert! *db* :series
                              {:series_name series-name}))))
 
@@ -57,8 +59,6 @@
          (with-transaction
            (or (get-series-id series-name)
                (add-series-name series-name))))))))
-
-(def sample-batch-size 200)
 
 (defquery store-data-samples [ samples ]
   (doseq [ sample-batch (partition-all sample-batch-size samples)]
