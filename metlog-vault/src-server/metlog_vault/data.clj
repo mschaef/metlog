@@ -7,20 +7,16 @@
 
 (def sample-batch-size 200)
 
-(def db-connection
-  (delay (-> (sql-file/open-pool {:name (config-property "db.subname" "metlog-vault")
-                                  :schema-path [ "sql/" ]})
-             (sql-file/ensure-schema [ "metlog" 1 ]))))
+(defn open-db-pool []
+  (-> (sql-file/open-pool {:name (config-property "db.subname" "metlog-vault")
+                           :schema-path [ "sql/" ]})
+      (sql-file/ensure-schema [ "metlog" 1 ])))
 
 (def ^:dynamic *db* nil)
 
-(defmacro with-db-connection [ & body ]
-  `(binding [ *db* @db-connection ]
-     ~@body))
-
-(defn wrap-db-connection [ app ]
+(defn wrap-db-connection [ app db-pool ]
   (fn [ req ]
-    (with-db-connection
+    (binding [ *db* db-pool]
       (app req))))
 
 (defn call-with-query-logging [ name actual-args fn ]

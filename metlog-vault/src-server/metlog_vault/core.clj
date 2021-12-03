@@ -51,44 +51,46 @@
      [:script {:src "/compiled/metlog.js"
                :type "text/javascript"}]]]))
 
-(defroutes all-routes
-  (GET "/series-names" []
-    (transit-response
-     (data/get-series-names)))
+(defn all-routes []
+  (routes
+   (GET "/series-names" []
+     (transit-response
+      (data/get-series-names)))
 
-  (GET "/data/:series-name" {params :params}
-    (transit-response
-     (data/get-data-for-series-name (:series-name params)
-                                    (try-parse-long (:begin-t params))
-                                    (try-parse-long (:end-t params)))))
+   (GET "/data/:series-name" {params :params}
+     (transit-response
+      (data/get-data-for-series-name (:series-name params)
+                                     (try-parse-long (:begin-t params))
+                                     (try-parse-long (:end-t params)))))
 
-  (POST "/data" req
-    (log/debug "Incoming data, content-type:" (:content-type req))
-    (data/store-data-samples (if (= "application/transit+json" (:content-type req))
-                               (read-transit (slurp (:body req)))
-                               (edn/read-string (slurp (:body req)))))
-    "Incoming data accepted.")
+   (POST "/data" req
+     (log/debug "Incoming data, content-type:" (:content-type req))
+     (data/store-data-samples (if (= "application/transit+json" (:content-type req))
+                                (read-transit (slurp (:body req)))
+                                (edn/read-string (slurp (:body req)))))
+     "Incoming data accepted.")
 
-  (GET "/dashboard" [] (render-dashboard))
+   (GET "/dashboard" [] (render-dashboard))
 
-  (POST "/dashboard-defn/:name" req
-    (let [name (:name (:params req))
-          defn (slurp (:body req))]
-      (log/info "Incoming dashboard definition: " name defn)
-      (data/store-dashboard-definition name defn)))
+   (POST "/dashboard-defn/:name" req
+     (let [name (:name (:params req))
+           defn (slurp (:body req))]
+       (log/info "Incoming dashboard definition: " name defn)
+       (data/store-dashboard-definition name defn)))
 
-  (GET "/dashboard-defn/:name" [ name ]
-    (transit-response
-     (edn/read-string
-      (data/get-dashboard-definition name))))
+   (GET "/dashboard-defn/:name" [ name ]
+     (transit-response
+      (edn/read-string
+       (data/get-dashboard-definition name))))
 
-  (route/resources "/")
+   (route/resources "/")
 
-  (GET "/" [] (ring/redirect "/dashboard"))
-  (route/not-found "Resource Not Found"))
+   (GET "/" [] (ring/redirect "/dashboard"))
+   (route/not-found "Resource Not Found")))
 
 (defn -main
   []
   (log/info "Starting Vault -" (get-version))
-  (web/start-webserver (config-property "http.port" 8080) all-routes)
+  (let [db-pool (data/open-db-pool)]
+    (web/start-webserver (config-property "http.port" 8080) db-pool (all-routes)))
   (log/info "end run."))

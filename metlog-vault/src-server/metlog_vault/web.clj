@@ -10,7 +10,7 @@
             [compojure.handler :as handler]
             [metlog-vault.data :as data]))
 
-(def http-thread-count 8)
+(def http-thread-count 4)
 
 (defn wrap-request-logging [ app ]
   (fn [req]
@@ -31,11 +31,11 @@
         (finally
           (.setName thread initial-thread-name))))))
 
-(defn start-webserver [ http-port routes ]
+(defn start-webserver [ http-port db-pool routes ]
   (log/info "Starting Vault Webserver on port" http-port
             (str "(HTTP threads=" http-thread-count ")"))
   (let [server (jetty/run-jetty (-> routes
-                                    (data/wrap-db-connection)
+                                    (data/wrap-db-connection db-pool)
                                     (wrap-content-type)
                                     (wrap-browser-caching {"text/javascript" 360000
                                                            "text/css" 360000})
