@@ -58,49 +58,18 @@
            (or (get-series-id series-name)
                (add-series-name series-name))))))))
 
-(def latest-sample-times (atom {}))
-
-(defquery query-series-latest-sample-time [ series-name ]
-  (if-let [ t (query-scalar *db* [(str "SELECT MAX(t) FROM sample"
-                                       " WHERE series_id = ?")
-                                  (intern-series-name series-name)])]
-    t))
-
-(defn get-series-latest-sample-time [ series-name ]
-  (let [series-id (intern-series-name series-name)]
-    (if-let [latest-t (@latest-sample-times series-id)]
-      latest-t
-      (let [query-latest-t (query-series-latest-sample-time series-name)]
-        (swap! latest-sample-times assoc series-id query-latest-t)
-        (log/info "Latest sample times from DB" @latest-sample-times)
-        query-latest-t))))
-
-(defn restrict-to-series [ samples series-name ]
-  (filter #(= series-name (:series_name %)) samples))
-
-(defn check-latest-series-time [series-id t]
-  (if-let [cached-latest-t (@latest-sample-times series-id)]
-    (if (.after t cached-latest-t)
-      (swap! latest-sample-times assoc series-id t))))
+(def sample-batch-size 200)
 
 (defquery store-data-samples [ samples ]
-  (doseq [ sample samples ]
-    (log/trace "Inserting sample: " sample)
-    (let [series-id (intern-series-name (:series_name sample))]
-      (check-latest-series-time series-id (:t sample))
-      (jdbc/insert! *db* :sample
-                    {:series_id series-id
-                     :t (:t sample)
-                     :val (:val sample)}))))
-
-(defn store-data-samples-monotonic [ samples ]
-  (doseq [series-samples (map #(restrict-to-series samples %) (set (map :series_name samples))) ]
-    (let [series-name (:series_name (first series-samples))
-          latest-t (get-series-latest-sample-time series-name)
-          samples (if latest-t
-                    (filter #(.after (:t %) latest-t) series-samples)
-                    series-samples)]
-      (store-data-samples samples))))
+  (doseq [ sample-batch (partition-all sample-batch-size samples)]
+    (log/info "Storing batch of" (count sample-batch) "samples.")
+    (jdbc/insert-multi! *db* :sample
+                        [:series_id :t :val]
+                        (map (fn [ sample ]
+                               [(intern-series-name (:series_name sample))
+                                (:t sample)
+                                (:val sample)])
+                             sample-batch))))
 
 (defquery get-series-names []
   (map :series_name
