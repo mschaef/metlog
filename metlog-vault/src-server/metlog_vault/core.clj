@@ -39,7 +39,7 @@
                            (when (> (count snapshot) 0)
                              (log/info "Storing " (count snapshot) " samples.")
                              (data/with-db-connection db-pool
-                               (data/store-data-samples (seq snapshot)))))
+                               (data/store-data-samples-monotonic (seq snapshot)))))
                         "Store ingress queue contents")
                        my-pool)
     (fn [ samples ]

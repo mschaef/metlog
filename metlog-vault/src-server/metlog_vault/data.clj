@@ -60,6 +60,29 @@
            (or (get-series-id series-name)
                (add-series-name series-name))))))))
 
+(def latest-sample-times (atom {}))
+
+(defquery query-series-latest-sample-time [ series-name ]
+  (if-let [ t (query-scalar *db* [(str "SELECT MAX(t) FROM sample"
+                                       " WHERE series_id = ?")
+                                  (intern-series-name series-name)])]
+    t))
+
+(defn get-series-latest-sample-time [ series-name ]
+  (let [series-id (intern-series-name series-name)]
+    (if-let [latest-t (@latest-sample-times series-id)]
+      latest-t
+      (let [query-latest-t (query-series-latest-sample-time series-name)]
+        (swap! latest-sample-times assoc series-id query-latest-t)
+        (log/info "Latest sample times from DB" @latest-sample-times)
+        query-latest-t))))
+
+(defn check-latest-series-time [series-name t]
+  (let [series-id (intern-series-name series-name)]
+    (if-let [cached-latest-t (@latest-sample-times series-id)]
+      (if (.after t cached-latest-t)
+        (swap! latest-sample-times assoc series-id t)))))
+
 (defquery store-data-samples [ samples ]
   (doseq [ sample-batch (partition-all sample-batch-size samples)]
     (log/info "Storing batch of" (count sample-batch) "samples.")
@@ -70,6 +93,17 @@
                                 (:t sample)
                                 (:val sample)])
                              sample-batch))))
+
+;;; Monotonic store ensures that only new samples are stored. Existing
+;;; samples, those older than the latest currently known in the
+;;; database, are ignored. Useful for the USGS data, which is queried
+;;; in 24 hours blocks, rather than streams of the latest samples.
+(defn store-data-samples-monotonic [ samples ]
+  (let [ new-samples (filter #(.after (:t %) (get-series-latest-sample-time (:series_name %)))
+                             samples)]
+    (doseq [ sample new-samples ]
+      (check-latest-series-time (:series_name sample) (:t sample)))
+    (store-data-samples new-samples)))
 
 (defquery get-series-names []
   (map :series_name
