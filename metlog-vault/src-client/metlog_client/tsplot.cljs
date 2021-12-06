@@ -26,7 +26,7 @@
   (mapcat (fn [ scale ]
             (map #(* % (.pow js/Math 10 scale))
                  [ 1 2 5 ]))
-          (range -3 3)))
+          (range -12 13)))
 
 (defn seconds [ seconds ] (* 1000 seconds))
 (defn minutes [ minutes ] (seconds (* 60 minutes)))
@@ -56,7 +56,10 @@
    (days 3)
    (days 7)
    (days 14)
-   (days 30)])
+   (days 30)
+   (days 90)
+   (days 180)
+   (days 360)])
 
 (def stroke-styles
   {:grid
