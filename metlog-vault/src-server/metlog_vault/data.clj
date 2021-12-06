@@ -72,7 +72,8 @@
   (let [series-id (intern-series-name series-name)]
     (if-let [latest-t (@latest-sample-times series-id)]
       latest-t
-      (let [query-latest-t (query-series-latest-sample-time series-name)]
+      (let [query-latest-t (or (query-series-latest-sample-time series-name)
+                               (java.util.Date. 0))]
         (swap! latest-sample-times assoc series-id query-latest-t)
         (log/info "Latest sample times from DB" @latest-sample-times)
         query-latest-t))))
