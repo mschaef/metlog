@@ -21,7 +21,7 @@
      [:title "Metlog - " (get-version)]]
     [:body
      [:div {:id "metlog"}]
-     [:script {:src "/compiled/metlog.js"
+     [:script {:src "/cljs-out/dev-main.js"
                :type "text/javascript"}]]]))
 
 (defn get-series-names []

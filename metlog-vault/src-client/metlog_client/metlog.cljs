@@ -1,5 +1,6 @@
 (ns metlog-client.metlog
   (:require [reagent.core :as reagent]
+            [reagent.dom :as dom]
             [reagent.debug :as debug]
             [cljs-time.core :as time]
             [cljs-time.coerce :as time-coerce]
@@ -53,7 +54,7 @@
 
       :component-did-mount
       (fn [ this ]
-        (reset! dom-node (reagent/dom-node this)))
+        (reset! dom-node (dom/dom-node this)))
 
       :component-did-update
       (fn [ this _ ]
@@ -160,7 +161,7 @@
   (js/setInterval update-current-time update-interval-ms))
 
 (defn ^:export run []
-  (reagent/render [dashboard] (js/document.getElementById "metlog"))
+  (dom/render [dashboard] (js/document.getElementById "metlog"))
   (.addEventListener js/window "resize" on-window-resize)
   (server/fetch-series-names #(swap! dashboard-state merge {:all-series %}))
   (server/fetch-dashboard-series #(swap! dashboard-state merge {:displayed-series %}))

@@ -6,91 +6,60 @@
 
   :scm {:dir ".."}
 
-  :dependencies [[org.clojure/clojure "1.10.0"]
-                 [org.clojure/clojurescript "1.10.520"]
-                 [com.mschaef/sql-file "0.4.0"]
-                 [ring/ring-jetty-adapter "1.7.1"]
+  :dependencies [[org.clojure/clojure "1.11.1"]
+                 [org.clojure/clojurescript "1.11.54"]
+                 [com.mschaef/sql-file "0.4.8"]
+                 [ring/ring-jetty-adapter "1.9.5"]
                  [slester/ring-browser-caching "0.1.1"]
-                 [com.cognitect/transit-clj "0.8.313"]
-                 [compojure "1.6.1"
+                 [com.cognitect/transit-clj "1.0.329"]
+                 [cprop "0.1.19"]
+                 [compojure "1.7.0"
                   :exclusions [commons-codec]]
                  [hiccup "1.0.5"]
 
-                 [org.clojure/core.async "0.4.490"]
-                 [cljs-ajax "0.8.0"]
-                 [reagent "0.8.1"]
+                 [org.clojure/core.async "1.5.648"]
+                 [cljs-ajax "0.8.4"]
+                 [cljsjs/react "18.0.0-rc.0-0"]
+                 [cljsjs/react-dom "18.0.0-rc.0-0"]
+                 [reagent "1.1.1"]
                  [com.andrewmcveigh/cljs-time "0.5.2"]
                  [it.sauronsoftware.cron4j/cron4j "2.2.5"]
-
+                 [com.bhauman/figwheel-main "0.2.17"]
+                 [com.bhauman/rebel-readline-cljs "0.1.4"]
                  [metlog-common "0.1.0"]]
 
-  :plugins [[lein-cljsbuild "1.1.4"]
-            [lein-tar "3.3.0"]]
+  :plugins [[lein-tar "3.3.0"]]
 
   :tar {:uberjar true
         :format :tar-gz
         :output-dir "."
         :leading-path "metlog-vault-install"}
 
-  :source-paths ["src-server"]
+  :source-paths ["src-client"  "src-server"]
+  :resource-paths ["resources" ]
 
-  :clean-targets ^{:protect false} [:target-path :compile-path "resources/public/compiled"]
+  :clean-targets ^{:protect false} [:target-path :compile-path  "resources/public/cljs-out"]
 
   :uberjar-name "metlog-vault-standalone.jar"
 
   :main metlog-vault.main
 
+  :jvm-opts ["-Dconf=local-config.edn"]
+
   :target-path "target/%s"
 
-  :cljsbuild {:builds
-              {:app
-               {:source-paths ["src-client"]
+  :aliases {"fig:build" ["trampoline" "run" "-m" "figwheel.main" "-b" "dev" "-r"]
+            "fig:min"   ["run" "-m" "figwheel.main" "-O" "advanced" "-bo" "dev"]}
 
-                :figwheel true
+  :profiles {:uberjar
+             {:prep-tasks ["compile" ["fig:min"]]
+              :aot :all}}
 
-                :compiler {:main metlog-client.metlog
-                           :asset-path "compiled/out"
-                           :output-to "resources/public/compiled/metlog.js"
-                           :output-dir "resources/public/compiled/out"
-                           :source-map-timestamp true}}}}
-
-  :figwheel {:server-port 8080
-             :css-dirs ["resources/public"]
-             :ring-handler metlog-vault.core/handler
-             :server-logfile "log/figwheel.log"}
-
-  :profiles {:dev
-             {:dependencies [[figwheel "0.5.18"]
-                             [figwheel-sidecar "0.5.18"]
-                             [com.cemerick/piggieback "0.2.2"]
-                             [org.clojure/tools.nrepl "0.2.13"]]
-              :plugins [[lein-figwheel "0.5.18"]]
-
-              :cljsbuild {:builds
-                          {:test
-                           {:source-paths ["src-client"]
-                            :compiler
-                            {:optimizations :none
-                             :pretty-print true}
-                            }}}}
-
-             :uberjar
-             {:source-paths ^:replace ["src-server"]
-              :hooks [leiningen.cljsbuild]
-              :aot :all
-              :cljsbuild {:builds
-                          {:app
-                           {:source-paths ^:replace ["src-client"]
-                            :compiler
-                            {:optimizations :none
-                             :pretty-print true}
-                            }}}}}
-
-    :release-tasks [["vcs" "assert-committed"]
-                    ["change" "version" "leiningen.release/bump-version" "release"]
-                    ["vcs" "commit"]
-                    ["vcs" "tag" "metlog-vault-" "--no-sign"]
-                    ["tar"]
-                    ["change" "version" "leiningen.release/bump-version"]
-                    ["vcs" "commit"]
-                    ["vcs" "push"]])
+  :release-tasks [["vcs" "assert-committed"]
+                  ["change" "version" "leiningen.release/bump-version" "release"]
+                  ["vcs" "commit"]
+                  ["vcs" "tag" "metlog-vault-" "--no-sign"]
+                  ["tar"]
+                  ["change" "version" "leiningen.release/bump-version"]
+                  ["vcs" "commit"]
+                  ["vcs" "push"]])

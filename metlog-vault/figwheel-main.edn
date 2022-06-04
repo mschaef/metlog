@@ -1,0 +1,5 @@
+{
+ :watch-dirs ["src-client"]
+ :css-dirs ["resources/public"]
+ :target-dir "resources"
+ }

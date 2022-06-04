@@ -1,0 +1,4 @@
+{:app {:name "Metlog"}
+ :http-port 8080
+ :development-mode false
+ :db {}}

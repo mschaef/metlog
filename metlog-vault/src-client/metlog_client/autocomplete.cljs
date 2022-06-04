@@ -1,5 +1,6 @@
 (ns metlog-client.autocomplete
   (:require [reagent.core :as reagent]
+            [reagent.dom :as dom]
             [reagent.debug :as debug]
             [metlog-client.logger :as log]))
 
@@ -52,7 +53,7 @@
       (let [[ _ _ _ was-selected? _ ] old-argv
             [ _ container-elem _ is-selected? _ ] (reagent/argv this) ]
         (when (and is-selected? (not was-selected?))
-          (ensure-entry-visible container-elem (reagent/dom-node this)))))
+          (ensure-entry-visible container-elem (dom/dom-node this)))))
 
     :reagent-render
     (fn [ container-elem content selected? do-choose-entry ]
@@ -66,7 +67,7 @@
     (reagent/create-class
      {:component-did-mount
       (fn [ this ]
-        (reset! dom-node (reagent/dom-node this)))
+        (reset! dom-node (dom/dom-node this)))
 
       :reagent-render
       (fn [ completions selected-index do-choose-entry ]
