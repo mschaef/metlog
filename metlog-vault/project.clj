@@ -38,7 +38,7 @@
 
   :uberjar-name "metlog-vault-standalone.jar"
 
-  :main metlog-vault.core
+  :main metlog-vault.main
 
   :target-path "target/%s"
 
