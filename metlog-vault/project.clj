@@ -19,8 +19,8 @@
                  [org.clojure/core.async "0.4.490"]
                  [cljs-ajax "0.8.0"]
                  [reagent "0.8.1"]
-                 [overtone/at-at "1.2.0"]
                  [com.andrewmcveigh/cljs-time "0.5.2"]
+                 [it.sauronsoftware.cron4j/cron4j "2.2.5"]
 
                  [metlog-common "0.1.0"]]
 
