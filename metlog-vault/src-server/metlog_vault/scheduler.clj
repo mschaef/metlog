@@ -8,10 +8,10 @@
     (.start)))
 
 (defn schedule-job [ scheduler desc cron job-fn ]
-  (do
+  (let [ job-fn (exception-barrier job-fn (str "scheduled job:" desc))]
     (log/info "Background job scheduled (cron:" cron  "):" desc )
     (.schedule scheduler cron
                #(do
                   (log/info "Running scheduled job: " desc)
-                  (exception-barrier job-fn (str "scheduled job:" desc))
+                  (job-fn)
                   (log/info "End scheduled job: " desc)))))
