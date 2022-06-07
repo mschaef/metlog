@@ -75,7 +75,7 @@
       (let [query-latest-t (or (query-series-latest-sample-time series-name)
                                (java.util.Date. 0))]
         (swap! latest-sample-times assoc series-id query-latest-t)
-        (log/info "Latest sample times from DB" @latest-sample-times)
+        (log/debug "Latest sample times from DB" @latest-sample-times)
         query-latest-t))))
 
 (defn check-latest-series-time [series-name t]
