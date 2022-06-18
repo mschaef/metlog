@@ -1,6 +1,7 @@
 (ns metlog-vault.web
   (:use metlog-common.core
         compojure.core
+        sql-file.middleware
         [ring.middleware resource
                          not-modified
                          content-type
@@ -35,7 +36,7 @@
   (log/info "Starting Vault Webserver on port" http-port
             (str "(HTTP threads=" http-thread-count ")"))
   (let [server (jetty/run-jetty (-> routes
-                                    (data/wrap-db-connection db-pool)
+                                    (wrap-db-connection db-pool)
                                     (wrap-content-type)
                                     (wrap-browser-caching {"text/javascript" 360000
                                                            "text/css" 360000})

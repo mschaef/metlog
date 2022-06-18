@@ -1,27 +1,12 @@
 (ns metlog-vault.data
   (:use metlog-common.core
-        compojure.core)
+        compojure.core
+        sql-file.middleware)
   (:require [clojure.tools.logging :as log]
             [clojure.java.jdbc :as jdbc]
             [sql-file.core :as sql-file]))
 
 (def sample-batch-size 200)
-
-(defn open-db-pool []
-  (-> (sql-file/open-pool {:name (config-property "db.subname" "metlog-vault")
-                           :schema-path [ "sql/" ]})
-      (sql-file/ensure-schema [ "metlog" 1 ])))
-
-(def ^:dynamic *db* nil)
-
-(defmacro with-db-connection [ db-pool & body ]
-  `(binding [ *db* ~db-pool]
-     ~@body))
-
-(defn wrap-db-connection [ app db-pool ]
-  (fn [ req ]
-    (with-db-connection db-pool
-      (app req))))
 
 (defn call-with-query-logging [ name actual-args fn ]
   (log/trace "query" name actual-args)
@@ -34,20 +19,15 @@
   `(defn ~name ~lambda-list
      (call-with-query-logging '~name ~lambda-list (fn [] ~@body))))
 
-(defmacro with-transaction [ & body ]
-  `(jdbc/with-db-transaction [ db-trans# *db* ]
-     (binding [ *db* db-trans# ]
-       ~@body)))
-
 (defquery get-series-id [ series-name ]
-  (query-scalar *db* [(str "SELECT series_id"
+  (query-scalar (current-db-connection) [(str "SELECT series_id"
                            " FROM series"
                            " WHERE series_name=?")
                       (str series-name)]))
 
 (defquery add-series-name [ series-name ]
   (:series_id (first
-               (jdbc/insert! *db* :series
+               (jdbc/insert! (current-db-connection) :series
                              {:series_name series-name}))))
 
 (def intern-series-name
@@ -56,14 +36,14 @@
      (let [ series-name (.trim (name (or series-name ""))) ]
        (if (= 0 (.length series-name))
          nil
-         (with-transaction
+         (with-db-transaction
            (or (get-series-id series-name)
                (add-series-name series-name))))))))
 
 (def latest-sample-times (atom {}))
 
 (defquery query-series-latest-sample-time [ series-name ]
-  (if-let [ t (query-scalar *db* [(str "SELECT MAX(t) FROM sample"
+  (if-let [ t (query-scalar (current-db-connection) [(str "SELECT MAX(t) FROM sample"
                                        " WHERE series_id = ?")
                                   (intern-series-name series-name)])]
     t))
@@ -87,7 +67,7 @@
 (defquery store-data-samples [ samples ]
   (doseq [ sample-batch (partition-all sample-batch-size samples)]
     (log/info "Storing batch of" (count sample-batch) "samples.")
-    (jdbc/insert-multi! *db* :sample
+    (jdbc/insert-multi! (current-db-connection) :sample
                         [:series_id :t :val]
                         (map (fn [ sample ]
                                [(intern-series-name (:series_name sample))
@@ -108,12 +88,12 @@
 
 (defquery get-series-names []
   (map :series_name
-       (query-all *db* [(str "SELECT series_name"
+       (query-all (current-db-connection) [(str "SELECT series_name"
                              " FROM series")])))
 
 (defquery get-data-for-series-name [ series-name begin-t end-t]
   (map #(assoc % :t (.getTime (:t %)))
-   (query-all *db* [(str "SELECT sample.t, sample.val"
+   (query-all (current-db-connection) [(str "SELECT sample.t, sample.val"
                          " FROM sample"
                          " WHERE series_id = ?"
                          "   AND UNIX_MILLIS(t-session_timezone()) > ?"
@@ -124,18 +104,18 @@
                     end-t])))
 
 (defquery get-dashboard-definition [ name ]
-  (query-scalar *db* [(str "SELECT definition"
+  (query-scalar (current-db-connection) [(str "SELECT definition"
                            " FROM dashboard"
                            " WHERE name=?")
                       name]))
 
 (defquery store-dashboard-definition [ name definition ]
-  (with-transaction
+  (with-db-transaction
     (if (get-dashboard-definition name)
-      (jdbc/update! *db* :dashboard
+      (jdbc/update! (current-db-connection) :dashboard
                     {:definition definition }
                     ["name = ?" name])
-      (jdbc/insert! *db* :dashboard
+      (jdbc/insert! (current-db-connection) :dashboard
                     {:name name
                      :definition definition}))))
 

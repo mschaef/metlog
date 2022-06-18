@@ -1,7 +1,8 @@
  (ns metlog-vault.core
    (:use metlog-common.core
          metlog-vault.util
-         compojure.core)
+         compojure.core
+         sql-file.middleware)
    (:require [clojure.tools.logging :as log]
              [metlog-vault.data :as data]
              [metlog-vault.scheduler :as scheduler]))
@@ -34,7 +35,7 @@
           (.drainTo sample-queue snapshot))
         (when (> (count snapshot) 0)
           (log/info "Storing " (count snapshot) " samples.")
-          (data/with-db-connection db-pool
+          (with-db-connection db-pool
             (data/store-data-samples-monotonic (seq snapshot))))))
 
     (fn [ samples ]
