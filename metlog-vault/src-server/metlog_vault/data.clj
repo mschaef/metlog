@@ -21,9 +21,9 @@
 
 (defquery get-series-id [ series-name ]
   (query-scalar (current-db-connection) [(str "SELECT series_id"
-                           " FROM series"
-                           " WHERE series_name=?")
-                      (str series-name)]))
+                                              " FROM series"
+                                              " WHERE series_name=?")
+                                         (str series-name)]))
 
 (defquery add-series-name [ series-name ]
   (:series_id (first
@@ -40,12 +40,18 @@
            (or (get-series-id series-name)
                (add-series-name series-name))))))))
 
+(defn lookup-series-id [ series-name ]
+  (let [ series-name (.trim (name (or series-name ""))) ]
+    (if (= 0 (.length series-name))
+      nil
+      (get-series-id series-name))))
+
 (def latest-sample-times (atom {}))
 
 (defquery query-series-latest-sample-time [ series-name ]
   (if-let [ t (query-scalar (current-db-connection) [(str "SELECT MAX(t) FROM sample"
-                                       " WHERE series_id = ?")
-                                  (intern-series-name series-name)])]
+                                                          " WHERE series_id = ?")
+                                                     (intern-series-name series-name)])]
     t))
 
 (defn get-series-latest-sample-time [ series-name ]
@@ -91,7 +97,7 @@
        (query-all (current-db-connection) [(str "SELECT series_name"
                              " FROM series")])))
 
-(defquery get-data-for-series-name [ series-name begin-t end-t]
+(defquery get-data-for-series-name [ series-name begin-t end-t ]
   (map #(assoc % :t (.getTime (:t %)))
    (query-all (current-db-connection) [(str "SELECT sample.t, sample.val"
                          " FROM sample"
@@ -99,7 +105,7 @@
                          "   AND UNIX_MILLIS(t-session_timezone()) > ?"
                          "   AND UNIX_MILLIS(t-session_timezone()) < ?"
                          " ORDER BY t")
-                    (intern-series-name series-name)
+                    (lookup-series-id series-name)
                     begin-t
                     end-t])))
 
