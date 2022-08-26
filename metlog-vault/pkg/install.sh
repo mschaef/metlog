@@ -18,7 +18,7 @@ if [ $? -eq 0 ]; then
     echo "User exists: ${METLOG_USER_NAME}"
 else
     echo "Creating user: ${METLOG_USER_NAME}"
-    
+
     useradd --user-group --system ${METLOG_USER_NAME}
 
     if [ $? -ne 0 ]; then
@@ -32,18 +32,10 @@ fi
 install -v --group=root --owner=root --directory /usr/share/${METLOG_SERVICE_NAME}
 install -v --group=root --owner=root lib/uberjar/${METLOG_SERVICE_NAME}-standalone.jar /usr/share/${METLOG_SERVICE_NAME}
 
-# create log directory
+# Create data and log directories
 
 install -v --group=${METLOG_SERVICE_NAME} --owner=${METLOG_SERVICE_NAME} --directory /var/log/${METLOG_SERVICE_NAME}
-
-# create data directory
-
 install -v --group=${METLOG_SERVICE_NAME} --owner=${METLOG_SERVICE_NAME} --directory /var/lib/${METLOG_SERVICE_NAME}
-
-# Configuration Files
-
-install -v --group=root --owner=root --directory /etc/${METLOG_SERVICE_NAME}
-install -v --group=root --owner=root logback.xml /etc/${METLOG_SERVICE_NAME}
 
 # metlog service configuration
 

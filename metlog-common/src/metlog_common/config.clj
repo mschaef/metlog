@@ -1,6 +1,5 @@
-(ns metlog-vault.config
-  (:use metlog-vault.util)
-  (:require [clojure.tools.logging :as log]
+(ns metlog-common.config
+  (:require [taoensso.timbre :as log]
             [cprop.core :as cprop]
             [cprop.source :as cprop-source]))
 
@@ -16,6 +15,10 @@
     {}))
 
 (defn load-config [ ]
-  (cprop/load-config :merge [(cprop-source/from-resource "config.edn")
-                             (maybe-config-file "conf")
-                             (maybe-config-file "creds")]))
+  (let [config (cprop/load-config :merge [(cprop-source/from-resource "config.edn")
+                                          (maybe-config-file "conf")
+                                          (maybe-config-file "creds")])]
+    (log/info "Starting App" (:app config))
+    (when (:development-mode config)
+      (log/warn "=== DEVELOPMENT MODE ==="))
+    config))

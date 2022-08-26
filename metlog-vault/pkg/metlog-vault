@@ -45,7 +45,6 @@ METLOG_HTTP_PORT=8080
 
 JAVA_OPTS="-Ddb.subname=/var/lib/${SERVICE_NAME}/${METLOG_DB_SUBNAME}"
 JAVA_OPTS="$JAVA_OPTS -Dhttp.port=${METLOG_HTTP_PORT}"
-JAVA_OPTS="$JAVA_OPTS -Dlogback.configurationFile=/etc/${SERVICE_NAME}/logback.xml"
 JAVA_OPTS="$JAVA_OPTS -jar /usr/share/${SERVICE_NAME}/${METLOG_JAR}"
 
 METLOG_SH="$JAVA $JAVA_OPTS >> /var/log/${SERVICE_NAME}/${SERVICE_NAME}-console.log 2>&1"

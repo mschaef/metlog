@@ -1,5 +1,5 @@
 (ns metlog-common.core
-  (:require [clojure.tools.logging :as log]
+  (:require [taoensso.timbre :as log]
             [clojure.java.jdbc :as jdbc]
             [clojure.data.json :as json]))
 
@@ -11,9 +11,9 @@
   (or (nil? str)
       (= 0 (count (.trim str)))))
 
-(defn in? 
+(defn in?
   "true if seq contains elm"
-  [seq elm]  
+  [seq elm]
   (some #(= elm %) seq))
 
 (defn assoc-if [ map assoc? k v ]
@@ -58,7 +58,6 @@
   ([ str ]
    (try-parse-double str false)))
 
-
 (defn safe-json-read-str [ json-string ]
   (try
     (json/read-str json-string)
@@ -78,8 +77,7 @@
     val
     (try-parse-double val)))
 
-
-(defn config-property 
+(defn config-property
   ( [ name ] (config-property name nil))
   ( [ name default ]
       (let [prop-binding (System/getProperty name)]

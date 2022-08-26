@@ -2,7 +2,7 @@
   (:use compojure.core
         metlog-common.core
         metlog-vault.util)
-  (:require [clojure.tools.logging :as log]
+  (:require [taoensso.timbre :as log]
             [compojure.route :as route]
             [hiccup.core :as hiccup]
             [ring.util.response :as ring]
@@ -55,6 +55,10 @@
 
 (defn all-routes [ store-samples ]
   (routes
+   (GET "/fail" []
+     (throw (Exception. "bad"))
+     )
+
    (GET "/series-names" []
      (get-series-names))
 

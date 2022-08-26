@@ -2,10 +2,11 @@
   (:gen-class :main true)
   (:use metlog-common.core
         metlog-vault.util)
-  (:require [clojure.tools.logging :as log]
+  (:require [metlog-common.logging :as logging]
+            [metlog-common.config :as config]
+            [taoensso.timbre :as log]
             [figwheel.main.api :as figwheel]
             [sql-file.core :as sql-file]
-            [metlog-vault.config :as config]
             [metlog-vault.data :as data]
             [metlog-vault.core :as core]
             [metlog-vault.web :as web]
@@ -29,10 +30,10 @@
 
 (defn -main [& args]
   (let [config (config/load-config)]
-    (log/info "Starting App" (:app config))
+    (logging/setup-logging config [[#{"hsqldb.*" "com.zaxxer.hikari.*"} :warn]])
     (when (:development-mode config)
-      (log/warn "=== DEVELOPMENT MODE ===")
       (figwheel/start {:mode :serve
                        :open-url "http://localhost:8080"} "dev"))
     (app-start config)
     (log/info "end run.")))
+

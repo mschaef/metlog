@@ -3,7 +3,7 @@
          metlog-vault.util
          compojure.core
          sql-file.middleware)
-   (:require [clojure.tools.logging :as log]
+   (:require [taoensso.timbre :as log]
              [metlog-vault.data :as data]
              [metlog-vault.scheduler :as scheduler]))
 

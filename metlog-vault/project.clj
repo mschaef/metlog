@@ -7,7 +7,7 @@
   :scm {:dir ".."}
 
   :dependencies [[org.clojure/clojure "1.11.1"]
-                 [org.clojure/clojurescript "1.11.54"]
+                 [org.clojure/clojurescript "1.11.60"]
                  [com.mschaef/sql-file "0.4.8"]
                  [ring/ring-jetty-adapter "1.9.5"]
                  [slester/ring-browser-caching "0.1.1"]
@@ -19,14 +19,14 @@
 
                  [org.clojure/core.async "1.5.648"]
                  [cljs-ajax "0.8.4"]
-                 [cljsjs/react "18.0.0-rc.0-0"]
-                 [cljsjs/react-dom "18.0.0-rc.0-0"]
+                 [cljsjs/react "18.2.0-0"]
+                 [cljsjs/react-dom "18.2.0-0"]
                  [reagent "1.1.1"]
                  [com.andrewmcveigh/cljs-time "0.5.2"]
                  [it.sauronsoftware.cron4j/cron4j "2.2.5"]
-                 [com.bhauman/figwheel-main "0.2.17"]
+                 [com.bhauman/figwheel-main "0.2.18"]
                  [com.bhauman/rebel-readline-cljs "0.1.4"]
-                 [metlog-common "0.1.0"]]
+                 [metlog-common "0.1.1-SNAPSHOT"]]
 
   :plugins [[lein-tar "3.3.0"]]
 

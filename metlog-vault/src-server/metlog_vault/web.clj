@@ -6,7 +6,7 @@
                          not-modified
                          content-type
                          browser-caching])
-  (:require [clojure.tools.logging :as log]
+  (:require [taoensso.timbre :as log]
             [ring.adapter.jetty :as jetty]
             [compojure.handler :as handler]
             [metlog-vault.data :as data]))

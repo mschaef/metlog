@@ -2,7 +2,7 @@
   (:use metlog-common.core
         compojure.core
         sql-file.middleware)
-  (:require [clojure.tools.logging :as log]
+  (:require [taoensso.timbre :as log]
             [clojure.java.jdbc :as jdbc]
             [sql-file.core :as sql-file]))
 
@@ -95,7 +95,7 @@
 (defquery get-series-names []
   (map :series_name
        (query-all (current-db-connection) [(str "SELECT series_name"
-                             " FROM series")])))
+                                                " FROM series")])))
 
 (defquery get-data-for-series-name [ series-name begin-t end-t ]
   (map #(assoc % :t (.getTime (:t %)))

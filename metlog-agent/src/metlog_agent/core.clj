@@ -1,7 +1,9 @@
 (ns metlog-agent.core
   (:gen-class)
   (:use metlog-common.core)
-  (:require [clojure.tools.logging :as log]
+  (:require [metlog-common.logging :as logging]
+            [metlog-common.config :as config]
+            [taoensso.timbre :as log]
             [clojure.java.io :as jio]
             [overtone.at-at :as at-at]
             [clj-http.client :as http]
@@ -72,7 +74,7 @@
          (keys current-sensor-defs))))
 
 (defn poll-sensor [ sensor-def ]
-  (try 
+  (try
     ((:sensor-fn sensor-def))
     (catch Exception ex
       (log/error (str "Error polling sensor: " (:sensor-name sensor-def)
@@ -83,19 +85,19 @@
   (log/trace "process-sensor-reading" [ sensor-name ts-sensor-reading ])
   (let [t (:t ts-sensor-reading)]
     (loop [sensor-name sensor-name
-           val (:val ts-sensor-reading)] 
+           val (:val ts-sensor-reading)]
       (cond
         (or (nil? val) (false? val))
         (log/debug "No value for sensor" sensor-name)
-        
+
         (number? val)
         (enqueue-sensor-reading t sensor-name val)
-    
+
         (map? val)
         (do
           (doseq [[sub-name sub-value] val]
             (process-sensor-reading (str sensor-name "-" (name sub-name)) (TimestampedValue. t sub-value))))
-        
+
         :else
         (log/error "Bad sensor value" val "(" (.getClass val) ")" "from sensor" sensor-name)))))
 
@@ -136,7 +138,7 @@
               "(" (- (System/currentTimeMillis) begin-t) "msec. )")
     (= (:status post-response) 200)))
 
-(defn snapshot-to-update-queue []
+(defn- snapshot-to-update-queue []
   (locking update-queue
     (let [snapshot (take-result-queue-snapshot
                     (min update-size-limit
@@ -145,7 +147,7 @@
         (.addAll update-queue snapshot))
       snapshot)))
 
-(defn post-update []
+(defn- post-update []
   (locking update-queue
     (and (not (.isEmpty update-queue))
          (post-readings vault-url (clean-readings (seq update-queue)))
@@ -153,7 +155,7 @@
            (.clear update-queue)
            true))))
 
-(defn update-vault []
+(defn- update-vault []
   (loop []
     (let [snapshot (snapshot-to-update-queue)]
       (when (post-update)
@@ -165,19 +167,22 @@
       (log/info "Loading configuration file:" filename)
       (load-file filename))))
 
-(defn -main
-  "Agent entry point"
-  [& args]
-  (maybe-load-config-file (config-property "agent.configurationFile" "config.clj"))
-
+(defn- start-sensor-polls []
   (doseq [ [ poll-interval sensors ] (group-by :poll-interval (all-sensors))]
     (log/debug "Scheduling poll job @" poll-interval "msec. for" (map :sensor-name sensors))
     (at-at/every poll-interval
                  (exception-barrier #(poll-sensors sensors) (str "poller-" poll-interval))
-                 my-pool))
+                 my-pool)))
 
-  (at-at/every vault-update-interval (exception-barrier update-vault "vault-update") my-pool)
-  
-  (log/info "running."))
+(defn- start-vault-update []
+  (at-at/every vault-update-interval (exception-barrier update-vault "vault-update") my-pool))
 
-
+(defn -main
+  "Agent entry point"
+  [& args]
+  (let [config (config/load-config)]
+    (logging/setup-logging config [])
+    (maybe-load-config-file (config-property "agent.configurationFile" "config.clj"))
+    (start-sensor-polls)
+    (start-vault-update)
+    (log/info "running.")))

@@ -1,6 +1,6 @@
 (ns metlog-vault.scheduler
   (:use metlog-common.core)
-  (:require [clojure.tools.logging :as log]))
+  (:require [taoensso.timbre :as log]))
 
 (defn start [ ]
   (doto (it.sauronsoftware.cron4j.Scheduler.)

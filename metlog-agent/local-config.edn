@@ -1,0 +1,2 @@
+{:log-path "./metlog-agent.log"
+ :development-mode true}

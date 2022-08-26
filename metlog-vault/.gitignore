@@ -1,4 +1,6 @@
 local-db/*
+local-db.tgz
+metlog-vault.log
 .rebel_readline_history
 log/*
-resources/public/compiled/*
+resources/public/cljs-out/*

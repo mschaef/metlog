@@ -6,18 +6,13 @@
 
   :scm {:dir ".."}
 
-  :dependencies [[org.clojure/clojure "1.8.0"]
-                 [clj-time "0.14.4"]
-                 [clj-http "3.1.0"
+  :dependencies [[org.clojure/clojure "1.11.1"]
+                 [clj-time "0.15.2"]
+                 [clj-http "3.12.3"
                   :exclusions [com.fasterxml.jackson.core/jackson-core]]
                  [overtone/at-at "1.2.0"]
-                 [com.cognitect/transit-clj "0.8.285"]
-
-                 [metlog-common "0.1.0"]]
-
-  :main ^:skip-aot metlog-agent.core
-  :target-path "target/%s"
-  :profiles {:uberjar {:aot :all}}
+                 [com.cognitect/transit-clj "1.0.329"]
+                 [metlog-common "0.1.1-SNAPSHOT"]]
 
   :plugins [[lein-tar "3.3.0"]]
 
@@ -26,8 +21,15 @@
         :output-dir "."
         :leading-path "metlog-agent-install"}
 
+  :target-path "target/%s"
+
+  :profiles {:uberjar {:aot :all}}
+
   :jar-name "metlog-agent.jar"
   :uberjar-name "metlog-agent-standalone.jar"
+
+  :main ^:skip-aot metlog-agent.core
+  :jvm-opts ["-Dconf=local-config.edn"]
 
   :release-tasks [["vcs" "assert-committed"]
                   ["change" "version" "leiningen.release/bump-version" "release"]
@@ -36,4 +38,4 @@
                   ["tar"]
                   ["change" "version" "leiningen.release/bump-version"]
                   ["vcs" "commit"]
-                  ["vcs" "push"]]  )
+                  ["vcs" "push"]])
