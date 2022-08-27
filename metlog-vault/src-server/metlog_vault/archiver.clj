@@ -8,18 +8,18 @@
 
 (defn- archive-series [ series-id archive-cutoff-date ]
   (with-db-transaction
-    (log/info "Archiving series: " series-id "cutoff: " archive-cutoff-date)
+    (log/debug "Archiving series:" series-id)
     (data/archive-old-samples series-id archive-cutoff-date)
     (data/delete-old-samples series-id archive-cutoff-date)))
 
 (defn- archive-job [ config db-pool ]
   (let [ archive-cutoff-date (add-days (current-time) (- (:hot-storage-days config)))]
+    (log/info "Archive job running with cutoff:" archive-cutoff-date)
     (with-db-connection db-pool
       (doseq [ series (data/get-all-series) ]
         (archive-series (:series_id series) archive-cutoff-date)))))
 
 (defn start [ config scheduler db-pool  ]
   (scheduler/schedule-job scheduler "data-archiver"
-                          ;; "0 1 * * *"
-                          "*/1 * * * *"
+                          "0 1 * * *"
                           (partial archive-job config db-pool)))

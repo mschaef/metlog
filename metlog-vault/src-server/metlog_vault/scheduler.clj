@@ -14,9 +14,8 @@
     (.schedule scheduler cron
                #(if (.tryLock job-lock)
                   (try
-                    (log/info "Running scheduled job: " desc)
+                    (log/info "Scheduled job:" desc)
                     (job-fn)
-                    (log/info "End scheduled job: " desc)
                     (finally
                       (.unlock job-lock)))
-                  (log/warn "Cannot run scheduled job reentrantly: " desc)))))
+                  (log/info "Cannot run scheduled job reentrantly:" desc)))))
