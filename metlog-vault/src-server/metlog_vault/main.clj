@@ -11,20 +11,22 @@
             [metlog-vault.core :as core]
             [metlog-vault.web :as web]
             [metlog-vault.routes :as routes]
-            [metlog-vault.scheduler :as scheduler]))
+            [metlog-vault.scheduler :as scheduler]
+            [metlog-vault.archiver :as archiver]))
 
 (defn db-conn-spec [ config ]
   {:name (or (config-property "db.subname")
              (get-in config [:db :subname] "metlog-vault"))
    :schema-path [ "sql/" ]
-   :schemas [[ "metlog" 1 ]]})
+   :schemas [[ "metlog" 2 ]]})
 
 (defn app-start [ config ]
-  (sql-file/with-pool [db-conn (db-conn-spec config)]
+  (sql-file/with-pool [db-pool (db-conn-spec config)]
     (let [scheduler (scheduler/start)
-          data-sink (core/queued-data-sink scheduler db-conn)]
+          data-sink (core/queued-data-sink scheduler db-pool)]
+      (archiver/start config scheduler db-pool)
       (web/start-webserver (config-property "http.port" 8080)
-                           db-conn
+                           db-pool
                            (routes/all-routes data-sink)))))
 
 

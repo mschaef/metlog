@@ -7,9 +7,7 @@
             [clojure.java.io :as jio]
             [overtone.at-at :as at-at]
             [clj-http.client :as http]
-            [cognitect.transit :as transit]
-            [clj-time.format :as time-format]
-            [clj-time.coerce :as time-coerce]))
+            [cognitect.transit :as transit]))
 
 (defn pr-transit [ val ]
   (let [out (java.io.ByteArrayOutputStream. 4096)

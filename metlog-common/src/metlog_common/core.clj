@@ -114,3 +114,20 @@
     (when (> (count row-keys) 1)
       (log/warn "Queries used for query-scalar should only return one field per row:" query-spec))
     (get first-row (first row-keys))))
+
+;;; Date utilities
+
+(defn current-time []
+  (java.util.Date.))
+
+(defn add-days [ date days ]
+  "Given a date, advance it forward n days, leaving it at the
+  beginning of that day"
+  (let [c (java.util.Calendar/getInstance)]
+    (.setTime c date)
+    (.add c java.util.Calendar/DATE days)
+    (.set c java.util.Calendar/HOUR_OF_DAY 0)
+    (.set c java.util.Calendar/MINUTE 0)
+    (.set c java.util.Calendar/SECOND 0)
+    (.set c java.util.Calendar/MILLISECOND 0)
+    (.getTime c)))

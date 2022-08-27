@@ -2,4 +2,5 @@
  :log-path "/var/log/metlog-vault/metlog-vault.log"
  :http-port 8080
  :development-mode false
+ :hot-storage-days 90
  :db {}}

@@ -48,6 +48,20 @@
 
 (def latest-sample-times (atom {}))
 
+(defquery delete-old-samples [ series-id archive-time ]
+  (jdbc/delete! (current-db-connection)
+                :sample
+                ["series_id = ? and t < ?" series-id archive-time]))
+
+(defquery archive-old-samples [ series-id archive-time ]
+  (jdbc/execute! (current-db-connection)
+                 [(str "INSERT INTO cold_sample "
+                       " SELECT * FROM sample"
+                       " WHERE series_id=?"
+                       "   AND t<?")
+                  series-id
+                  archive-time]))
+
 (defquery query-series-latest-sample-time [ series-name ]
   (if-let [ t (query-scalar (current-db-connection) [(str "SELECT MAX(t) FROM sample"
                                                           " WHERE series_id = ?")
@@ -92,10 +106,12 @@
       (check-latest-series-time (:series_name sample) (:t sample)))
     (store-data-samples new-samples)))
 
-(defquery get-series-names []
-  (map :series_name
-       (query-all (current-db-connection) [(str "SELECT series_name"
-                                                " FROM series")])))
+(defquery get-all-series []
+  (query-all (current-db-connection) [(str "SELECT series_id, series_name"
+                                           " FROM series")]))
+
+(defn get-series-names []
+  (map :series_name (get-all-series)))
 
 (defquery get-data-for-series-name [ series-name begin-t end-t ]
   (map #(assoc % :t (.getTime (:t %)))
