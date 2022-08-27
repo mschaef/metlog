@@ -12,7 +12,6 @@
                  [ring/ring-jetty-adapter "1.9.5"]
                  [slester/ring-browser-caching "0.1.1"]
                  [com.cognitect/transit-clj "1.0.329"]
-                 [cprop "0.1.19"]
                  [compojure "1.7.0"
                   :exclusions [commons-codec]]
                  [hiccup "1.0.5"]

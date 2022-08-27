@@ -161,12 +161,6 @@
       (when (post-update)
         (recur)))))
 
-(defn maybe-load-config-file [ filename ]
-  (binding [ *ns* (find-ns 'metlog-agent.core)]
-    (when (.exists (jio/as-file filename))
-      (log/info "Loading configuration file:" filename)
-      (load-file filename))))
-
 (defn- start-sensor-polls []
   (doseq [ [ poll-interval sensors ] (group-by :poll-interval (all-sensors))]
     (log/debug "Scheduling poll job @" poll-interval "msec. for" (map :sensor-name sensors))
@@ -177,12 +171,18 @@
 (defn- start-vault-update []
   (at-at/every vault-update-interval (exception-barrier update-vault "vault-update") my-pool))
 
+(defn- maybe-load-sensor-file [ filename ]
+  (binding [ *ns* (find-ns 'metlog-agent.core)]
+    (when (.exists (jio/as-file filename))
+      (log/info "Loading sensor file:" filename)
+      (load-file filename))))
+
 (defn -main
   "Agent entry point"
   [& args]
   (let [config (config/load-config)]
     (logging/setup-logging config [])
-    (maybe-load-config-file (config-property "agent.configurationFile" "config.clj"))
+    (maybe-load-sensor-file (:sensor-file config))
     (start-sensor-polls)
     (start-vault-update)
     (log/info "running.")))

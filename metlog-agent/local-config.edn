@@ -1,2 +1,3 @@
 {:log-path "./metlog-agent.log"
- :development-mode true}
+ :development-mode true
+ :sensor-file "./config.clj"}
