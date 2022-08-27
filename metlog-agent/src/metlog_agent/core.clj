@@ -47,12 +47,10 @@
 
 (def sensor-defs (atom {}))
 
-(def vault-url (config-property "vault.url" "http://localhost:8080/data"))
-
 (defn add-sensor-def [ sensor-name sensor-fn ]
   (swap! sensor-defs assoc sensor-name sensor-fn))
 
-(def default-sensor-attrs {:poll-interval (minutes 1)})
+(def default-sensor-attrs {:poll-intervalb (minutes 1)})
 
 (defmacro defsensor*
   ([ name attrs fn-form ]
@@ -147,18 +145,18 @@
         (.addAll update-queue snapshot))
       snapshot)))
 
-(defn- post-update []
+(defn- post-update [ config ]
   (locking update-queue
     (and (not (.isEmpty update-queue))
-         (post-readings vault-url (clean-readings (seq update-queue)))
+         (post-readings (:vault-url config) (clean-readings (seq update-queue)))
          (do
            (.clear update-queue)
            true))))
 
-(defn- update-vault []
+(defn- update-vault [ config ]
   (loop []
     (let [snapshot (snapshot-to-update-queue)]
-      (when (post-update)
+      (when (post-update config)
         (recur)))))
 
 (defn- start-sensor-polls []
@@ -168,8 +166,9 @@
                  (exception-barrier #(poll-sensors sensors) (str "poller-" poll-interval))
                  my-pool)))
 
-(defn- start-vault-update []
-  (at-at/every vault-update-interval (exception-barrier update-vault "vault-update") my-pool))
+(defn- start-vault-update [ config ]
+  (at-at/every vault-update-interval
+               (exception-barrier (partial update-vault config) "vault-update") my-pool))
 
 (defn- maybe-load-sensor-file [ filename ]
   (binding [ *ns* (find-ns 'metlog-agent.core)]
@@ -184,5 +183,5 @@
     (logging/setup-logging config [])
     (maybe-load-sensor-file (:sensor-file config))
     (start-sensor-polls)
-    (start-vault-update)
+    (start-vault-update config)
     (log/info "running.")))

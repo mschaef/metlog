@@ -1,4 +1,4 @@
-#! /bin/bash 
+#! /bin/bash
 ### BEGIN INIT INFO
 # Provides:          metlog-agent
 # Required-Start:    $remote_fs $syslog
@@ -34,8 +34,6 @@ JAVA_OPTS=""
 METLOG_USER=${SERVICE_NAME}
 
 METLOG_JAR=metlog-agent-standalone.jar
-METLOG_VAULT_URL=http://dunitall.com:8080/data
-METLOG_CONFIG_PATH=/etc/metlog-agent/config.clj
 
 ### Read configuration variable file if it is present
 
@@ -43,9 +41,7 @@ METLOG_CONFIG_PATH=/etc/metlog-agent/config.clj
 
 ### Start assembling commands
 
-JAVA_OPTS="-Dvault.url=${METLOG_VAULT_URL}"
-
-JAVA_OPTS="$JAVA_OPTS -jar /usr/share/${SERVICE_NAME}/${METLOG_JAR}"
+JAVA_OPTS="-jar /usr/share/${SERVICE_NAME}/${METLOG_JAR}"
 
 METLOG_SH="$JAVA $JAVA_OPTS >> /var/log/${SERVICE_NAME}/${SERVICE_NAME}-console.log 2>&1"
 
@@ -63,7 +59,7 @@ function require_root() {
 do_start()
 {
     require_root
-    
+
 	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $JAVA --test > /dev/null \
 		|| return 1 # daemon was already running
 
@@ -76,10 +72,10 @@ do_start()
 do_stop()
 {
     require_root
-    
+
 	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE
 	RETVAL="$?"
-    
+
 	[ "$RETVAL" = 2 ] && return 2 # daemon could not be stopped
 
 	rm -f $PIDFILE
