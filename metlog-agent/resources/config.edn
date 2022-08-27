@@ -1,0 +1,5 @@
+{:app {:name "Metlog Agent"}
+ :log-path "/var/log/metlog-agent/metlog-agent.log"
+ :development-mode false
+ :sensor-file "/etc/metlog-agent/config.clj"
+ :vault-url "http://metrics.mschaef.com/data"}
