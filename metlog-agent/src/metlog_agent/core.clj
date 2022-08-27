@@ -11,8 +11,6 @@
             [clj-time.format :as time-format]
             [clj-time.coerce :as time-coerce]))
 
-(def update-size-limit 200)
-
 (defn pr-transit [ val ]
   (let [out (java.io.ByteArrayOutputStream. 4096)
         writer (transit/writer out :json)]
@@ -23,9 +21,6 @@
 (defn minutes [ minutes ] (seconds (* 60 minutes)))
 (defn hours [ hours ] (minutes (* 60 hours)))
 (defn days [ days ] (hours (* 24 days)))
-
-(def vault-update-interval (minutes 1))
-(def sensor-poll-interval (seconds 15))
 
 (def my-pool (at-at/mk-pool))
 
@@ -136,14 +131,15 @@
               "(" (- (System/currentTimeMillis) begin-t) "msec. )")
     (= (:status post-response) 200)))
 
-(defn- snapshot-to-update-queue []
-  (locking update-queue
-    (let [snapshot (take-result-queue-snapshot
-                    (min update-size-limit
-                         (- update-size-limit (.size update-queue)))) ]
-      (when snapshot
-        (.addAll update-queue snapshot))
-      snapshot)))
+(defn- snapshot-to-update-queue [ config ]
+  (let [ update-size-limit (:update-size-limit config )]
+    (locking update-queue
+      (let [snapshot (take-result-queue-snapshot
+                      (min update-size-limit
+                           (- update-size-limit (.size update-queue)))) ]
+        (when snapshot
+          (.addAll update-queue snapshot))
+        snapshot))))
 
 (defn- post-update [ config ]
   (locking update-queue
@@ -155,7 +151,7 @@
 
 (defn- update-vault [ config ]
   (loop []
-    (let [snapshot (snapshot-to-update-queue)]
+    (let [snapshot (snapshot-to-update-queue config)]
       (when (post-update config)
         (recur)))))
 
@@ -167,7 +163,7 @@
                  my-pool)))
 
 (defn- start-vault-update [ config ]
-  (at-at/every vault-update-interval
+  (at-at/every (seconds (:vault-update-interval-sec config))
                (exception-barrier (partial update-vault config) "vault-update") my-pool))
 
 (defn- maybe-load-sensor-file [ filename ]
