@@ -1,7 +1,8 @@
 (ns metlog-vault.data
   (:use metlog-common.core
         compojure.core
-        sql-file.middleware)
+        sql-file.middleware
+        sql-file.sql-util)
   (:require [taoensso.timbre :as log]
             [clojure.java.jdbc :as jdbc]
             [sql-file.core :as sql-file]))

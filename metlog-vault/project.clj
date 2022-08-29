@@ -25,7 +25,7 @@
                  [it.sauronsoftware.cron4j/cron4j "2.2.5"]
                  [com.bhauman/figwheel-main "0.2.18"]
                  [com.bhauman/rebel-readline-cljs "0.1.4"]
-                 [metlog-common "0.1.1-SNAPSHOT"]]
+                 [metlog-common "0.1.2"]]
 
   :plugins [[lein-tar "3.3.0"]]
 
