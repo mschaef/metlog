@@ -17,7 +17,7 @@
 (def dtf-header (time-format/formatter "yyyy-MM-dd HH:mm"))
 (def x-axis-space 20)
 (def tsplot-right-margin 5)
-(def y-axis-space 40)
+(def y-axis-space 50)
 
 (def pixels-per-x-label 100)
 (def pixels-per-y-label 20)
@@ -163,7 +163,21 @@
   (time-format/unparse dtf-axis-label (long-to-local-date-time val)))
 
 (defn format-ylabel [ val ]
-  (.toFixed val 2))
+  (let [mag (.abs js/Math val)
+        [val suffix precision]
+        (cond
+          (>= mag 1000000000)
+          [(/ val 1000000000) "G" 0]
+
+          (>= mag 1000000)
+          [(/ val 1000000) "M" 0]
+
+          (>= mag 1000)
+          [(/ val 1000) "K" 0]
+
+          :else
+          [val "" 2])]
+    (str (.toFixed val precision) suffix)))
 
 (defn largest-y-range-magnitude [ y-range ]
   (if (range-contains-zero? y-range)
