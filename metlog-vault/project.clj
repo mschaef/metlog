@@ -1,4 +1,4 @@
-(defproject metlog-vault "0.6.3-SNAPSHOT"
+(defproject metlog-vault "0.6.3"
   :description "Repository for storing and displaying time series data reported by metlog-agent.."
 
   :license {:name "Eclipse Public License"
