@@ -28,7 +28,7 @@
   :jar-name "metlog-agent.jar"
   :uberjar-name "metlog-agent-standalone.jar"
 
-  :main ^:skip-aot metlog-agent.core
+  :main ^:skip-aot metlog-agent.main
   :jvm-opts ["-Dconf=local-config.edn"]
 
   :release-tasks [["vcs" "assert-committed"]

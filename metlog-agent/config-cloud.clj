@@ -70,7 +70,7 @@
    45807202 :water-level})
 
 (defn to-timestamped [ var ]
-  (TimestampedValue. (:t var) { (variable-names (:variable-id var)) (:val var)}))
+  (timestamped-value (:t var) { (variable-names (:variable-id var)) (:val var)}))
 
 (defn get-usgs-sensor-data [ ]
   (map to-timestamped (get-flat-usgs-data)))
