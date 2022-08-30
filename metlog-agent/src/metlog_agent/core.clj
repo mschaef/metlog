@@ -1,9 +1,6 @@
 (ns metlog-agent.core
-  (:gen-class)
   (:use metlog-common.core)
-  (:require [metlog-common.logging :as logging]
-            [metlog-common.config :as config]
-            [taoensso.timbre :as log]
+  (:require [taoensso.timbre :as log]
             [clojure.java.io :as jio]
             [overtone.at-at :as at-at]
             [clj-http.client :as http]
@@ -27,6 +24,9 @@
 (def sensor-result-queue (java.util.concurrent.LinkedBlockingQueue.))
 
 (defrecord TimestampedValue [ t val ])
+
+(defn timestamped-value [ t val ]
+  (TimestampedValue. t val))
 
 (defn ensure-timestamped [ val ]
   (if (instance? TimestampedValue val)
@@ -167,17 +167,12 @@
                (exception-barrier (partial update-vault config) "vault-update") my-pool))
 
 (defn- maybe-load-sensor-file [ filename ]
-  (binding [ *ns* (find-ns 'metlog-agent.core)]
+  (binding [ *ns* (find-ns 'metlog-agent.sensor)]
     (when (.exists (jio/as-file filename))
       (log/info "Loading sensor file:" filename)
       (load-file filename))))
 
-(defn -main
-  "Agent entry point"
-  [& args]
-  (let [config (config/load-config)]
-    (logging/setup-logging config [])
-    (maybe-load-sensor-file (:sensor-file config))
-    (start-sensor-polls)
-    (start-vault-update config)
-    (log/info "running.")))
+(defn start-app [ config ]
+  (maybe-load-sensor-file (:sensor-file config))
+  (start-sensor-polls)
+  (start-vault-update config))

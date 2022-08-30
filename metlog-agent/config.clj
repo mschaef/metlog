@@ -63,10 +63,10 @@
 
 (defsensor* timestamped-fn {:poll-interval (seconds 10)}
   (let [rs (random-sampler)]
-    (fn [] (TimestampedValue. (java.util.Date.) (rs)))))
+    (fn [] (timestamped-value (java.util.Date.) (rs)))))
 
 (defsensor timestamped {:poll-interval (seconds 10)}
-  (TimestampedValue. (java.util.Date.) (Math/random)))
+  (timestamped-value (java.util.Date.) (Math/random)))
 
 
 (defn request-json [ url ]
@@ -103,7 +103,7 @@
    52333388 :water-level})
 
 (defn to-timestamped [ var ]
-  (TimestampedValue. (:t var) { (variable-names (:variable-id var)) (:val var)}))
+  (timestamped-value (:t var) { (variable-names (:variable-id var)) (:val var)}))
 
 (defn get-usgs-sensor-data [ ]
   (map to-timestamped (get-flat-usgs-data)))
