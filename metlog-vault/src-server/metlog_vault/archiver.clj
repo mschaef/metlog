@@ -21,5 +21,5 @@
 
 (defn start [ config scheduler db-pool  ]
   (scheduler/schedule-job scheduler "data-archiver"
-                          "0 1 * * *"
+                          "5 * * * *"
                           (partial archive-job config db-pool)))
