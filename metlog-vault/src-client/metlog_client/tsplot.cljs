@@ -76,7 +76,7 @@
    {:line-width 0
     :stroke-style "#0000FF"
     :line-dash #js [ ]}
-   
+
    :frame
    {:line-width 1
     :stroke-style "#000000"
@@ -167,16 +167,16 @@
         [val suffix precision]
         (cond
           (>= mag 1000000000)
-          [(/ val 1000000000) "G" 0]
+          [(/ val 1000000000) "G" 1]
 
           (>= mag 1000000)
-          [(/ val 1000000) "M" 0]
+          [(/ val 1000000) "M" 1]
 
           (>= mag 1000)
-          [(/ val 1000) "K" 0]
+          [(/ val 1000) "K" 1]
 
           :else
-          [val "" 2])]
+          [val "" 1])]
     (str (.toFixed val precision) suffix)))
 
 (defn largest-y-range-magnitude [ y-range ]
@@ -197,7 +197,7 @@
 (defn set-stroke-style [ ctx style-name ]
   (if-let [ style (get stroke-styles style-name false) ]
     (do
-      (aset ctx "lineWidth" (:line-width style))      
+      (aset ctx "lineWidth" (:line-width style))
       (aset ctx "strokeStyle" (:stroke-style style))
       (.setLineDash ctx (:line-dash style)))
     (.error js/console "Unknown stroke style:" (pr-str style-name))))
@@ -266,7 +266,7 @@
                 (draw-x-grid ctx w h x-range)
                 (with-preserved-ctx ctx
                   (clip-rect ctx 0 0 w h)
-                  (draw-series-line ctx data x-range y-range w h))))))) 
+                  (draw-series-line ctx data x-range y-range w h)))))))
 
 (defn draw-series-background [ ctx w h ]
   (with-preserved-ctx ctx
@@ -287,4 +287,3 @@
       (draw-series-background ctx w h)
       (draw-series ctx w h data {:min begin-t :max end-t})
       (draw-frame ctx w h))))
-
