@@ -44,7 +44,7 @@ METLOG_HTTP_PORT=8080
 ### Start assembling commands
 
 JAVA_OPTS="-Ddb.subname=/var/lib/${SERVICE_NAME}/${METLOG_DB_SUBNAME}"
-JAVA_OPTS="$JAVA_OPTS -Xms1536m -Xmx1536m"
+JAVA_OPTS="$JAVA_OPTS -Xms512m -Xmx512m"
 JAVA_OPTS="$JAVA_OPTS -Dhttp.port=${METLOG_HTTP_PORT}"
 JAVA_OPTS="$JAVA_OPTS -jar /usr/share/${SERVICE_NAME}/${METLOG_JAR}"
 
