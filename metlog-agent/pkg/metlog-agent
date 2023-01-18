@@ -35,6 +35,8 @@ METLOG_USER=${SERVICE_NAME}
 
 METLOG_JAR=metlog-agent-standalone.jar
 
+CONFIG_FILE=/etc/${SERVICE_NAME}/config.edn
+
 ### Read configuration variable file if it is present
 
 [ -r /etc/default/${SERVICE_NAME} ] && . /etc/default/${SERVICE_NAME}
@@ -42,6 +44,7 @@ METLOG_JAR=metlog-agent-standalone.jar
 ### Start assembling commands
 
 JAVA_OPTS="-jar /usr/share/${SERVICE_NAME}/${METLOG_JAR}"
+JAVA_OPTS="$JAVA_OPTS -Dconf=${CONFIG_FILE}"
 
 METLOG_SH="$JAVA $JAVA_OPTS >> /var/log/${SERVICE_NAME}/${SERVICE_NAME}-console.log 2>&1"
 

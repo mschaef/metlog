@@ -43,6 +43,7 @@ install -v --group=${METLOG_SERVICE_NAME} --owner=${METLOG_SERVICE_NAME} --direc
 # Configuration Files
 
 install -v --group=root --owner=root --directory /etc/${METLOG_SERVICE_NAME}
+install -v --group=root --owner=root config.edn /etc/${METLOG_SERVICE_NAME}
 install -v --group=root --owner=root config.clj /etc/${METLOG_SERVICE_NAME}
 
 # metlog service configuration
