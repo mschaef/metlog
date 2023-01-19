@@ -17,6 +17,7 @@
        (str enc/system-newline (log/stacktrace err {:stacktrace-fonts {}}))))))
 
 (defn setup-logging [ config log-levels ]
+  (log/info "Starting logging in: " (:log-path config) ", log levels: " log-levels)
   (let [{:keys [development-mode]} config]
     (tools/use-timbre)
     (log/merge-config! {:min-level (conj log-levels

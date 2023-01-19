@@ -95,7 +95,6 @@
         (log/error "Bad sensor value" val "(" (.getClass val) ")" "from sensor" sensor-name)))))
 
 (defn ->timestamped-readings [ obj ]
-  (log/trace "->timestamped-readings" obj)
   (map ensure-timestamped (if (vector? obj) obj [ obj ])))
 
 (defn poll-sensors [ sensor-defs ]
@@ -107,7 +106,8 @@
 (defn take-result-queue-snapshot [ snapshot-size-limit ]
   (let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
     (locking sensor-result-queue
-      (log/debug "Taking snapshot queue with n:" (.size sensor-result-queue) ", limit:" snapshot-size-limit)
+      (log/trace "Taking snapshot queue with n:" (.size sensor-result-queue)
+                 ", limit:" snapshot-size-limit)
       (.drainTo sensor-result-queue snapshot snapshot-size-limit ))
     (seq snapshot)))
 
@@ -117,7 +117,7 @@
   (map #(assoc % :val (double (:val %))) unclean))
 
 (defn post-readings [ url readings ]
-  (log/info "Posting" (count readings) "reading(s) to" url)
+  (log/debug "Posting" (count readings) "reading(s) to" url)
   (let [begin-t (System/currentTimeMillis)
         post-response
         (try
@@ -127,7 +127,7 @@
             ;; Pretend connection errors are HTTP errors
             (log/error (str "Error posting readings to " url " (" (.getMessage ex) ")"))
             {:status 400}))]
-    (log/info "Post readings response, status" (:status post-response)
+    (log/debug "Post readings response, status" (:status post-response)
               "(" (- (System/currentTimeMillis) begin-t) "msec. )")
     (= (:status post-response) 200)))
 
@@ -157,7 +157,7 @@
 
 (defn- start-sensor-polls []
   (doseq [ [ poll-interval sensors ] (group-by :poll-interval (all-sensors))]
-    (log/debug "Scheduling poll job @" poll-interval "msec. for" (map :sensor-name sensors))
+    (log/info "Scheduling poll job @" poll-interval "msec. for" (map :sensor-name sensors))
     (at-at/every poll-interval
                  (exception-barrier #(poll-sensors sensors) (str "poller-" poll-interval))
                  my-pool)))
@@ -168,9 +168,11 @@
 
 (defn- maybe-load-sensor-file [ filename ]
   (binding [ *ns* (find-ns 'metlog-agent.sensor)]
-    (when (.exists (jio/as-file filename))
-      (log/info "Loading sensor file:" filename)
-      (load-file filename))))
+    (if (.exists (jio/as-file filename))
+      (do
+        (log/info "Loading sensor file:" filename)
+        (load-file filename))
+      (log/error "Cannot find sensor file: " filename))))
 
 (defn start-app [ config ]
   (maybe-load-sensor-file (:sensor-file config))

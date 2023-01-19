@@ -10,6 +10,7 @@
   "Agent entry point"
   [& args]
   (let [config (config/load-config)]
-    (logging/setup-logging config [])
+    (log/info "configuration: " config)
+    (logging/setup-logging config [[#{"metlog-agent.*"} :info]])
     (core/start-app config)
     (log/info "running.")))

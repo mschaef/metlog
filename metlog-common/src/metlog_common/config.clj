@@ -10,7 +10,7 @@
         (log/info (str "Config file found: " prop " (specified by property: " prop-name ")"))
         (cprop-source/from-file prop))
       (do
-        (log/warn (str "CONFIG FILE NOT FOUND: " prop " (specified by property: " prop-name ")"))
+        (log/error (str "CONFIG FILE NOT FOUND: " prop " (specified by property: " prop-name ")"))
         {}))
     {}))
 
