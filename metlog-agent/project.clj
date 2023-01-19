@@ -1,4 +1,4 @@
-(defproject metlog-agent "0.1.5-SNAPSHOT"
+(defproject metlog-agent "0.1.5"
   :description "Metlog agent - polls data sources for upload to vault."
 
   :license {:name "Eclipse Public License"
