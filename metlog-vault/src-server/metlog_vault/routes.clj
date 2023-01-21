@@ -1,6 +1,6 @@
 (ns metlog-vault.routes
   (:use compojure.core
-        metlog-common.core
+        playbook.core
         metlog-vault.util)
   (:require [taoensso.timbre :as log]
             [compojure.route :as route]

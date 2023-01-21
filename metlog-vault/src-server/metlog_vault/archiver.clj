@@ -1,5 +1,5 @@
 (ns metlog-vault.archiver
-  (:use metlog-common.core
+  (:use playbook.core
         metlog-vault.util
         sql-file.middleware)
   (:require [taoensso.timbre :as log]

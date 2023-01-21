@@ -1,5 +1,5 @@
 (ns metlog-agent.core
-  (:use metlog-common.core)
+  (:use playbook.core)
   (:require [taoensso.timbre :as log]
             [clojure.java.io :as jio]
             [overtone.at-at :as at-at]

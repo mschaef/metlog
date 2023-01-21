@@ -1,5 +1,5 @@
 (ns metlog-vault.scheduler
-  (:use metlog-common.core)
+  (:use playbook.core)
   (:require [taoensso.timbre :as log]))
 
 (defn start [ ]

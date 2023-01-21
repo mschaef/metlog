@@ -1,5 +1,5 @@
 (ns metlog-agent.sensor
-  (:use metlog-common.core
+  (:use playbook.core
         metlog-agent.core)
   (:require [taoensso.timbre :as log]
             [clojure.java.io :as jio]

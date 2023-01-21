@@ -12,7 +12,7 @@
                   :exclusions [com.fasterxml.jackson.core/jackson-core]]
                  [overtone/at-at "1.2.0"]
                  [com.cognitect/transit-clj "1.0.329"]
-                 [metlog-common "0.1.2"]]
+                 [com.mschaef/playbook "0.0.2"]]
 
   :plugins [[lein-tar "3.3.0"]]
 

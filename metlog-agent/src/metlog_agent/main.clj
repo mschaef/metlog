@@ -1,7 +1,7 @@
 (ns metlog-agent.main
   (:gen-class)
-  (:require [metlog-common.logging :as logging]
-            [metlog-common.config :as config]
+  (:require [playbook.logging :as logging]
+            [playbook.config :as config]
             [taoensso.timbre :as log]
             [metlog-agent.core :as core]
             [metlog-agent.sensor :as sensor]))

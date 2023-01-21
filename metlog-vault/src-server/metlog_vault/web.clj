@@ -1,5 +1,5 @@
 (ns metlog-vault.web
-  (:use metlog-common.core
+  (:use playbook.core
         compojure.core
         sql-file.middleware
         [ring.middleware resource

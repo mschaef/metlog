@@ -1,5 +1,5 @@
 (ns metlog-vault.data
-  (:use metlog-common.core
+  (:use playbook.core
         compojure.core
         sql-file.middleware
         sql-file.sql-util)
