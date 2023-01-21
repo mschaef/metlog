@@ -1,0 +1,12 @@
+{:app {:name "Metlog"}
+ :log-path "/var/log/metlog/metlog.log"
+ :development-mode false
+ :vault {:enable true
+         :http-port 8080
+         :hot-storage-days 180
+         :db {}}
+ :agent {:enable true
+         :vault-url "http://metrics.mschaef.com/data"
+         :vault-update-size-limit 200
+         :vault-update-interval-sec 60
+         :sensor-file "/etc/metlog/config.clj"}}

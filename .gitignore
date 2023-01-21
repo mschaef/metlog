@@ -13,4 +13,5 @@ libs/
 pom.xml
 pom.xml.asc
 target/
-
+local-db/
+resources/public/cljs-out/

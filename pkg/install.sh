@@ -1,6 +1,6 @@
 #!/bin/sh
 
-METLOG_SERVICE_NAME=metlog-vault
+METLOG_SERVICE_NAME=metlog
 METLOG_USER_NAME=${METLOG_SERVICE_NAME}
 
 # Must be root
@@ -36,6 +36,17 @@ install -v --group=root --owner=root lib/uberjar/${METLOG_SERVICE_NAME}-standalo
 
 install -v --group=${METLOG_SERVICE_NAME} --owner=${METLOG_SERVICE_NAME} --directory /var/log/${METLOG_SERVICE_NAME}
 install -v --group=${METLOG_SERVICE_NAME} --owner=${METLOG_SERVICE_NAME} --directory /var/lib/${METLOG_SERVICE_NAME}
+
+# Configuration Files
+
+install -v --group=root --owner=root --directory /etc/${METLOG_SERVICE_NAME}
+
+if [ -f /etc/${METLOG_SERVICE_NAME}/sensor.clj ]
+then
+  echo "Sensor file already exists, skipping: /etc/${METLOG_SERVICE_NAME}/sensor.clj"
+else
+  install -v --group=root --owner=root sensor.clj /etc/${METLOG_SERVICE_NAME}
+fi
 
 # metlog service configuration
 

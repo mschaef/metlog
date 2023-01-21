@@ -1,13 +1,12 @@
-(defproject metlog-vault "0.6.7-SNAPSHOT"
-  :description "Repository for storing and displaying time series data reported by metlog-agent.."
+(defproject metlog "0.6.7-SNAPSHOT"
+  :description "Lightweight tool for gathering, storing, and inspecting metrics."
 
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :scm {:dir ".."}
-
   :dependencies [[org.clojure/clojure "1.11.1"]
                  [org.clojure/clojurescript "1.11.60"]
+                 [overtone/at-at "1.2.0"]
                  [com.mschaef/sql-file "0.4.8"]
                  [ring/ring-jetty-adapter "1.9.5"]
                  [slester/ring-browser-caching "0.1.1"]
@@ -15,7 +14,9 @@
                  [compojure "1.7.0"
                   :exclusions [commons-codec]]
                  [hiccup "1.0.5"]
-
+                 [clj-time "0.15.2"]
+                 [clj-http "3.12.3"
+                  :exclusions [com.fasterxml.jackson.core/jackson-core]]
                  [org.clojure/core.async "1.5.648"]
                  [cljs-ajax "0.8.4"]
                  [cljsjs/react "18.2.0-0"]
@@ -32,16 +33,16 @@
   :tar {:uberjar true
         :format :tar-gz
         :output-dir "."
-        :leading-path "metlog-vault-install"}
+        :leading-path "metlog-install"}
 
   :source-paths ["src-client"  "src-server"]
-  :resource-paths ["resources" ]
+  :resource-paths ["resources"]
 
   :clean-targets ^{:protect false} [:target-path :compile-path  "resources/public/cljs-out"]
 
   :uberjar-name "metlog-vault-standalone.jar"
 
-  :main metlog-vault.main
+  :main metlog.main
 
   :jvm-opts ["-Dconf=local-config.edn"]
 
@@ -57,7 +58,7 @@
   :release-tasks [["vcs" "assert-committed"]
                   ["change" "version" "leiningen.release/bump-version" "release"]
                   ["vcs" "commit"]
-                  ["vcs" "tag" "metlog-vault-" "--no-sign"]
+                  ["vcs" "tag" "--no-sign"]
                   ["tar"]
                   ["change" "version" "leiningen.release/bump-version"]
                   ["vcs" "commit"]

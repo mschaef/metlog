@@ -1,7 +1,0 @@
-{:app {:name "Metlog Vault"}
- :log-path "/var/log/metlog-vault/metlog-vault.log"
-
- :development-mode false
- :vault {:http-port 8080
-         :hot-storage-days 180
-         :db {}}}

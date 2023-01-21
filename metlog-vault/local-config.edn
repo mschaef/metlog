@@ -1,4 +1,0 @@
-{:http-port 8080
- :log-path "./metlog-vault.log"
- :development-mode true
- :vault {:db {:subname "./local-db/metlog-vault"}}}
