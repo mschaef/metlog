@@ -16,7 +16,7 @@
 
 (defn db-conn-spec [ config ]
   {:name (or (config-property "db.subname")
-             (get-in config [:db :subname] "metlog-vault"))
+             (get-in config [:vault :db :subname] "metlog-vault"))
    :schema-path [ "sql/" ]
    :schemas [[ "metlog" 2 ]]})
 
@@ -25,7 +25,7 @@
     (let [scheduler (scheduler/start)
           data-sink (core/queued-data-sink scheduler db-pool)]
       (archiver/start config scheduler db-pool)
-      (web/start-webserver (config-property "http.port" 8080)
+      (web/start-webserver (:http-port (:vault config))
                            db-pool
                            (routes/all-routes data-sink)))))
 

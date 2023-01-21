@@ -132,7 +132,7 @@
     (= (:status post-response) 200)))
 
 (defn- snapshot-to-update-queue [ config ]
-  (let [ update-size-limit (:update-size-limit config )]
+  (let [ update-size-limit (:vault-update-size-limit (:agent config) )]
     (locking update-queue
       (let [snapshot (take-result-queue-snapshot
                       (min update-size-limit
@@ -144,7 +144,7 @@
 (defn- post-update [ config ]
   (locking update-queue
     (and (not (.isEmpty update-queue))
-         (post-readings (:vault-url config) (clean-readings (seq update-queue)))
+         (post-readings (:vault-url (:agent config)) (clean-readings (seq update-queue)))
          (do
            (.clear update-queue)
            true))))
@@ -163,7 +163,7 @@
                  my-pool)))
 
 (defn- start-vault-update [ config ]
-  (at-at/every (seconds (:vault-update-interval-sec config))
+  (at-at/every (seconds (:vault-update-interval-sec (:agent config)))
                (exception-barrier (partial update-vault config) "vault-update") my-pool))
 
 (defn- maybe-load-sensor-file [ filename ]
@@ -175,6 +175,6 @@
       (log/error "Cannot find sensor file: " filename))))
 
 (defn start-app [ config ]
-  (maybe-load-sensor-file (:sensor-file config))
+  (maybe-load-sensor-file (:sensor-file (:agent config)))
   (start-sensor-polls)
   (start-vault-update config))

@@ -1,4 +1,4 @@
-#! /bin/bash 
+#! /bin/bash
 ### BEGIN INIT INFO
 # Provides:          metlog-vault
 # Required-Start:    $remote_fs $syslog
@@ -35,7 +35,6 @@ METLOG_USER=${SERVICE_NAME}
 
 METLOG_JAR=metlog-vault-standalone.jar
 METLOG_DB_SUBNAME=metlog-vault
-METLOG_HTTP_PORT=8080
 
 ### Read configuration variable file if it is present
 
@@ -45,7 +44,6 @@ METLOG_HTTP_PORT=8080
 
 JAVA_OPTS="-Ddb.subname=/var/lib/${SERVICE_NAME}/${METLOG_DB_SUBNAME}"
 JAVA_OPTS="$JAVA_OPTS -Xms512m -Xmx512m"
-JAVA_OPTS="$JAVA_OPTS -Dhttp.port=${METLOG_HTTP_PORT}"
 JAVA_OPTS="$JAVA_OPTS -jar /usr/share/${SERVICE_NAME}/${METLOG_JAR}"
 
 METLOG_SH="$JAVA $JAVA_OPTS >> /var/log/${SERVICE_NAME}/${SERVICE_NAME}-console.log 2>&1"
@@ -64,7 +62,7 @@ function require_root() {
 do_start()
 {
     require_root
-    
+
 	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $JAVA --test > /dev/null \
 		|| return 1 # daemon was already running
 
@@ -77,10 +75,10 @@ do_start()
 do_stop()
 {
     require_root
-    
+
 	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE
 	RETVAL="$?"
-    
+
 	[ "$RETVAL" = 2 ] && return 2 # daemon could not be stopped
 
 	rm -f $PIDFILE

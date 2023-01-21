@@ -13,7 +13,7 @@
     (data/delete-old-samples series-id archive-cutoff-date)))
 
 (defn- archive-job [ config db-pool ]
-  (let [ archive-cutoff-date (add-days (current-time) (- (:hot-storage-days config)))]
+  (let [ archive-cutoff-date (add-days (current-time) (- (:hot-storage-days (:vault config))))]
     (log/info "Archive job running with cutoff:" archive-cutoff-date)
     (with-db-connection db-pool
       (doseq [ series (data/get-all-series) ]
