@@ -41,8 +41,16 @@ install -v --group=${METLOG_SERVICE_NAME} --owner=${METLOG_SERVICE_NAME} --direc
 
 install -v --group=root --owner=root --directory /etc/${METLOG_SERVICE_NAME}
 
-if [ -f /etc/${METLOG_SERVICE_NAME}/sensor.clj ]
-then
+if [ "$1" = "agent" ]; then
+    echo "Installing as an agent only..."
+    install -v --group=root --owner=root config.edn /etc/${METLOG_SERVICE_NAME}
+else
+    if [ -f /etc/${METLOG_SERVICE_NAME}/config.edn ]; then
+        echo "Config file exists already, please verify correct mode."
+    fi
+fi
+
+if [ -f /etc/${METLOG_SERVICE_NAME}/sensor.clj ]; then
   echo "Sensor file already exists, skipping: /etc/${METLOG_SERVICE_NAME}/sensor.clj"
 else
   install -v --group=root --owner=root sensor.clj /etc/${METLOG_SERVICE_NAME}

@@ -1,0 +1,3 @@
+;;; Disable the vault
+
+{:vault {:enabled false}}
