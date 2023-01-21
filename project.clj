@@ -40,7 +40,7 @@
 
   :clean-targets ^{:protect false} [:target-path :compile-path  "resources/public/cljs-out"]
 
-  :uberjar-name "metlog-vault-standalone.jar"
+  :uberjar-name "metlog-standalone.jar"
 
   :main metlog.main
 

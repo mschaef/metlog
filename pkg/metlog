@@ -1,11 +1,11 @@
 #! /bin/bash
 ### BEGIN INIT INFO
-# Provides:          metlog-vault
+# Provides:          metlog
 # Required-Start:    $remote_fs $syslog
 # Required-Stop:     $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: Metlog Metrics Vault
+# Short-Description: Metlog Metrics
 # Description:       Metlog is a process for gathering and presenting small
 #                    volumes of time series data.
 ### END INIT INFO
@@ -23,7 +23,7 @@ SCRIPTNAME=${SCRIPTNAME#[SK]??}
 # Metlog Configuration
 
 SERVICE_NAME=${SCRIPTNAME}
-SERVICE_DESC="Metlog Metrics Vault"
+SERVICE_DESC="Metlog Metrics Tool"
 
 JAVA=/usr/bin/java
 
@@ -33,8 +33,8 @@ JAVA_OPTS=""
 
 METLOG_USER=${SERVICE_NAME}
 
-METLOG_JAR=metlog-vault-standalone.jar
-METLOG_DB_SUBNAME=metlog-vault
+METLOG_JAR=metlog-standalone.jar
+METLOG_DB_SUBNAME=metlog
 
 ### Read configuration variable file if it is present
 

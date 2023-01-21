@@ -3,8 +3,7 @@
  :development-mode false
  :mode #{:vault :agent}
  :vault {:http-port 8080
-         :hot-storage-days 180
-         :db {}}
+         :hot-storage-days 180}
  :agent {:vault-url "http://metrics.mschaef.com/data"
          :vault-update-size-limit 200
          :vault-update-interval-sec 60
