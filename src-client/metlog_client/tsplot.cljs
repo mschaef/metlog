@@ -114,13 +114,13 @@
                (if (< val min) val min)
                (if (> val max) val max))))))
 
-(def epsilon 0.001)
-
 (defn rescale-y-range [ range factor ]
   (let [magnitude (.max js/Math (range-magnitude range) factor)
         scaled-delta (* (/ (- factor 1) 2) magnitude)]
     {:max (+ (:max range) scaled-delta)
      :min (- (:min range) scaled-delta)}))
+
+(def epsilon 0.001)
 
 (defn draw-xlabel [ ctx text x y ]
   (with-preserved-ctx ctx
@@ -243,7 +243,7 @@
 (defn draw-x-grid [ ctx w h x-range ]
   (let [x-interval (find-x-grid-interval w x-range)
         tx (translate-fn x-range w)
-        max-x (* (floor (/  (:max x-range) x-interval)) x-interval)]
+        max-x (* (floor (/ (:max x-range) x-interval)) x-interval)]
     (doseq [ x (map #(- max-x (* % x-interval))
                     (range 0 (/ (range-magnitude x-range) x-interval)))]
       (draw-x-grid-line ctx h (tx x) x))))

@@ -6,7 +6,6 @@
    (:require [taoensso.timbre :as log]
              [metlog-vault.data :as data]
              [metlog-vault.scheduler :as scheduler]
-             [figwheel.main.api :as figwheel]
              [sql-file.core :as sql-file]
              [metlog-vault.data :as data]
              [metlog-vault.web :as web]
@@ -57,14 +56,11 @@
    :schemas [[ "metlog" 2 ]]})
 
 (defn start-app [ config ]
-  (when (:development-mode config)
-    (figwheel/start {:mode :serve
-                     :open-url "http://localhost:8080"} "dev"))
   (future
     (sql-file/with-pool [db-pool (db-conn-spec config)]
       (let [scheduler (scheduler/start)
             data-sink (queued-data-sink scheduler db-pool)]
         (archiver/start config scheduler db-pool)
-        (web/start-webserver (:http-port (:vault config))
+        (web/start-webserver config
                              db-pool
                              (routes/all-routes data-sink))))))

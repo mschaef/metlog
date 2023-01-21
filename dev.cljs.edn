@@ -1,3 +1,0 @@
-^{:target-dir "resources"}
-{:main metlog-client.metlog
- :language-in   :ecmascript-next}

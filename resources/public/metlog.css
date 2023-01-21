@@ -112,8 +112,6 @@ div#query-window {
     }
 }
 
-
-
 .series-pane .series-pane-header {
     border-bottom: 1px solid #f0f0f0;
     background-color: white;
@@ -123,13 +121,13 @@ div#query-window {
     margin-bottom: 0.25em;
 }
 
-.series-pane .series-pane-header span.series-name {
+.series-pane .series-pane-header .series-name {
     font-weight: bold;
     padding-left: 0.66em;
     padding-right: 0.66em;
 }
 
-.series-pane .series-pane-header span.close-button {
+.series-pane .series-pane-header .close-form {
     float: right;
     padding-right: 10px;
     font-weight: bold;
@@ -137,58 +135,14 @@ div#query-window {
     cursor: pointer;
 }
 
-.series-pane .series-pane-header span.close-button:hover {
+.series-pane .series-pane-header .close-button:hover {
     color: blue;
 }
-
-/* autocomplete */
 
 .header-element {
     display: inline-block;
 }
 
-.autocomplete {
-    display: inline-block;
-    position: relative;
-    width: 100%;
-}
-
-.autocomplete input {
-    width: 100%;
-}
-
-.autocomplete-completions {
-    position: absolute;
-
-    background: white;
-    box-shadow: 1px 1px 1px 0px rgba(0,0,0,0.2);
-
-    min-width: 100%;
-    box-sizing: border-box;
-
-    max-height: 200px;
-    overflow-y: scroll;
-}
-
-.autocomplete-no-results {
-    padding: 6px;
-    color: #707070;
-}
-
-.autocomplete-completion-entry {
-    padding: 6px;
-    cursor: pointer;
-
-    white-space: nowrap;
-    border-left: 4px solid white;
-}
-
-.autocomplete-completion-entry:hover {
-    background: #e7e7e7;
-}
-
-.autocomplete-completion-entry.selected {
-    background: #f0f0f0;
-    text-color: white;
-    border-left: 4px solid blue;
+.tsplot-container {
+    line-height: 0px;
 }
