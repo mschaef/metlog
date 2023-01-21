@@ -5,7 +5,13 @@
          sql-file.middleware)
    (:require [taoensso.timbre :as log]
              [metlog-vault.data :as data]
-             [metlog-vault.scheduler :as scheduler]))
+             [metlog-vault.scheduler :as scheduler]
+             [figwheel.main.api :as figwheel]
+             [sql-file.core :as sql-file]
+             [metlog-vault.data :as data]
+             [metlog-vault.web :as web]
+             [metlog-vault.routes :as routes]
+             [metlog-vault.archiver :as archiver]))
 
 (def jvm-runtime (java.lang.Runtime/getRuntime))
 
@@ -14,7 +20,7 @@
    :series_name series-name
    :val value})
 
-(defn queued-data-sink [ scheduler db-pool ]
+(defn- queued-data-sink [ scheduler db-pool ]
   (let [ sample-queue (java.util.concurrent.LinkedBlockingQueue.) ]
     (scheduler/schedule-job
      scheduler "sample-ingress-queue" "*/1 * * * *"
@@ -43,3 +49,22 @@
       (doseq [ sample samples ]
         (.add sample-queue sample)))))
 
+
+(defn- db-conn-spec [ config ]
+  {:name (or (config-property "db.subname")
+             (get-in config [:vault :db :subname] "metlog-vault"))
+   :schema-path [ "sql/" ]
+   :schemas [[ "metlog" 2 ]]})
+
+(defn start-app [ config ]
+  (when (:development-mode config)
+    (figwheel/start {:mode :serve
+                     :open-url "http://localhost:8080"} "dev"))
+  (future
+    (sql-file/with-pool [db-pool (db-conn-spec config)]
+      (let [scheduler (scheduler/start)
+            data-sink (queued-data-sink scheduler db-pool)]
+        (archiver/start config scheduler db-pool)
+        (web/start-webserver (:http-port (:vault config))
+                             db-pool
+                             (routes/all-routes data-sink))))))
