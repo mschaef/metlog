@@ -8,12 +8,15 @@
             [metlog-agent.sensor :as sensor]))
 
 (defn -main [& args]
-  (let [config (config/load-config)]
+  (let [config (config/load-config)
+        mode (:mode config)]
     (log/info "config: " config)
     (logging/setup-logging config [[#{"metlog-agent.*"} :info]
                                    [#{"hsqldb.*" "com.zaxxer.hikari.*"} :warn]])
-    (when (:enable (:agent config))
+    (when (:agent mode)
       (agent/start-app config))
-    (when (:enable (:vault config))
+    (when (:vault mode)
       (vault/start-app config))
-    (log/info "running.")))
+    (if (> (count mode) 0)
+      (log/info "running, mode: " mode)
+      (log/error "No modes specified. Ending run."))))
