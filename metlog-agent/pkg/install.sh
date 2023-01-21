@@ -18,7 +18,7 @@ if [ $? -eq 0 ]; then
     echo "User exists: ${METLOG_USER_NAME}"
 else
     echo "Creating user: ${METLOG_USER_NAME}"
-    
+
     useradd --user-group --system ${METLOG_USER_NAME}
 
     if [ $? -ne 0 ]; then
@@ -44,7 +44,13 @@ install -v --group=${METLOG_SERVICE_NAME} --owner=${METLOG_SERVICE_NAME} --direc
 
 install -v --group=root --owner=root --directory /etc/${METLOG_SERVICE_NAME}
 install -v --group=root --owner=root config.edn /etc/${METLOG_SERVICE_NAME}
-install -v --group=root --owner=root config.clj /etc/${METLOG_SERVICE_NAME}
+
+if [ -f /etc/${METLOG_SERVICE_NAME}/sensor.clj ]
+then
+  echo "Sensor file already exists, skipping: /etc/${METLOG_SERVICE_NAME}/sensor.clj"
+else
+  install -v --group=root --owner=root sensor.clj /etc/${METLOG_SERVICE_NAME}
+fi
 
 # metlog service configuration
 

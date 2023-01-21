@@ -29,7 +29,6 @@
                            db-pool
                            (routes/all-routes data-sink)))))
 
-
 (defn -main [& args]
   (let [config (config/load-config)]
     (logging/setup-logging config [[#{"hsqldb.*" "com.zaxxer.hikari.*"} :warn]])
@@ -38,4 +37,3 @@
                        :open-url "http://localhost:8080"} "dev"))
     (app-start config)
     (log/info "end run.")))
-

@@ -3,5 +3,5 @@
  :development-mode false
  :update-size-limit 200
  :vault-update-interval-sec 60
- :sensor-file "/etc/metlog-agent/config.clj"
+ :sensor-file "/etc/metlog-agent/sensor.clj"
  :vault-url "http://metrics.mschaef.com/data"}

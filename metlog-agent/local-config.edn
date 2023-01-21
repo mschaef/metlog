@@ -1,4 +1,4 @@
 {:log-path "./metlog-agent.log"
  :development-mode true
- :sensor-file "./config.clj"
+ :sensor-file "./sensor.clj"
  :vault-url "http://localhost:8080/data"}
