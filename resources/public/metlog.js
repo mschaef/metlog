@@ -1,5 +1,53 @@
 /* metlog.js */
 
+import { clearCache, visit } from './turbo-7.1.0.js';
+
+function visitPage(target)
+{
+    clearCache();
+    visit(target);
+}
+
+function refreshPage()
+{
+    visitPage(location);
+}
+
+function doPost(baseUrl, args, nextUrl) {
+    var queryArgs = [];
+
+    for(const argName in args) {
+        queryArgs.push((argName + '=' + args[argName]));
+    }
+
+    var url = baseUrl;
+
+    if (queryArgs.length) {
+        url += ('?' + queryArgs.join('&'));
+    }
+
+    function doRefresh() {
+        if (nextUrl) {
+            visitPage(nextUrl);
+        } else {
+            refreshPage();
+        }
+    }
+
+    fetch(url, {
+        method: 'POST',
+        credentials: 'include'
+    }).then(doRefresh);
+}
+
+/*** Utilities ***/
+
+function foreach_elem(selector, fn) {
+    Array.prototype.forEach.call(document.querySelectorAll(selector), function(el, i) { fn(el); });
+}
+
+/*** Query Window Parsing ***/
+
 function seconds(seconds) { return seconds * 1000; }
 function minutes(minutes) { return seconds(minutes * 60); }
 function hours(hours) { return minutes(hours * 60); }
@@ -32,9 +80,6 @@ function parseQueryWindow(text) {
     }
 }
 
-function foreach_elem(selector, fn) {
-    Array.prototype.forEach.call(document.querySelectorAll(selector), function(el, i) { fn(el); });
-}
 
 /*** Series Data ***/
 
@@ -427,6 +472,15 @@ function setupPlotCanvases() {
     });
 }
 
+function updatePlots() {
+    const endT = Date.now();
+    const beginT = endT - queryWindowMsec;
+
+    foreach_elem(".series-plot", (canvas) => {
+        updatePlot(canvas, canvas.dataset['series-name'], beginT, endT);
+    });
+}
+
 /*** Top Level Setup ***/
 
 function setQueryWindow(newQueryWindow) {
@@ -480,28 +534,41 @@ window.addEventListener('resize', () => {
     updatePlots();
 });
 
-function updatePlots() {
-    const endT = Date.now();
-    const beginT = endT - queryWindowMsec;
-
-    foreach_elem(".series-plot", (canvas) => {
-        updatePlot(canvas, canvas.dataset['series-name'], beginT, endT);
-    });
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-    foreach_elem(".series-plot", (canvas) => {
-        addPollSeries(canvas.dataset['series-name']);
-    });
+function initializePlots() {
 
     setupPlotCanvases();
     setupQueryWindow();
 
+    foreach_elem(".series-plot", (canvas) => {
+        addPollSeries(canvas.dataset['series-name']);
+    });
+
     updatePollData();
+}
+
+document.addEventListener("turbo:render", initializePlots);
+
+window.addEventListener('DOMContentLoaded', () => {
+    initializePlots();
+
     setInterval(updatePollData, 10000);
     setInterval(updatePlots, 1000);
 });
 
 
+function onAddSeriesChange(event) {
+    const newSeries = event.target.value;
+
+    if (newSeries === "-") {
+        return;
+    }
+
+    doPost(window.location.pathname + "/add-series", {
+        "new-series": newSeries
+    });
+}
+
 window._metlog = {
+    onAddSeriesChange,
+    doPost,
 };

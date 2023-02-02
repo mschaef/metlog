@@ -25,6 +25,22 @@
   ([ str ]
    (try-parse-json str false)))
 
+(defn success []
+  (ring/response "ok"))
+
+(defn post-button [ attrs body ]
+  (let [ target (:target attrs)]
+    [:span.clickable.post-button
+     (cond-> {:onclick (if-let [next-url (:next-url attrs)]
+                         (str "window._metlog.doPost('" target "'," (json/write-str (get attrs :args {})) ", '" next-url "')")
+                         (str "window._metlog.doPost('" target "'," (json/write-str (get attrs :args {})) ")"))}
+       (:shortcut-key attrs) (merge {:data-shortcut-key (:shortcut-key attrs)
+                                     :data-target target}))
+     body]))
+
+(defn success []
+  (ring/response "ok"))
+
 (defn render-page [ & contents ]
   (hiccup-page/html5
    [:html
@@ -38,14 +54,12 @@
      contents]]))
 
 (defn series-select [ dashboard-name ]
-  (hiccup-form/form-to
-   {} [:post (str "/dashboard/" dashboard-name "/add-series")]
-   [:select {:id "new-series" :name "new-series"
-             :onchange "this.form.submit()"}
-    (hiccup-form/select-options
-     (map (fn [ series-name ]
-            [ series-name series-name ])
-          (cons "-" (data/get-series-names))))]))
+  [:select {:id "new-series" :name "new-series"
+            :onchange "window._metlog.onAddSeriesChange(event)"}
+   (hiccup-form/select-options
+    (map (fn [ series-name ]
+           [ series-name series-name ])
+         (cons "-" (data/get-series-names))))])
 
 (defn header [ dashboard-name ]
   [:div.header
@@ -64,7 +78,7 @@
     (hiccup-form/form-to
      {:class "close-form"}
      [:post (str "/dashboard/" dashboard-name "/delete-by-index/" index)]
-     (hiccup-form/submit-button {:class "close-button"} "close"))]
+     (post-button {:target (str "/dashboard/" dashboard-name "/delete-by-index/" index)} "close"))]
    [:div.tsplot-container
     [:canvas.series-plot {:data-series-name series-name}]]])
 
@@ -93,7 +107,7 @@
     (when (not (= "-" new-series))
       (log/info "Adding series " new-series " to dashboard " name)
       (data/store-dashboard-definition name (json/write-str (conj (get-dashboard name) new-series))))
-    (ring/redirect (str "/dashboard/" name))))
+    (success)))
 
 (defn drop-nth [n coll]
   (keep-indexed #(if (not= %1 n) %2) coll))
@@ -105,7 +119,7 @@
     (when index
       (data/store-dashboard-definition
        name (json/write-str (drop-nth index (get-dashboard name)))))
-    (ring/redirect (str "/dashboard/" name))))
+    (success)))
 
 (defn store-series-data [ store-samples req ]
   (log/debug "Incoming data, content-type:" (:content-type req))
