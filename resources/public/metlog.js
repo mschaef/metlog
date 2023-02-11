@@ -48,6 +48,8 @@ function foreach_elem(selector, fn) {
 
 /*** Query Window Parsing ***/
 
+const MAX_DATE = new Date(8640000000000000);
+
 function seconds(seconds) { return seconds * 1000; }
 function minutes(minutes) { return seconds(minutes * 60); }
 function hours(hours) { return minutes(hours * 60); }
@@ -80,28 +82,117 @@ function parseQueryWindow(text) {
     }
 }
 
-
 /*** Series Data ***/
 
-let seriesPolls = {};
+let seriesData = {};
+
+function emptySeriesData() {
+    return {
+        samples: [],
+        beginT: Number.MAX_SAFE_INTEGER,
+        endT: Number.MIN_SAFE_INTEGER
+    };
+}
+
+function combineSeriesData(sA, sB) {
+    const allSamples = sA.samples.concat(sB.samples);
+
+    const combined = allSamples.sort((a, b) => {
+        if (a.t < b.t) {
+            return -1;
+        } else if (a.t > b.t) {
+            return 1;
+        }
+
+        return 0;
+    }).filter(function(item, pos, ary) {
+        return !pos || item.t != ary[pos - 1].t;
+    });
+
+    return {
+        samples: combined,
+        beginT: Math.min(sA.beginT, sB.beginT),
+        endT: Math.max(sA.endT, sB.endT),
+    };
+}
+
 
 function addPollSeries(seriesName) {
-    seriesPolls[seriesName] = seriesPolls[seriesName] || [];
+    if (seriesData[seriesName]) {
+        return;
+    }
+
+    seriesData[seriesName] = emptySeriesData();
 }
 
 function fetchSeriesData(seriesName, beginT, endT) {
-    fetch('/data/' + seriesName + "?" + new URLSearchParams({
+    return fetch('/data/' + seriesName + "?" + new URLSearchParams({
         'begin-t' : beginT,
         'end-t' : endT
     })).then((response) => response.json())
-        .then((data) => seriesPolls[seriesName] = data);
+        .then((samples) => ({ samples, beginT, endT }));
+}
+
+/*
+               ...........             ......
+query          +----------------------------+
+series                    +------------+
+
+
+                          ...................
+query          +----------------------------+
+series      +------------+
+
+               ......................
+query          +----------------------------+
+series                              +------------+
+*/
+
+function replaceSeriesData(seriesName, segBeginT, segEndT) {
+    fetchSeriesData(seriesName, segBeginT, segEndT)
+        .then(( series ) => {
+            seriesData[seriesName] = series;
+        });
+}
+
+
+function extendSeriesData(seriesName, segBeginT, segEndT) {
+
+    if (segEndT < segBeginT) {
+        return;
+    }
+
+    console.log('query dur: ', segEndT - segBeginT);
+
+    fetchSeriesData(seriesName, segBeginT, segEndT)
+        .then(( update ) => {
+            seriesData[seriesName] = combineSeriesData(seriesData[seriesName], update);
+        });
+}
+
+function updateSeriesData(seriesName, queryBeginT, queryEndT) {
+    const series = seriesData[seriesName];
+
+    if (!series) {
+        return;
+    }
+
+    if (series.beginT > series.endT   // Empty series
+        || queryEndT < series.beginT  // Query fully before series
+        || queryBeginT > series.endT  // Query fully after series
+       ) {
+        replaceSeriesData(seriesName, queryBeginT, queryEndT);
+    } else {
+        extendSeriesData(seriesName, queryBeginT, series.beginT);
+        extendSeriesData(seriesName, series.endT, queryEndT);
+    }
 }
 
 function updatePollData() {
     const now = Date.now();
 
-    for(var seriesName in seriesPolls) {
-        fetchSeriesData(seriesName, now - queryWindowMsec, now);
+    for(var seriesName in seriesData) {
+        updateSeriesData(seriesName, now - queryWindowMsec, now);
     }
 }
 
@@ -130,9 +221,9 @@ const Y_AXIS_SPACE = 50;
 const PIXELS_PER_X_LABEL = 100;
 const PIXELS_PER_Y_LABEL = 20;
 
-const Y_INTERVALS = makeNumericIntervals(-12, 13, [1, 2, 5]);
+const Y_TICK_INTERVALS = makeNumericIntervals(-12, 13, [1, 2, 5]);
 
-const X_INTERVALS = [
+const X_TICK_INTERVALS = [
     seconds(1), seconds(2), seconds(5), seconds(10), seconds(15), seconds(30),
     minutes(1), minutes(2), minutes(5), minutes(10), minutes(15), minutes(30),
     hours(1), hours(2), hours(3), hours(6), hours(12),
@@ -149,15 +240,15 @@ function preserveContext(ctx, draw) {
     }
 }
 
-function rangeContainsZero(range) {
-    return range.min < 0.0 && range.max > 0.0;
+function intervalContainsZero(interval) {
+    return interval.min < 0.0 && interval.max > 0.0;
 }
 
-function rangeMagnitude(range) {
-    return range.max - range.min;
+function intervalMagnitude(interval) {
+    return interval.max - interval.min;
 }
 
-function range(min, max) {
+function interval(min, max) {
     return { min: min, max: max };
 }
 
@@ -223,11 +314,11 @@ function dataYRange(data, factor) {
     const magnitude = Math.max(maxV - minV, factor);
     const delta = ((factor - 1) / 2) * magnitude;
 
-    return range(minV - delta, maxV + delta);
+    return interval(minV - delta, maxV + delta);
 }
 
 function restrictData(data, beginT, endT) {
-    return data.filter((sample) => {
+    return data.samples.filter((sample) => {
         return (sample.t >= beginT && sample.t < endT);
     });
 }
@@ -292,37 +383,37 @@ function formatYLabel(val) {
 }
 
 function largestYRangeMagnitude(yRange) {
-    if (rangeContainsZero(yRange)) {
+    if (intervalContainsZero(yRange)) {
         if (yRange.max > Math.abs(yRange.min)) {
             return {
-                t: yRange.max / rangeMagnitude(yRange),
+                t: yRange.max / intervalMagnitude(yRange),
                 mag: yRange.max
             };
         } else {
             return {
-                t: Math.abs(yRange.min / rangeMagnitude(yRange)),
+                t: Math.abs(yRange.min / intervalMagnitude(yRange)),
                 mag: -yRange.min
             };
         }
     } else {
         return {
             t: 1.0,
-            mag: rangeMagnitude(yRange)
+            mag: intervalMagnitude(yRange)
         };
     }
 }
 
-function findYGridInterval(h, yRange) {
+function findYGridTickInterval(h, yRange) {
     const { t, mag } = largestYRangeMagnitude(yRange);
     const availPixels = h * t;
 
-    for(var ii = 0; ii < Y_INTERVALS.length; ii++) {
-        if (PIXELS_PER_Y_LABEL * (mag / Y_INTERVALS[ii]) < availPixels)  {
-            return Y_INTERVALS[ii];
+    for(var ii = 0; ii < Y_TICK_INTERVALS.length; ii++) {
+        if (PIXELS_PER_Y_LABEL * (mag / Y_TICK_INTERVALS[ii]) < availPixels)  {
+            return Y_TICK_INTERVALS[ii];
         }
     }
 
-    return Y_INTERVALS[Y_INTERVALS.length - 1];
+    return Y_TICK_INTERVALS[Y_TICK_INTERVALS.length - 1];
 }
 
 function drawXGridLine(ctx, h, x, value) {
@@ -349,25 +440,25 @@ function drawYGridLine(ctx, w, y, value, emphasis) {
     });
 }
 
-function findXGridInterval(w, range) {
-    const mag = rangeMagnitude(range);
+function findXGridTickInterval(w, range) {
+    const mag = intervalMagnitude(range);
     const maxLabelCount = Math.floor(w / PIXELS_PER_X_LABEL);
 
-    for(var ii = 0; ii < X_INTERVALS.length; ii++) {
-        if (mag / X_INTERVALS[ii] < maxLabelCount)  {
-            return X_INTERVALS[ii];
+    for(var ii = 0; ii < X_TICK_INTERVALS.length; ii++) {
+        if (mag / X_TICK_INTERVALS[ii] < maxLabelCount)  {
+            return X_TICK_INTERVALS[ii];
         }
     }
 
-    return X_INTERVALS[X_INTERVALS.length - 1];
+    return X_TICK_INTERVALS[X_TICK_INTERVALS.length - 1];
 }
 function drawXGrid(ctx, w, h, xRange) {
-    const xInterval = findXGridInterval(w, xRange);
+    const xInterval = findXGridTickInterval(w, xRange);
     const tx = translateFn(xRange, w);
 
     const maxX = Math.floor(xRange.max / xInterval) * xInterval;
 
-    const gridLines = rangeMagnitude(xRange) / xInterval;
+    const gridLines = intervalMagnitude(xRange) / xInterval;
 
     for(var ii = 0; ii < gridLines; ii++) {
         const x = maxX - ii * xInterval;
@@ -376,12 +467,12 @@ function drawXGrid(ctx, w, h, xRange) {
 }
 
 function drawYGrid(ctx, w, h, yRange) {
-    const yInterval = findYGridInterval(h, yRange);
+    const yInterval = findYGridTickInterval(h, yRange);
     const ty = translateFn(yRange, h, true);
 
     let lineYs = [];
 
-    if (rangeContainsZero(yRange)) {
+    if (intervalContainsZero(yRange)) {
         lineYs.push(0);
 
         var y = yInterval;
@@ -409,20 +500,26 @@ function drawYGrid(ctx, w, h, yRange) {
 }
 
 function drawSeries(ctx, w, h, seriesName, beginT, endT) {
-    const data = restrictData(seriesPolls[seriesName] || [], beginT, endT);
+    const series = seriesData[seriesName];
 
-    if (!data.length) {
+    if (!series || !series.samples) {
         return;
     }
 
-    const yRange = dataYRange(data, 1.1);
+    const samples = restrictData(seriesData[seriesName], beginT, endT);
+
+    if (!samples.length) {
+        return;
+    }
+
+    const yRange = dataYRange(samples, 1.1);
 
     preserveContext(ctx, () => {
         ctx.font = "12px Arial";
-        drawXGrid(ctx, w, h, range(beginT, endT));
+        drawXGrid(ctx, w, h, interval(beginT, endT));
         drawYGrid(ctx, w, h, yRange);
         clipRect(ctx, 0, 0, w, h);
-        drawSeriesLine(ctx, data, range(beginT, endT), yRange, w, h);
+        drawSeriesLine(ctx, samples, interval(beginT, endT), yRange, w, h);
     });
 }
 
