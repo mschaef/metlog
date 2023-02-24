@@ -133,21 +133,6 @@ function fetchSeriesData(seriesName, beginT, endT) {
         .then((samples) => ({ samples, beginT, endT }));
 }
 
-/*
-               ...........             ......
-query          +----------------------------+
-series                    +------------+
-
-
-                          ...................
-query          +----------------------------+
-series      +------------+
-
-               ......................
-query          +----------------------------+
-series                              +------------+
-*/
-
 function replaceSeriesData(seriesName, segBeginT, segEndT) {
     fetchSeriesData(seriesName, segBeginT, segEndT)
         .then(( series ) => {
@@ -155,14 +140,10 @@ function replaceSeriesData(seriesName, segBeginT, segEndT) {
         });
 }
 
-
 function extendSeriesData(seriesName, segBeginT, segEndT) {
-
     if (segEndT < segBeginT) {
         return;
     }
-
-    console.log('query dur: ', segEndT - segBeginT);
 
     fetchSeriesData(seriesName, segBeginT, segEndT)
         .then(( update ) => {
@@ -624,7 +605,6 @@ function setupQueryWindow() {
         el.value = urlQueryWindow;
     }
 }
-
 
 window.addEventListener('resize', () => {
     setupPlotCanvases();
