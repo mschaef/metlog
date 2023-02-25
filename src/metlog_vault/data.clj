@@ -5,28 +5,16 @@
         sql-file.sql-util)
   (:require [taoensso.timbre :as log]
             [clojure.java.jdbc :as jdbc]
-            [sql-file.core :as sql-file]))
+            [metlog-vault.queries :as query]))
 
 (def sample-batch-size 200)
 
-(defn call-with-query-logging [ name actual-args fn ]
-  (log/trace "query" name actual-args)
-  (let [begin-t (. System (nanoTime))
-        result (fn)]
-    (log/debug "query time" name "-" (/ (- (. System (nanoTime)) begin-t) 1000000.0))
-    result))
+(defn get-series-id [ series-name ]
+  (scalar-result
+   (query/get-series-id { :series_name series-name }
+                        { :connection (current-db-connection) })))
 
-(defmacro defquery [ name lambda-list & body ]
-  `(defn ~name ~lambda-list
-     (call-with-query-logging '~name ~lambda-list (fn [] ~@body))))
-
-(defquery get-series-id [ series-name ]
-  (query-scalar (current-db-connection) [(str "SELECT series_id"
-                                              " FROM series"
-                                              " WHERE series_name=?")
-                                         (str series-name)]))
-
-(defquery add-series-name [ series-name ]
+(defn add-series-name [ series-name ]
   (:series_id (first
                (jdbc/insert! (current-db-connection) :series
                              {:series_name series-name}))))
@@ -49,31 +37,28 @@
 
 (def latest-sample-times (atom {}))
 
-(defquery delete-old-samples [ series-id archive-time ]
-  (jdbc/delete! (current-db-connection)
-                :sample
-                ["series_id = ? and t < ?" series-id archive-time]))
+(defn delete-old-samples [ series-id archive-time ]
+  (query/delete-old-samples! {:seried_id series-id
+                              :archive_time archive-time}
+                             { :connection (current-db-connection) }))
 
-(defquery archive-old-samples [ series-id archive-time ]
-  (jdbc/execute! (current-db-connection)
-                 [(str "INSERT INTO cold_sample "
-                       " SELECT * FROM sample"
-                       " WHERE series_id=?"
-                       "   AND t<?")
-                  series-id
-                  archive-time]))
+(defn archive-old-samples [ series-id archive-time ]
+  (query/archive-old-samples! {:seried_id series-id
+                               :archive_time archive-time}
+                              { :connection (current-db-connection) }))
 
-(defquery query-series-latest-sample-time [ series-name ]
-  (if-let [ t (query-scalar (current-db-connection) [(str "SELECT MAX(t) FROM sample"
-                                                          " WHERE series_id = ?")
-                                                     (intern-series-name series-name)])]
+(defn query-series-latest-sample-time [ series-id ]
+  (if-let [ t (scalar-result
+               (query/get-series-latest-sample-time
+                { :series_id series-id }
+                { :connection (current-db-connection) }))]
     t))
 
 (defn get-series-latest-sample-time [ series-name ]
   (let [series-id (intern-series-name series-name)]
     (if-let [latest-t (@latest-sample-times series-id)]
       latest-t
-      (let [query-latest-t (or (query-series-latest-sample-time series-name)
+      (let [query-latest-t (or (query-series-latest-sample-time series-id)
                                (java.util.Date. 0))]
         (swap! latest-sample-times assoc series-id query-latest-t)
         (log/debug "Latest sample times from DB" @latest-sample-times)
@@ -85,7 +70,7 @@
       (if (.after t cached-latest-t)
         (swap! latest-sample-times assoc series-id t)))))
 
-(defquery store-data-samples [ samples ]
+(defn store-data-samples [ samples ]
   (doseq [ sample-batch (partition-all sample-batch-size samples)]
     (log/info "Storing batch of" (count sample-batch) "samples.")
     (jdbc/insert-multi! (current-db-connection) :sample
@@ -107,32 +92,27 @@
       (check-latest-series-time (:series_name sample) (:t sample)))
     (store-data-samples new-samples)))
 
-(defquery get-all-series []
-  (query-all (current-db-connection) [(str "SELECT series_id, series_name"
-                                           " FROM series")]))
+(defn get-all-series []
+  (query/get-all-series {} { :connection (current-db-connection) }))
 
 (defn get-series-names []
   (map :series_name (get-all-series)))
 
-(defquery get-data-for-series-name [ series-name begin-t end-t ]
+(defn get-data-for-series-name [ series-name begin-t end-t ]
   (map #(assoc % :t (.getTime (:t %)))
-   (query-all (current-db-connection) [(str "SELECT sample.t, sample.val"
-                         " FROM sample"
-                         " WHERE series_id = ?"
-                         "   AND UNIX_MILLIS(t-session_timezone()) > ?"
-                         "   AND UNIX_MILLIS(t-session_timezone()) < ?"
-                         " ORDER BY t")
-                    (lookup-series-id series-name)
-                    begin-t
-                    end-t])))
+       (query/get-data-for-series {:series_id (lookup-series-id series-name)
+                                   :begin_t begin-t
+                                   :end_t end-t}
+                                  { :connection (current-db-connection) })))
 
-(defquery get-dashboard-definition [ name ]
-  (query-scalar (current-db-connection) [(str "SELECT definition"
-                           " FROM dashboard"
-                           " WHERE name=?")
-                      name]))
+;;;; Dashboards
 
-(defquery store-dashboard-definition [ name definition ]
+(defn get-dashboard-definition [ name ]
+  (scalar-result
+   (query/get-dashboard-definition { :name name }
+                                   { :connection (current-db-connection) })))
+
+(defn store-dashboard-definition [ name definition ]
   (with-db-transaction
     (if (get-dashboard-definition name)
       (jdbc/update! (current-db-connection) :dashboard
