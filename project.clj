@@ -19,9 +19,6 @@
                  [clj-time "0.15.2"]
                  [clj-http "3.12.3"
                   :exclusions [com.fasterxml.jackson.core/jackson-core]]
-                 [org.clojure/core.async "1.5.648"]
-                 [reagent "1.1.1"]
-                 [com.andrewmcveigh/cljs-time "0.5.2"]
                  [it.sauronsoftware.cron4j/cron4j "2.2.5"]
                  [com.mschaef/playbook "0.0.2"]]
 
