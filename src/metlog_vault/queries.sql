@@ -2,11 +2,6 @@
 SELECT series_id, series_name
   FROM series
 
--- name: get-dashboard-definition
-SELECT definition
-  FROM dashboard
- WHERE name=:name
-
 -- name: get-series-id
 SELECT series_id
   FROM series
@@ -35,3 +30,13 @@ INSERT INTO cold_sample
    SELECT * FROM sample
     WHERE series_id=:series_id
       AND t<:archive_time
+
+-- name: get-dashboard-by-name
+SELECT name, dashboard_id, definition
+  FROM dashboard
+ WHERE name=:name
+
+-- name: get-dashboard-by-id
+SELECT name, dashboard_id, definition
+  FROM dashboard
+ WHERE dashboard_id=:id

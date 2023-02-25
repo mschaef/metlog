@@ -5,7 +5,8 @@
         sql-file.sql-util)
   (:require [taoensso.timbre :as log]
             [clojure.java.jdbc :as jdbc]
-            [metlog-vault.queries :as query]))
+            [metlog-vault.queries :as query]
+            [clojure.data.json :as json]))
 
 (def sample-batch-size 200)
 
@@ -107,18 +108,24 @@
 
 ;;;; Dashboards
 
-(defn get-dashboard-definition [ name ]
-  (scalar-result
-   (query/get-dashboard-definition { :name name }
-                                   { :connection (current-db-connection) })))
+(defn get-dashboard-by-name [ dashboard-name ]
+  (first
+   (query/get-dashboard-by-name { :name dashboard-name }
+                                { :connection (current-db-connection) })))
 
-(defn store-dashboard-definition [ name definition ]
-  (with-db-transaction
-    (if (get-dashboard-definition name)
-      (jdbc/update! (current-db-connection) :dashboard
-                    {:definition definition }
-                    ["name = ?" name])
-      (jdbc/insert! (current-db-connection) :dashboard
-                    {:name name
-                     :definition definition}))))
+(defn get-dashboard-by-id [ dashboard-id ]
+  (first
+   (query/get-dashboard-by-id { :id dashboard-id }
+                              { :connection (current-db-connection) })))
+
+(defn insert-dashboard-definition [ name definition ]
+  (:dashboard_id
+   (jdbc/insert! (current-db-connection) :dashboard
+                 {:name name
+                  :definition (json/write-str definition)}))  )
+
+(defn update-dashboard-definition [ id definition ]
+  (jdbc/update! (current-db-connection) :dashboard
+                {:definition (json/write-str definition)}
+                ["dashboard_id = ?" id]))
 

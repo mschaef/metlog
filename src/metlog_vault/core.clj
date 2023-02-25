@@ -53,7 +53,7 @@
   {:name (or (config-property "db.subname")
              (get-in config [:vault :db :subname] "metlog-vault"))
    :schema-path [ "sql/" ]
-   :schemas [[ "metlog" 2 ]]})
+   :schemas [[ "metlog" 3 ]]})
 
 (defn start-app [ config ]
   (future
