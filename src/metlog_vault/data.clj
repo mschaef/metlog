@@ -108,6 +108,9 @@
 
 ;;;; Dashboards
 
+(defn get-dashboard-names []
+  (query/get-dashboard-names {} { :connection (current-db-connection) }))
+
 (defn get-dashboard-by-name [ dashboard-name ]
   (first
    (query/get-dashboard-by-name { :name dashboard-name }
@@ -120,12 +123,18 @@
 
 (defn insert-dashboard-definition [ name definition ]
   (:dashboard_id
-   (jdbc/insert! (current-db-connection) :dashboard
-                 {:name name
-                  :definition (json/write-str definition)}))  )
+   (first
+    (jdbc/insert! (current-db-connection) :dashboard
+                  {:name name
+                   :definition (json/write-str definition)}))))
 
 (defn update-dashboard-definition [ id definition ]
   (jdbc/update! (current-db-connection) :dashboard
                 {:definition (json/write-str definition)}
+                ["dashboard_id = ?" id]))
+
+(defn delete-dashboard-by-id [ id ]
+  (jdbc/delete! (current-db-connection)
+                :dashboard
                 ["dashboard_id = ?" id]))
 

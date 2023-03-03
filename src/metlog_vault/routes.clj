@@ -10,8 +10,8 @@
   (routes
    (data-service/all-routes store-samples)
 
-   (context "/dashboard/:dashboard-id" [ dashboard-id ]
-     (dashboard/all-routes dashboard-id))
+   (context "/dashboard" []
+     (dashboard/all-routes))
 
    (route/resources (str "/" (get-version)))
 

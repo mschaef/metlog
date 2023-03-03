@@ -35,7 +35,18 @@
     [:body
      contents]]))
 
-(defn- series-select [ dashboard-name ]
+(defn dashboard-select [ dashboard-id ]
+  [:select {:id "select-dashboard" :name "select-dashboard"
+            :onchange "window._metlog.onDashboardSelectChange(event)"}
+   (hiccup-form/select-options
+    (concat
+     (map (fn [ dashboard-info ]
+            [ (:name dashboard-info) (hashid/encode :db (:dashboard_id dashboard-info))])
+          (data/get-dashboard-names))
+     [[ "Add Dashboard" ""]])
+    (hashid/encode :db dashboard-id))])
+
+(defn- series-select [ ]
   [:select {:id "new-series" :name "new-series"
             :onchange "window._metlog.onAddSeriesChange(event)"}
    (hiccup-form/select-options
@@ -48,21 +59,33 @@
    [:span#app-name "Metlog"]
 
    [:div#add-series.header-element
-    (series-select dashboard-id)]
+    (dashboard-select dashboard-id)
+    (post-button {:target (str "/dashboard/" (hashid/encode :db dashboard-id) "/delete")} "delete dashboard")]
 
    [:div.header-element
     (hiccup-form/text-field { :id "query-window" :maxlength "8" } "query-window" "1d")]])
 
-(defn- series-pane [ dashboard-id index series-name ]
+(defn- add-series-pane [ ]
   [:div.series-pane
-   [:div.series-pane-header
-    [:span.series-name series-name]
-    (hiccup-form/form-to
-     {:class "close-form"}
-     [:post (str "/dashboard/" (hashid/encode :db dashboard-id) "/delete-by-index/" index)]
-     (post-button {:target (str "/dashboard/" (hashid/encode :db dashboard-id) "/delete-by-index/" index)} "close"))]
-   [:div.tsplot-container
-    [:canvas.series-plot {:data-series-name series-name}]]])
+   [:div.series-pane-header "&nbsp;"]
+   [:div.add-series-block
+    "Add Series: "
+    (series-select)]])
+
+(defn- dashboard-link [ id & others ]
+  (apply str "/dashboard/" (hashid/encode :db id) others))
+
+(defn- series-pane [ dashboard-id index series-name ]
+  (let [ delete-url (dashboard-link dashboard-id "/delete-by-index/" index)]
+    [:div.series-pane
+     [:div.series-pane-header
+      [:span.series-name series-name]
+      (hiccup-form/form-to
+       {:class "close-form"}
+       [:post delete-url]
+       (post-button {:target delete-url} "close"))]
+        [:div.tsplot-container
+         [:canvas.series-plot {:data-series-name series-name}]]]))
 
 (defn- get-dashboard [ id ]
   (if-let [ dashboard (data/get-dashboard-by-id id)]
@@ -75,9 +98,10 @@
     (let [ displayed-series (:definition dashboard)]
       (render-page
        [:div.dashboard
-        (header (:name dashboard))
+        (header id)
         [:div.series-list
-         (map-indexed (partial series-pane (:dashboard_id dashboard)) displayed-series)]]))))
+         (map-indexed (partial series-pane (:dashboard_id dashboard)) displayed-series)
+         (add-series-pane)]]))))
 
 (defn- add-dashboard-series [ dashboard-id req ]
   (let [new-series (:new-series (:params req))]
@@ -97,22 +121,43 @@
        (drop-nth index (:definition (get-dashboard dashboard-id)))))
     (success)))
 
-(defn- get-default-dashboard-id [ ]
+
+(defn- ensure-dashboard-id-by-name [ dashboard-name ]
   (or
    (:dashboard_id
-    (data/get-dashboard-by-name "default" ))
-   (data/insert-dashboard-definition "default" [])))
+    (data/get-dashboard-by-name dashboard-name))
+     (data/insert-dashboard-definition dashboard-name [])))
+
+(defn- redirect-to-dashboard [ id ]
+  (ring/redirect (dashboard-link id)))
 
 (defn redirect-to-default-dashboard []
-  (ring/redirect (str "/dashboard/" (hashid/encode :db (get-default-dashboard-id)))))
+  (redirect-to-dashboard (ensure-dashboard-id-by-name "default")))
 
-(defn all-routes [ dashboard-id ]
+(defn- create-dashboard [ req ]
+  (let [dashboard-name (.trim (:dashboard-name (:params req)))]
+    (when (> (count dashboard-name) 0)
+      (redirect-to-dashboard (ensure-dashboard-id-by-name dashboard-name )))))
+
+(defn- delete-dashboard [ dashboard-id ]
+  (data/delete-dashboard-by-id dashboard-id)
+  (redirect-to-default-dashboard))
+
+(defn dashboard-routes [ dashboard-id ]
   (when-let-route [ dashboard-id (hashid/decode :db dashboard-id) ]
     (GET "/" [ ]
       (render-dashboard dashboard-id))
 
-    (POST "/add-series" req
-      (add-dashboard-series dashboard-id req))
+    (POST "/delete" [ ]
+      (delete-dashboard dashboard-id))
 
     (POST "/delete-by-index/:index" req
       (delete-dashboard-series-by-index dashboard-id req))))
+
+(defn all-routes [ ]
+  (routes
+   (context "/:dashboard-id" [ dashboard-id ]
+     (dashboard-routes dashboard-id))
+
+   (POST "/" req
+     (create-dashboard req))))

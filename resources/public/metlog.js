@@ -26,9 +26,11 @@ function doPost(baseUrl, args, nextUrl) {
         url += ('?' + queryArgs.join('&'));
     }
 
-    function doRefresh() {
+    function doRefresh(resp) {
         if (nextUrl) {
             visitPage(nextUrl);
+        } else if (resp.redirected)  {
+            visitPage(resp.url);
         } else {
             refreshPage();
         }
@@ -645,7 +647,24 @@ function onAddSeriesChange(event) {
     });
 }
 
+function onDashboardSelectChange(event) {
+    const dashboardId = event.target.value;
+
+    if (dashboardId === "") {
+        const newDashboardName = prompt("Enter Dashboard Name");
+
+        if (newDashboardName) {
+            doPost("/dashboard", {
+                "dashboard-name": newDashboardName
+            });
+        }
+    } else {
+        visitPage('/dashboard/' + dashboardId);
+    }
+}
+
 window._metlog = {
     onAddSeriesChange,
+    onDashboardSelectChange,
     doPost,
 };

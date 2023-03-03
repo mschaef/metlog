@@ -31,6 +31,11 @@ INSERT INTO cold_sample
     WHERE series_id=:series_id
       AND t<:archive_time
 
+-- name: get-dashboard-names
+SELECT name, dashboard_id
+  FROM dashboard
+ ORDER BY name
+
 -- name: get-dashboard-by-name
 SELECT name, dashboard_id, definition
   FROM dashboard
