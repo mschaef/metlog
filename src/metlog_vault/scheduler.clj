@@ -3,6 +3,7 @@
   (:require [taoensso.timbre :as log]))
 
 (defn start [ ]
+  (log/info "Starting Scheduler")
   (doto (it.sauronsoftware.cron4j.Scheduler.)
     (.setDaemon true)
     (.start)))

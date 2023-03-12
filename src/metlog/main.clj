@@ -10,12 +10,14 @@
 (defn -main [& args]
   (let [config (config/load-config)
         mode (:mode config)]
-    (log/info "config: " config)
-    (logging/setup-logging config [[#{"metlog-agent.*"} :info]
+    (logging/setup-logging config [[#{"metlog.main"} :info]
                                    [#{"hsqldb.*" "com.zaxxer.hikari.*"} :warn]])
+    (log/info "config: " config)
     (when (:agent mode)
+      (log/info "Starting Agent")
       (agent/start-app config))
     (when (:vault mode)
+      (log/info "Starting Vault")
       (vault/start-app config))
     (if (> (count mode) 0)
       (log/info "running, mode: " mode)

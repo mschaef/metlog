@@ -39,12 +39,12 @@
         (locking sample-queue
           (.drainTo sample-queue snapshot))
         (when (> (count snapshot) 0)
-          (log/info "Storing " (count snapshot) " samples.")
+          (log/debug "Storing " (count snapshot) " samples.")
           (with-db-connection db-pool
             (data/store-data-samples-monotonic (seq snapshot))))))
 
     (fn [ samples ]
-      (log/info "Enqueuing " (count samples) " samples for later storage.")
+      (log/debug "Enqueuing " (count samples) " samples for later storage.")
       (doseq [ sample samples ]
         (.add sample-queue sample)))))
 
@@ -57,10 +57,13 @@
 
 (defn start-app [ config ]
   (future
-    (sql-file/with-pool [db-pool (db-conn-spec config)]
-      (let [scheduler (scheduler/start)
-            data-sink (queued-data-sink scheduler db-pool)]
-        (archiver/start config scheduler db-pool)
-        (web/start-webserver config
-                             db-pool
-                             (routes/all-routes data-sink))))))
+    ((exception-barrier
+      (fn []
+        (log/info "Starting vault with config: " (:vault config))
+        (sql-file/with-pool [db-pool (db-conn-spec config)]
+          (let [scheduler (scheduler/start)]
+            (archiver/start config scheduler db-pool)
+            (web/start-webserver config
+                                 db-pool
+                                 (routes/all-routes (queued-data-sink scheduler db-pool))))))
+      "Vault webserver startup."))))
