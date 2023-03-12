@@ -10,9 +10,9 @@
 (defn -main [& args]
   (let [config (config/load-config)
         mode (:mode config)]
-    (log/info "config: " config)
-    (logging/setup-logging config [[#{"metlog-agent.*"} :info]
+    (logging/setup-logging config [[#{"metlog.main" "metlog-agent.*"} :info]
                                    [#{"hsqldb.*" "com.zaxxer.hikari.*"} :warn]])
+    (log/info "config: " config)
     (when (:agent mode)
       (agent/start-app config))
     (when (:vault mode)

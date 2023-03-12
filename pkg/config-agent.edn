@@ -1,3 +1,4 @@
-{:log-path "/var/log/metlog/metlog.log"
+{:mode #{:agent}
+ :log-path "/var/log/metlog/metlog.log"
  :agent {:vault-url "http://metrics.mschaef.com/data"
          :sensor-file "/etc/metlog/sensor.clj"}}
