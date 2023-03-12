@@ -12,7 +12,7 @@ fi
 
 # create user and group
 
-egrep "^${METLOG_USER_NAME}" /etc/passwd >/dev/null
+egrep "^${METLOG_USER_NAME}:" /etc/passwd >/dev/null
 
 if [ $? -eq 0 ]; then
     echo "User exists: ${METLOG_USER_NAME}"
