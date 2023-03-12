@@ -1,3 +1,3 @@
-;; config.clj
+;; sensor.clj
 ;;
-;; Custom configuration goes here
+;; Custom sensor definitions go here
