@@ -45,7 +45,7 @@
 (defn add-sensor-def [ sensor-name sensor-fn ]
   (swap! sensor-defs assoc sensor-name sensor-fn))
 
-(def default-sensor-attrs {:poll-intervalb (minutes 1)})
+(def default-sensor-attrs {:poll-interval (minutes 1)})
 
 (defmacro defsensor*
   ([ name attrs fn-form ]
@@ -175,6 +175,7 @@
       (log/error "Cannot find sensor file: " filename))))
 
 (defn start-app [ config ]
+  (log/info "Starting agent with config: " (:agent config))
   (maybe-load-sensor-file (:sensor-file (:agent config)))
   (start-sensor-polls)
   (start-vault-update config))

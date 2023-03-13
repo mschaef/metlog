@@ -39,12 +39,12 @@
         (locking sample-queue
           (.drainTo sample-queue snapshot))
         (when (> (count snapshot) 0)
-          (log/info "Storing " (count snapshot) " samples.")
+          (log/debug "Storing " (count snapshot) " samples.")
           (with-db-connection db-pool
             (data/store-data-samples-monotonic (seq snapshot))))))
 
     (fn [ samples ]
-      (log/info "Enqueuing " (count samples) " samples for later storage.")
+      (log/debug "Enqueuing " (count samples) " samples for later storage.")
       (doseq [ sample samples ]
         (.add sample-queue sample)))))
 
@@ -56,6 +56,7 @@
    :schemas [[ "metlog" 3 ]]})
 
 (defn start-app [ config ]
+  (log/info "Starting agent with config: " (:vault config))
   (future
     (sql-file/with-pool [db-pool (db-conn-spec config)]
       (let [scheduler (scheduler/start)
