@@ -127,11 +127,9 @@ div#query-window {
     padding-right: 0.66em;
 }
 
-.series-pane .series-pane-header .close-form {
+.series-pane .series-pane-header .close-button {
     float: right;
-    padding-right: 10px;
-    font-weight: bold;
-    color: #c0c0c0;
+    margin-right: 10px;
     cursor: pointer;
 }
 
@@ -153,16 +151,4 @@ div#query-window {
     display: flex;
     justify-content: center;
     align-items: center;
-}
-
-.header-element .post-button {
-    width: 120px;
-    margin-left: 8px;
-    padding: 8px;
-    background: #f0f0f0;
-    margin-bottom: 12px;
-}
-
-.header-element .post-button:hover {
-    background: #e0e0e0;
 }

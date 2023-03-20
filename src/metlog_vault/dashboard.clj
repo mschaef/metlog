@@ -14,14 +14,14 @@
   (str "/" (get-version) "/" path))
 
 (defn- post-button [ attrs body ]
-  (let [ target (:target attrs)]
-    [:span.clickable.post-button
+  (let [target (:target attrs)]
+    (hiccup-form/submit-button
      (cond-> {:onclick (if-let [next-url (:next-url attrs)]
                          (str "window._metlog.doPost('" target "'," (json/write-str (get attrs :args {})) ", '" next-url "')")
                          (str "window._metlog.doPost('" target "'," (json/write-str (get attrs :args {})) ")"))}
        (:shortcut-key attrs) (merge {:data-shortcut-key (:shortcut-key attrs)
                                      :data-target target}))
-     body]))
+     body)))
 
 (defn- render-page [ & contents ]
   (hiccup-page/html5
@@ -59,7 +59,8 @@
    [:div#add-series.header-element
     (dashboard-select dashboard-id)
     (hiccup-form/submit-button {:onclick "window._metlog.addDashboard();"} "Add Dashboard")
-    (post-button {:target (str "/dashboard/" (hashid/encode :db dashboard-id) "/delete")} "delete dasnhboard")]
+    (post-button {:target (str "/dashboard/" (hashid/encode :db dashboard-id) "/delete")}
+                 "Delete Dashboard")]
 
    [:div.header-element
     (hiccup-form/text-field { :id "query-window" :maxlength "8" } "query-window" "1d")]])
@@ -78,7 +79,9 @@
   [:div.series-pane
    [:div.series-pane-header
     [:span.series-name series-name]
-    (hiccup-form/submit-button {:onclick (str "window._metlog.onDeleteSeries(" index ");")} "Close")]
+    (hiccup-form/submit-button {:class "close-button"
+                                :onclick (str "window._metlog.onDeleteSeries(" index ");")}
+                               "Close")]
    [:div.tsplot-container
     [:canvas.series-plot {:data-series-name series-name}]]])
 
