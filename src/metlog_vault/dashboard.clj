@@ -130,7 +130,10 @@
   (ring/redirect (dashboard-link id)))
 
 (defn redirect-to-default-dashboard []
-  (redirect-to-dashboard (ensure-dashboard-id-by-name "Default")))
+  (redirect-to-dashboard
+   (if-let [ existing-dashboard (first (data/get-dashboard-names)) ]
+     (:dashboard_id existing-dashboard)
+     (ensure-dashboard-id-by-name "Dashboard"))))
 
 (defn- create-dashboard [ req ]
   (let [dashboard-name (.trim (:dashboard-name (:params req)))]
