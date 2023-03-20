@@ -75,16 +75,12 @@
   (apply str "/dashboard/" (hashid/encode :db id) others))
 
 (defn- series-pane [ dashboard-id index series-name ]
-  (let [ delete-url (dashboard-link dashboard-id "/delete-by-index/" index)]
-    [:div.series-pane
-     [:div.series-pane-header
-      [:span.series-name series-name]
-      (hiccup-form/form-to
-       {:class "close-form"}
-       [:post delete-url]
-       (post-button {:target delete-url} "close"))]
-        [:div.tsplot-container
-         [:canvas.series-plot {:data-series-name series-name}]]]))
+  [:div.series-pane
+   [:div.series-pane-header
+    [:span.series-name series-name]
+    (hiccup-form/submit-button {:onclick (str "window._metlog.onDeleteSeries(" index ");")} "Close")]
+   [:div.tsplot-container
+    [:canvas.series-plot {:data-series-name series-name}]]])
 
 (defn- get-dashboard [ id ]
   (if-let [ dashboard (data/get-dashboard-by-id id)]
@@ -96,28 +92,17 @@
   (when-let [ dashboard (get-dashboard id)]
     (let [ displayed-series (:definition dashboard)]
       (render-page
+       [:script "var dashboard = " (json/write-str (:definition dashboard)) ";"]
        [:div.dashboard
         (header id)
         [:div.series-list
          (map-indexed (partial series-pane (:dashboard_id dashboard)) displayed-series)
          (add-series-pane)]]))))
 
-(defn- add-dashboard-series [ dashboard-id req ]
-  (let [new-series (:new-series (:params req))]
-    (when (not (= "-" new-series))
-      (log/info "Adding series " new-series " to dashboard " dashboard-id)
-      (data/update-dashboard-definition
-       dashboard-id
-       (conj (:definition (get-dashboard dashboard-id)) new-series)))
-    (success)))
-
-(defn- delete-dashboard-series-by-index [ dashboard-id req ]
-  (let [index (try-parse-integer (:index (:params req)))]
-    (log/info "Deleting series index" index "from dashboard " dashboard-id)
-    (when index
-      (data/update-dashboard-definition
-       dashboard-id
-       (drop-nth index (:definition (get-dashboard dashboard-id)))))
+(defn- update-dashboard [ dashboard-id req ]
+  (let [ new-definition (or (try-parse-json (:new-definition (:params req)))
+                            []) ]
+    (data/update-dashboard-definition dashboard-id new-definition)
     (success)))
 
 (defn- ensure-dashboard-id-by-name [ dashboard-name ]
@@ -149,14 +134,11 @@
     (GET "/" [ ]
       (render-dashboard dashboard-id))
 
+    (POST "/" req
+      (update-dashboard dashboard-id req))
+
     (POST "/delete" [ ]
-      (delete-dashboard dashboard-id))
-
-   (POST "/add-series" req
-     (add-dashboard-series dashboard-id req))
-
-    (POST "/delete-by-index/:index" req
-      (delete-dashboard-series-by-index dashboard-id req))))
+      (delete-dashboard dashboard-id))))
 
 (defn all-routes [ ]
   (routes

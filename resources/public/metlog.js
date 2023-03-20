@@ -634,6 +634,20 @@ window.addEventListener('DOMContentLoaded', () => {
     setInterval(updatePlots, 1000);
 });
 
+function removeByIndex(vec, index) {
+    if (index < 0) {
+        return vec;
+    } else {
+        return vec.slice(0, index).concat(vec.slice(index + 1));
+    }
+}
+
+function onDeleteSeries(index) {
+    doPost(window.location.pathname, {
+        "new-definition": JSON.stringify(removeByIndex(dashboard, index))
+    });
+}
+
 
 function onAddSeriesChange(event) {
     const newSeries = event.target.value;
@@ -642,8 +656,8 @@ function onAddSeriesChange(event) {
         return;
     }
 
-    doPost(window.location.pathname + "/add-series", {
-        "new-series": newSeries
+    doPost(window.location.pathname, {
+        "new-definition": JSON.stringify(dashboard.concat(newSeries))
     });
 }
 
@@ -662,15 +676,13 @@ function addDashboard() {
 function onDashboardSelectChange(event) {
     const dashboardId = event.target.value;
 
-    if (dashboardId === "") {
-    } else {
-        visitPage('/dashboard/' + dashboardId);
-    }
+    visitPage('/dashboard/' + dashboardId);
 }
 
 window._metlog = {
     addDashboard,
     onAddSeriesChange,
     onDashboardSelectChange,
+    onDeleteSeries,
     doPost,
 };
