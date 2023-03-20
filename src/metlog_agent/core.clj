@@ -150,6 +150,7 @@
            true))))
 
 (defn- update-vault [ config ]
+  (log/info "Updating vault")
   (loop []
     (let [snapshot (snapshot-to-update-queue config)]
       (when (post-update config)
@@ -167,7 +168,7 @@
   (log/info "Starting vault update, period:" (:vault-update-interval-sec (:agent config)) "sec.")
   (at-at/every (seconds (:vault-update-interval-sec (:agent config)))
                #(with-exception-barrier "vault-update"
-                  (partial update-vault config))
+                  (update-vault config))
                my-pool))
 
 (defn- maybe-load-sensor-file [ filename ]
