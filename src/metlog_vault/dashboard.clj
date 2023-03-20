@@ -52,7 +52,7 @@
            [ series-name series-name ])
          (cons "-" (data/get-series-names))))])
 
-(defn- header [ dashboard-id ]
+(defn- header [ dashboard-id query-window ]
   [:div.header
    [:span#app-name "Metlog"]
 
@@ -63,7 +63,7 @@
                  "Delete Dashboard")]
 
    [:div.header-element
-    (hiccup-form/text-field { :id "query-window" :maxlength "8" } "query-window" "1d")]])
+    (hiccup-form/text-field { :id "query-window" :maxlength "8" } "query-window" (or query-window "1d"))]])
 
 (defn- add-series-pane [ ]
   [:div.series-pane
@@ -91,13 +91,13 @@
                          [])]
       (assoc dashboard :definition parsed))))
 
-(defn- render-dashboard [ id ]
+(defn- render-dashboard [ id req ]
   (when-let [ dashboard (get-dashboard id)]
     (let [ displayed-series (:definition dashboard)]
       (render-page
        [:script "var dashboard = " (json/write-str (:definition dashboard)) ";"]
        [:div.dashboard
-        (header id)
+        (header id (:query-window (:params req)))
         [:div.series-list
          (map-indexed (partial series-pane (:dashboard_id dashboard)) displayed-series)
          (add-series-pane)]]))))
@@ -134,8 +134,8 @@
 
 (defn dashboard-routes [ dashboard-id ]
   (when-let-route [ dashboard-id (hashid/decode :db dashboard-id) ]
-    (GET "/" [ ]
-      (render-dashboard dashboard-id))
+    (GET "/" req
+      (render-dashboard dashboard-id req))
 
     (POST "/" req
       (update-dashboard dashboard-id req))
