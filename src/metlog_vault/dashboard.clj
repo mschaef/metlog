@@ -39,11 +39,9 @@
   [:select {:id "select-dashboard" :name "select-dashboard"
             :onchange "window._metlog.onDashboardSelectChange(event)"}
    (hiccup-form/select-options
-    (concat
-     (map (fn [ dashboard-info ]
-            [ (:name dashboard-info) (hashid/encode :db (:dashboard_id dashboard-info))])
-          (data/get-dashboard-names))
-     [[ "Add Dashboard" ""]])
+    (map (fn [ dashboard-info ]
+           [ (:name dashboard-info) (hashid/encode :db (:dashboard_id dashboard-info))])
+         (data/get-dashboard-names))
     (hashid/encode :db dashboard-id))])
 
 (defn- series-select [ ]
@@ -60,7 +58,8 @@
 
    [:div#add-series.header-element
     (dashboard-select dashboard-id)
-    (post-button {:target (str "/dashboard/" (hashid/encode :db dashboard-id) "/delete")} "delete dashboard")]
+    (hiccup-form/submit-button {:onclick "window._metlog.addDashboard();"} "Add Dashboard")
+    (post-button {:target (str "/dashboard/" (hashid/encode :db dashboard-id) "/delete")} "delete dasnhboard")]
 
    [:div.header-element
     (hiccup-form/text-field { :id "query-window" :maxlength "8" } "query-window" "1d")]])
@@ -131,7 +130,7 @@
   (ring/redirect (dashboard-link id)))
 
 (defn redirect-to-default-dashboard []
-  (redirect-to-dashboard (ensure-dashboard-id-by-name "default")))
+  (redirect-to-dashboard (ensure-dashboard-id-by-name "Default")))
 
 (defn- create-dashboard [ req ]
   (let [dashboard-name (.trim (:dashboard-name (:params req)))]

@@ -647,23 +647,29 @@ function onAddSeriesChange(event) {
     });
 }
 
+function addDashboard() {
+    const newDashboardName = prompt("Enter Dashboard Name");
+
+    if (!newDashboardName) {
+        return;
+    }
+
+    doPost("/dashboard", {
+        "dashboard-name": newDashboardName
+    });
+}
+
 function onDashboardSelectChange(event) {
     const dashboardId = event.target.value;
 
     if (dashboardId === "") {
-        const newDashboardName = prompt("Enter Dashboard Name");
-
-        if (newDashboardName) {
-            doPost("/dashboard", {
-                "dashboard-name": newDashboardName
-            });
-        }
     } else {
         visitPage('/dashboard/' + dashboardId);
     }
 }
 
 window._metlog = {
+    addDashboard,
     onAddSeriesChange,
     onDashboardSelectChange,
     doPost,
