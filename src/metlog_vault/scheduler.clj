@@ -9,14 +9,14 @@
     (.start)))
 
 (defn schedule-job [ scheduler desc cron job-fn ]
-  (let [job-lock (java.util.concurrent.locks.ReentrantLock.)
-        job-fn (exception-barrier job-fn (str "scheduled job:" desc))]
+  (let [job-lock (java.util.concurrent.locks.ReentrantLock.)]
     (log/info "Background job scheduled (cron:" cron  "):" desc )
     (.schedule scheduler cron
                #(if (.tryLock job-lock)
                   (try
-                    (log/info "Scheduled job:" desc)
-                    (job-fn)
+                    (with-exception-barrier (str "scheduled job:" desc)
+                      (log/info "Scheduled job:" desc)
+                      (job-fn))
                     (finally
                       (.unlock job-lock)))
                   (log/info "Cannot run scheduled job reentrantly:" desc)))))

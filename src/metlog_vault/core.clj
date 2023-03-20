@@ -56,14 +56,12 @@
    :schemas [[ "metlog" 3 ]]})
 
 (defn start-app [ config ]
-  (future
-    ((exception-barrier
-      (fn []
-        (log/info "Starting vault with config: " (:vault config))
-        (sql-file/with-pool [db-pool (db-conn-spec config)]
-          (let [scheduler (scheduler/start)]
-            (archiver/start config scheduler db-pool)
-            (web/start-webserver config
-                                 db-pool
-                                 (routes/all-routes (queued-data-sink scheduler db-pool))))))
-      "Vault webserver startup."))))
+  (with-daemon-thread 'vault-webserver
+    (log/info "Starting vault with config: " (:vault config))
+    (sql-file/with-pool [db-pool (db-conn-spec config)]
+      (let [scheduler (scheduler/start)]
+        (archiver/start config scheduler db-pool)
+        (web/start-webserver config
+                             db-pool
+                             (routes/all-routes (queued-data-sink scheduler db-pool)))))))
+

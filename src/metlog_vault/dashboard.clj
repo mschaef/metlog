@@ -121,7 +121,6 @@
        (drop-nth index (:definition (get-dashboard dashboard-id)))))
     (success)))
 
-
 (defn- ensure-dashboard-id-by-name [ dashboard-name ]
   (or
    (:dashboard_id
@@ -150,6 +149,9 @@
 
     (POST "/delete" [ ]
       (delete-dashboard dashboard-id))
+
+   (POST "/add-series" req
+     (add-dashboard-series dashboard-id req))
 
     (POST "/delete-by-index/:index" req
       (delete-dashboard-series-by-index dashboard-id req))))

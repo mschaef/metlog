@@ -159,13 +159,16 @@
   (doseq [ [ poll-interval sensors ] (group-by :poll-interval (all-sensors))]
     (log/info "Scheduling poll job @" poll-interval "msec. for" (map :sensor-name sensors))
     (at-at/every poll-interval
-                 (exception-barrier #(poll-sensors sensors) (str "poller-" poll-interval))
+                 #(with-exception-barrier (str "poller-" poll-interval)
+                    (poll-sensors sensors))
                  my-pool)))
 
 (defn- start-vault-update [ config ]
   (log/info "Starting vault update, period:" (:vault-update-interval-sec (:agent config)) "sec.")
   (at-at/every (seconds (:vault-update-interval-sec (:agent config)))
-               (exception-barrier (partial update-vault config) "vault-update") my-pool))
+               #(with-exception-barrier "vault-update"
+                  (partial update-vault config))
+               my-pool))
 
 (defn- maybe-load-sensor-file [ filename ]
   (binding [ *ns* (find-ns 'metlog-agent.sensor)]
