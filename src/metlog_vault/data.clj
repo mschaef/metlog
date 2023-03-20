@@ -39,12 +39,12 @@
 (def latest-sample-times (atom {}))
 
 (defn delete-old-samples [ series-id archive-time ]
-  (query/delete-old-samples! {:seried_id series-id
+  (query/delete-old-samples! {:series_id series-id
                               :archive_time archive-time}
                              { :connection (current-db-connection) }))
 
 (defn archive-old-samples [ series-id archive-time ]
-  (query/archive-old-samples! {:seried_id series-id
+  (query/archive-old-samples! {:series_id series-id
                                :archive_time archive-time}
                               { :connection (current-db-connection) }))
 
