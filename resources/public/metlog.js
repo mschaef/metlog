@@ -622,6 +622,7 @@ function initializePlots() {
     });
 
     updatePollData();
+    updatePlots();
 }
 
 document.addEventListener("turbo:render", initializePlots);
