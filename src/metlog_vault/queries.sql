@@ -1,6 +1,7 @@
 -- name: get-all-series
 SELECT series_id, series_name
   FROM series
+ ORDER BY series_name
 
 -- name: get-series-id
 SELECT series_id
