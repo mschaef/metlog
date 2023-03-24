@@ -470,7 +470,7 @@ function drawYGrid(ctx, w, h, yRange) {
             y -= yInterval;
         }
     } else {
-        var y = yRange.min;
+        var y = Math.ceil(yRange.min / yInterval) * yInterval;
         while(y < yRange.max) {
             lineYs.push(y);
             y += yInterval;
@@ -614,7 +614,6 @@ window.addEventListener('resize', () => {
 });
 
 function initializePlots() {
-
     setupPlotCanvases();
     setupQueryWindow();
 
