@@ -119,7 +119,9 @@ function combineSeriesData(sA, sB) {
 }
 
 
-function addPollSeries(seriesName) {
+function addPollSeries(seriesDefn) {
+    const seriesName = seriesDefn["series-name"];
+
     if (seriesData[seriesName]) {
         return;
     }
@@ -520,7 +522,15 @@ function drawPlot(ctx, w, h, seriesName, beginT, endT) {
     });
 }
 
-function updatePlot(canvas, seriesName, beginT, endT)  {
+function canvasSeriesDefn(canvas) {
+    return JSON.parse(canvas.dataset['series-defn']);
+}
+
+function updatePlot(canvas, beginT, endT)  {
+    const seriesDefn = canvasSeriesDefn(canvas);
+
+    const seriesName = seriesDefn["series-name"];
+
     const dpr = window.devicePixelRatio;
     const width = canvas.width / dpr;
     const height = canvas.height / dpr;
@@ -557,7 +567,7 @@ function updatePlots() {
     const beginT = endT - queryWindowMsec;
 
     foreach_elem(".series-plot", (canvas) => {
-        updatePlot(canvas, canvas.dataset['series-name'], beginT, endT);
+        updatePlot(canvas, beginT, endT);
     });
 }
 
@@ -618,7 +628,7 @@ function initializePlots() {
     setupQueryWindow();
 
     foreach_elem(".series-plot", (canvas) => {
-        addPollSeries(canvas.dataset['series-name']);
+        addPollSeries(canvasSeriesDefn(canvas));
     });
 
     updatePollData();
@@ -657,7 +667,9 @@ function onAddSeriesChange(event) {
     }
 
     doPost(window.location.pathname, {
-        "new-definition": JSON.stringify(dashboard.concat(newSeries))
+        "new-definition": JSON.stringify(dashboard.concat(({
+            "series-name": newSeries
+        })))
     });
 }
 

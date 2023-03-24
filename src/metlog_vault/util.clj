@@ -23,7 +23,7 @@
 (defn try-parse-json
   ([ str default-value ]
    (try
-     (json/read-str str)
+     (json/read-str str :key-fn keyword)
      (catch Exception ex
        default-value)))
 

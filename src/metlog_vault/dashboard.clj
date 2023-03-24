@@ -75,15 +75,22 @@
 (defn- dashboard-link [ id & others ]
   (apply str "/dashboard/" (hashid/encode :db id) others))
 
-(defn- series-pane [ dashboard-id index series-name ]
-  [:div.series-pane
-   [:div.series-pane-header
-    [:span.series-name series-name]
-    (hiccup-form/submit-button {:class "close-button"
-                                :onclick (str "window._metlog.onDeleteSeries(" index ");")}
-                               "Close")]
-   [:div.tsplot-container
-    [:canvas.series-plot {:data-series-name series-name}]]])
+(defn- normalize-series-defn [ series-defn ]
+  (if (string? series-defn)
+    {:series-name series-defn}
+    series-defn))
+
+(defn- series-pane [ dashboard-id index series-defn ]
+  (let [series-defn (normalize-series-defn series-defn)
+         { :keys [ series-name ] } series-defn]
+    [:div.series-pane
+     [:div.series-pane-header
+      [:span.series-name series-name]
+      (hiccup-form/submit-button {:class "close-button"
+                                  :onclick (str "window._metlog.onDeleteSeries(" index ");")}
+                                 "Close")]
+     [:div.tsplot-container
+      [:canvas.series-plot {:data-series-defn (json/write-str series-defn)}]]]))
 
 (defn- get-dashboard [ id ]
   (if-let [ dashboard (data/get-dashboard-by-id id)]
@@ -93,13 +100,13 @@
 
 (defn- render-dashboard [ id req ]
   (when-let [ dashboard (get-dashboard id)]
-    (let [ displayed-series (:definition dashboard)]
+    (let [ definition (:definition dashboard)]
       (render-page
        [:script "var dashboard = " (json/write-str (:definition dashboard)) ";"]
        [:div.dashboard
         (header id (:query-window (:params req)))
         [:div.series-list
-         (map-indexed (partial series-pane (:dashboard_id dashboard)) displayed-series)
+         (map-indexed (partial series-pane (:dashboard_id dashboard)) definition)
          (add-series-pane)]]))))
 
 (defn- update-dashboard [ dashboard-id req ]
