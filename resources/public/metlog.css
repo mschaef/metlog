@@ -145,10 +145,34 @@ div#query-window {
     line-height: 0px;
 }
 
-.series-pane .add-series-block {
-    height: 150px;
-
+.add-series-body {
     display: flex;
     justify-content: center;
     align-items: center;
+    height: 150px;
+}
+
+
+.add-series-form label {
+    display: inline-block;
+    width: 100px;
+}
+
+.add-series-form .add-series-row {
+    margin-top: 6px;
+    text-align: right;
+}
+
+.pill {
+    font-weight: normal;
+
+    margin-left: 0.25em;
+    margin-right: 0.25em;
+
+    padding-left: 0.375em;
+    padding-right: 0.375em;
+    font-size: 13px;
+
+    border-radius: 5px;
+    background: #f0f0f0;
 }

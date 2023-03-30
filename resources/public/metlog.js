@@ -287,7 +287,7 @@ function drawSeriesBackground(ctx, w, h) {
     });
 }
 
-function dataYRange(data, factor) {
+function dataYRange(data, factor, forceZero) {
     var maxV = data[0].val;
     var minV = data[0].val;
 
@@ -299,7 +299,18 @@ function dataYRange(data, factor) {
     const magnitude = Math.max(maxV - minV, factor);
     const delta = ((factor - 1) / 2) * magnitude;
 
-    return interval(minV - delta, maxV + delta);
+    minV -= delta;
+    maxV += delta;
+
+    if (forceZero && minV > 0) {
+        minV = 0;
+    }
+
+    if (forceZero && maxV < 0) {
+        maxV = 0;
+    }
+
+    return interval(minV, maxV);
 }
 
 function restrictData(data, beginT, endT) {
@@ -484,7 +495,7 @@ function drawYGrid(ctx, w, h, yRange) {
     }
 }
 
-function drawSeries(ctx, w, h, seriesName, beginT, endT) {
+function drawSeries(ctx, w, h, seriesName, forceZero, beginT, endT) {
     const series = seriesData[seriesName];
 
     if (!series || !series.samples) {
@@ -497,7 +508,7 @@ function drawSeries(ctx, w, h, seriesName, beginT, endT) {
         return;
     }
 
-    const yRange = dataYRange(samples, 1.1);
+    const yRange = dataYRange(samples, 1.1, forceZero);
 
     preserveContext(ctx, () => {
         ctx.font = "12px Arial";
@@ -508,7 +519,7 @@ function drawSeries(ctx, w, h, seriesName, beginT, endT) {
     });
 }
 
-function drawPlot(ctx, w, h, seriesName, beginT, endT) {
+function drawPlot(ctx, w, h, seriesName, forceZero, beginT, endT) {
     const pw = w - Y_AXIS_SPACE - TSPLOT_RIGHT_MARGIN;
     const ph = h - X_AXIS_SPACE;
 
@@ -517,7 +528,7 @@ function drawPlot(ctx, w, h, seriesName, beginT, endT) {
     preserveContext(ctx, () => {
         ctx.translate(Y_AXIS_SPACE, 0);
 
-        drawSeries(ctx, pw, ph, seriesName, beginT, endT);
+        drawSeries(ctx, pw, ph, seriesName, forceZero, beginT, endT);
         drawFrame(ctx, pw, ph);
     });
 }
@@ -530,6 +541,7 @@ function updatePlot(canvas, beginT, endT)  {
     const seriesDefn = canvasSeriesDefn(canvas);
 
     const seriesName = seriesDefn["series-name"];
+    const forceZero = !!seriesDefn["force-zero"];
 
     const dpr = window.devicePixelRatio;
     const width = canvas.width / dpr;
@@ -537,7 +549,7 @@ function updatePlot(canvas, beginT, endT)  {
 
     const ctx = canvas.getContext("2d");
 
-    drawPlot(ctx, width, height, seriesName, beginT, endT);
+    drawPlot(ctx, width, height, seriesName, forceZero, beginT, endT);
 }
 
 function setupCanvas(canvas) {
@@ -659,16 +671,20 @@ function onDeleteSeries(index) {
 }
 
 
-function onAddSeriesChange(event) {
-    const newSeries = event.target.value;
+function onAddSeries(event) {
+    event.preventDefault();
 
-    if (newSeries === "-") {
-        return;
-    }
+    const form = event.target.form;
+
+    const formData = new FormData(form);
+
+    const seriesName = formData.get("series-name");
+    const forceZero = formData.get("force-zero") === "Y";
 
     doPost(window.location.pathname, {
         "new-definition": JSON.stringify(dashboard.concat(({
-            "series-name": newSeries
+            "series-name": seriesName,
+            "force-zero": forceZero
         })))
     });
 }
@@ -693,7 +709,7 @@ function onDashboardSelectChange(event) {
 
 window._metlog = {
     addDashboard,
-    onAddSeriesChange,
+    onAddSeries,
     onDashboardSelectChange,
     onDeleteSeries,
     doPost,

@@ -14,11 +14,12 @@
   (str "/" (get-version) "/" path))
 
 (defn- post-button [ attrs body ]
-  (let [target (:target attrs)]
+  (let [{:keys [ target next-url ]} attrs]
     (hiccup-form/submit-button
      (cond-> {:onclick (if-let [next-url (:next-url attrs)]
                          (str "window._metlog.doPost('" target "'," (json/write-str (get attrs :args {})) ", '" next-url "')")
                          (str "window._metlog.doPost('" target "'," (json/write-str (get attrs :args {})) ")"))}
+       (:class attrs) (merge {:class (:class attrs)})
        (:shortcut-key attrs) (merge {:data-shortcut-key (:shortcut-key attrs)
                                      :data-target target}))
      body)))
@@ -44,13 +45,13 @@
          (data/get-dashboard-names))
     (hashid/encode :db dashboard-id))])
 
-(defn- series-select [ ]
-  [:select {:id "new-series" :name "new-series"
-            :onchange "window._metlog.onAddSeriesChange(event)"}
+(defn- series-select [ id ]
+  [:select {:id id
+            :name id}
    (hiccup-form/select-options
     (map (fn [ series-name ]
            [ series-name series-name ])
-         (cons "-" (data/get-series-names))))])
+         (data/get-series-names)))])
 
 (defn- header [ dashboard-id query-window ]
   [:div.header
@@ -63,29 +64,47 @@
                  "Delete Dashboard")]
 
    [:div.header-element
-    (hiccup-form/text-field { :id "query-window" :maxlength "8" } "query-window" (or query-window "1d"))]])
-
-(defn- add-series-pane [ ]
-  [:div.series-pane
-   [:div.series-pane-header "&nbsp;"]
-   [:div.add-series-block
-    "Add Series: "
-    (series-select)]])
+    (hiccup-form/text-field { :id "query-window" :maxlength "8" }
+                            "query-window" (or query-window "1d"))]])
 
 (defn- dashboard-link [ id & others ]
   (apply str "/dashboard/" (hashid/encode :db id) others))
 
+(defn- add-series-pane [ id ]
+  [:div.series-pane
+   [:div.series-pane-header
+    [:span.series-name "Add Series"]]
+   [:div.add-series-body
+    (hiccup-form/form-to
+     {:class "add-series-form"} [:post (dashboard-link id)]
+     [:div
+      [:label {:for "series-name"} "Series Name: "]
+      (series-select "series-name")]
+
+     [:div
+      [:label {:for "force-zero"} "Force Zero:"]
+      (hiccup-form/check-box "force-zero" false "Y")]
+
+     [:div.add-series-row
+      (hiccup-form/submit-button {:class "add-series-button"
+                                  :onclick (str "window._metlog.onAddSeries(event)")}
+                                 "Add Series")])]])
+
+
 (defn- normalize-series-defn [ series-defn ]
   (if (string? series-defn)
-    {:series-name series-defn}
+    {:series-name series-defn
+     :force-zero false}
     series-defn))
 
 (defn- series-pane [ dashboard-id index series-defn ]
   (let [series-defn (normalize-series-defn series-defn)
-         { :keys [ series-name ] } series-defn]
+        { :keys [ series-name force-zero ] } series-defn]
     [:div.series-pane
      [:div.series-pane-header
-      [:span.series-name series-name]
+      [:span.series-name series-name
+       (when force-zero
+         [:span.pill "zero"])]
       (hiccup-form/submit-button {:class "close-button"
                                   :onclick (str "window._metlog.onDeleteSeries(" index ");")}
                                  "Close")]
@@ -107,7 +126,7 @@
         (header id (:query-window (:params req)))
         [:div.series-list
          (map-indexed (partial series-pane (:dashboard_id dashboard)) definition)
-         (add-series-pane)]]))))
+         (add-series-pane id)]]))))
 
 (defn- update-dashboard [ dashboard-id req ]
   (let [ new-definition (or (try-parse-json (:new-definition (:params req)))
