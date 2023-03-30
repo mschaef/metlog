@@ -296,19 +296,20 @@ function dataYRange(data, factor, forceZero) {
         minV = Math.min(data[ii].val, minV);
     }
 
+    if (forceZero && minV > 0) {
+        minV = -Number.EPSILON;
+    }
+
+    if (forceZero && maxV < 0) {
+        maxV = Number.EPSILON;
+    }
+
     const magnitude = Math.max(maxV - minV, factor);
     const delta = ((factor - 1) / 2) * magnitude;
 
     minV -= delta;
     maxV += delta;
 
-    if (forceZero && minV > 0) {
-        minV = 0;
-    }
-
-    if (forceZero && maxV < 0) {
-        maxV = 0;
-    }
 
     return interval(minV, maxV);
 }
