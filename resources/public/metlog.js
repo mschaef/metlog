@@ -187,12 +187,12 @@ function pixelSnap(t) {
     return 0.5 + Math.floor(t);
 }
 
-function makeNumericIntervals(minMag, maxMag, scales) {
+function makeNumericIntervals(minMag, maxMag, base, scales) {
     const intervals = [];
 
     for(var mag = minMag; mag <= maxMag; mag++) {
         for(const scale of scales) {
-            intervals.push(Math.pow(10, mag) * scale);
+            intervals.push(Math.pow(base, mag) * scale);
         }
     }
 
@@ -206,7 +206,8 @@ const Y_AXIS_SPACE = 50;
 const PIXELS_PER_X_LABEL = 100;
 const PIXELS_PER_Y_LABEL = 20;
 
-const Y_TICK_INTERVALS = makeNumericIntervals(-12, 13, [1, 2, 5]);
+const Y2_TICK_INTERVALS = makeNumericIntervals(0, 32, 2, [1]);
+const Y10_TICK_INTERVALS = makeNumericIntervals(-12, 13, 10, [1, 2, 5]);
 
 const X_TICK_INTERVALS = [
     seconds(1), seconds(2), seconds(5), seconds(10), seconds(15), seconds(30),
@@ -361,22 +362,35 @@ function formatXLabel(val) {
     return MM + "-" + dd + " " + hh + ":" + mm;
 }
 
-function formatYLabel(val) {
+function formatYLabel(val, base2) {
     var suffix = "";
     const mag = Math.abs(val);
 
-    if (mag > 1000000000) {
-        suffix = "G";
-        val = val / 1000000000;
-    } else if (mag > 1000000) {
-        suffix = "M";
-        val = val / 1000000;
-    } else if (mag > 1000) {
-        suffix = "K";
-        val = val / 1000;
+    if (base2) {
+        if (mag > 1024 * 1024 * 1024) {
+            suffix = "Gi";
+            val = val / (1024 * 1024 * 1024);
+        } else if (mag > 1024 * 1024) {
+            suffix = "Mi";
+            val = val / (1024 * 1024);
+        } else if (mag > 1024) {
+            suffix = "Ki";
+            val = val / 1024;
+        }
+    } else {
+        if (mag > 1000000000) {
+            suffix = "G";
+            val = val / 1000000000;
+        } else if (mag > 1000000) {
+            suffix = "M";
+            val = val / 1000000;
+        } else if (mag > 1000) {
+            suffix = "K";
+            val = val / 1000;
+        }
     }
 
-    return val.toFixed(1) + suffix;
+    return val.toFixed(base2 ? 0 : 1) + suffix;
 }
 
 function largestYRangeMagnitude(yRange) {
@@ -400,17 +414,19 @@ function largestYRangeMagnitude(yRange) {
     }
 }
 
-function findYGridTickInterval(h, yRange) {
+function findYGridTickInterval(h, yRange, base2YAxis) {
     const { t, mag } = largestYRangeMagnitude(yRange);
     const availPixels = h * t;
 
-    for(var ii = 0; ii < Y_TICK_INTERVALS.length; ii++) {
-        if (PIXELS_PER_Y_LABEL * (mag / Y_TICK_INTERVALS[ii]) < availPixels)  {
-            return Y_TICK_INTERVALS[ii];
+    const yTickIntervals = base2YAxis ? Y2_TICK_INTERVALS : Y10_TICK_INTERVALS;
+
+    for(var ii = 0; ii < yTickIntervals.length; ii++) {
+        if (PIXELS_PER_Y_LABEL * (mag / yTickIntervals[ii]) < availPixels)  {
+            return yTickIntervals[ii];
         }
     }
 
-    return Y_TICK_INTERVALS[Y_TICK_INTERVALS.length - 1];
+    return yTickIntervals[yTickIntervals.length - 1];
 }
 
 function drawXGridLine(ctx, h, x, value) {
@@ -429,9 +445,9 @@ function drawYLabel(ctx, text, x, y) {
     });
 }
 
-function drawYGridLine(ctx, w, y, value, emphasis) {
+function drawYGridLine(ctx, w, y, value, emphasis, base2) {
     preserveContext(ctx, () => {
-        drawYLabel(ctx, formatYLabel(value), -2, y);
+        drawYLabel(ctx, formatYLabel(value, base2), -2, y);
         setStrokeGrid(ctx, emphasis);
         drawLine(ctx, 0, y, w, y);
     });
@@ -463,8 +479,8 @@ function drawXGrid(ctx, w, h, xRange) {
     }
 }
 
-function drawYGrid(ctx, w, h, yRange) {
-    const yInterval = findYGridTickInterval(h, yRange);
+function drawYGrid(ctx, w, h, yRange, base2YAxis) {
+    const yInterval = findYGridTickInterval(h, yRange, base2YAxis);
     const ty = translateFn(yRange, h, true);
 
     let lineYs = [];
@@ -492,11 +508,11 @@ function drawYGrid(ctx, w, h, yRange) {
     }
 
     for(var gy of lineYs) {
-        drawYGridLine(ctx, w, pixelSnap(ty(gy)), gy, gy == 0);
+        drawYGridLine(ctx, w, pixelSnap(ty(gy)), gy, gy == 0, base2YAxis);
     }
 }
 
-function drawSeries(ctx, w, h, seriesName, forceZero, beginT, endT) {
+function drawSeries(ctx, w, h, seriesName, forceZero, base2YAxis, beginT, endT) {
     const series = seriesData[seriesName];
 
     if (!series || !series.samples) {
@@ -514,13 +530,13 @@ function drawSeries(ctx, w, h, seriesName, forceZero, beginT, endT) {
     preserveContext(ctx, () => {
         ctx.font = "12px Arial";
         drawXGrid(ctx, w, h, interval(beginT, endT));
-        drawYGrid(ctx, w, h, yRange);
+        drawYGrid(ctx, w, h, yRange, base2YAxis);
         clipRect(ctx, 0, 0, w, h);
         drawSeriesLine(ctx, samples, interval(beginT, endT), yRange, w, h);
     });
 }
 
-function drawPlot(ctx, w, h, seriesName, forceZero, beginT, endT) {
+function drawPlot(ctx, w, h, seriesName, forceZero, base2YAxis, beginT, endT) {
     const pw = w - Y_AXIS_SPACE - TSPLOT_RIGHT_MARGIN;
     const ph = h - X_AXIS_SPACE;
 
@@ -529,7 +545,7 @@ function drawPlot(ctx, w, h, seriesName, forceZero, beginT, endT) {
     preserveContext(ctx, () => {
         ctx.translate(Y_AXIS_SPACE, 0);
 
-        drawSeries(ctx, pw, ph, seriesName, forceZero, beginT, endT);
+        drawSeries(ctx, pw, ph, seriesName, forceZero, base2YAxis, beginT, endT);
         drawFrame(ctx, pw, ph);
     });
 }
@@ -543,6 +559,7 @@ function updatePlot(canvas, beginT, endT)  {
 
     const seriesName = seriesDefn["series-name"];
     const forceZero = !!seriesDefn["force-zero"];
+    const base2YAxis = !!seriesDefn["base-2-y-axis"];
 
     const dpr = window.devicePixelRatio;
     const width = canvas.width / dpr;
@@ -550,7 +567,7 @@ function updatePlot(canvas, beginT, endT)  {
 
     const ctx = canvas.getContext("2d");
 
-    drawPlot(ctx, width, height, seriesName, forceZero, beginT, endT);
+    drawPlot(ctx, width, height, seriesName, forceZero, base2YAxis, beginT, endT);
 }
 
 function setupCanvas(canvas) {
@@ -681,11 +698,13 @@ function onAddSeries(event) {
 
     const seriesName = formData.get("series-name");
     const forceZero = formData.get("force-zero") === "Y";
+    const base2YAxis = formData.get("base-2-y-axis") === "Y";
 
     doPost(window.location.pathname, {
         "new-definition": JSON.stringify(dashboard.concat(({
             "series-name": seriesName,
-            "force-zero": forceZero
+            "force-zero": forceZero,
+            "base-2-y-axis": base2YAxis
         })))
     });
 }

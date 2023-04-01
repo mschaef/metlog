@@ -85,6 +85,10 @@
       [:label {:for "force-zero"} "Force Zero:"]
       (hiccup-form/check-box "force-zero" false "Y")]
 
+     [:div
+      [:label {:for "force-zero"} "Base 2 Y-Axis:"]
+      (hiccup-form/check-box "base-2-y-axis" false "Y")]
+
      [:div.add-series-row
       (hiccup-form/submit-button {:class "add-series-button"
                                   :onclick (str "window._metlog.onAddSeries(event)")}
@@ -94,7 +98,8 @@
 (defn- normalize-series-defn [ series-defn ]
   (if (string? series-defn)
     {:series-name series-defn
-     :force-zero false}
+     :force-zero false
+     :base-2-y-axis false}
     series-defn))
 
 (defn- series-pane [ dashboard-id index series-defn ]
