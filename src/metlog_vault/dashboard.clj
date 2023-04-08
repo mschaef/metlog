@@ -1,6 +1,7 @@
 (ns metlog-vault.dashboard
   (:use compojure.core
         playbook.core
+        playbook.web
         metlog-vault.util)
   (:require [taoensso.timbre :as log]
             [hiccup.page :as hiccup-page]

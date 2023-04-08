@@ -20,23 +20,5 @@
         reader (transit/reader in :json)]
     (transit/read reader)))
 
-(defn try-parse-json
-  ([ str default-value ]
-   (try
-     (json/read-str str :key-fn keyword)
-     (catch Exception ex
-       default-value)))
-
-  ([ str ]
-   (try-parse-json str false)))
-
 (defn success []
   (ring/response "ok"))
-
-(defn drop-nth [n coll]
-  (keep-indexed #(if (not= %1 n) %2) coll))
-
-(defmacro when-let-route [ bindings & route-table ]
-  `(if-let ~bindings
-     (routes ~@route-table)
-     (routes)))

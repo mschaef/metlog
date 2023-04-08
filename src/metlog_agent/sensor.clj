@@ -6,3 +6,8 @@
             [clj-http.client :as http]
             [clj-time.format :as time-format]
             [clj-time.coerce :as time-coerce]))
+
+(defn ensure-number [ val ]
+  (if (number? val)
+    val
+    (try-parse-double val)))

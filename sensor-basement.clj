@@ -11,10 +11,9 @@
        sensor-val))
 
 (defn request-json [ url ]
-  (let [response (http/get url)
-        body (safe-json-read-str (:body response))]
+  (let [response (http/get url)]
     (and (= 200 (:status response))
-         body)))
+         (try-parse-json (:body response)))))
 
 (defn request-text [ url ]
   (let [response (http/get url)]

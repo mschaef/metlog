@@ -1,21 +1,14 @@
 (def vault-url "http://metrics.mschaef.com/data")
 
 (defn request-json [ url ]
-  (let [response (http/get url)
-        body (safe-json-read-str (:body response))]
+  (let [response (http/get url)]
     (and (= 200 (:status response))
-         body)))
+         (try-parse-json (:body response)))))
 
 (def darksky-api-key "587a8fa1a383bafeeef406acf12fb98a")
 
 (def darksky-19096 "39.9996,-75.2730")
 (def darksky-08226 "39.2776,-74.5746")
-
-(defn request-json [ url ]
-  (let [response (http/get url)
-        body (safe-json-read-str (:body response))]
-    (and (= 200 (:status response))
-         body)))
 
 (defn read-darksky [ key location ]
   (let [body (request-json (str "https://api.darksky.net/forecast/" key "/" location "?exclude=minutely,hourly,daily,alerts,flags"))]
