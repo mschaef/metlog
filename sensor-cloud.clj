@@ -1,37 +1,10 @@
 (def vault-url "http://metrics.mschaef.com/data")
 
 (defn request-json [ url ]
-  (let [response (http/get url)]
+  (let [response (http/get url)
+        body (safe-json-read-str (:body response))]
     (and (= 200 (:status response))
-         (try-parse-json (:body response)))))
-
-(def darksky-api-key "587a8fa1a383bafeeef406acf12fb98a")
-
-(def darksky-19096 "39.9996,-75.2730")
-(def darksky-08226 "39.2776,-74.5746")
-
-(defn read-darksky [ key location ]
-  (let [body (request-json (str "https://api.darksky.net/forecast/" key "/" location "?exclude=minutely,hourly,daily,alerts,flags"))]
-    (and body
-         (let [obv (get body "currently")]
-           {:temp-f (ensure-number (get obv "temperature" false))            
-            :apparent-temp-f (ensure-number (get obv "apparentTemperature" false))
-            :dew-point-f (ensure-number (get obv "dewPoint" false))
-            :humidity (ensure-number (get obv "humidity" false))
-            :ozone (ensure-number (get obv "ozone" false))
-            :precip-intensity (ensure-number (get obv "precipIntensity" false))
-            :precip-probability (ensure-number (get obv "precipProbability" false))
-            :pressure (ensure-number (get obv "pressure" false))
-            :uv-index (ensure-number (get obv "uvIndex" false))
-            :wind-bearing (ensure-number (get obv "windBearing" false))
-            :wind-gust (ensure-number (get obv "windGust" false))
-            :wind-speed (ensure-number (get obv "windSpeed" false))}))))
-
-(defsensor "darksky-19096" {:poll-interval (minutes 15)}
-  (read-darksky darksky-api-key darksky-19096))
-
-(defsensor "darksky-08226" {:poll-interval (minutes 15)}
-  (read-darksky darksky-api-key darksky-08226))
+         body)))
 
 ;;; USGS Data
 
@@ -60,7 +33,7 @@
 
 (def variable-names
   {45807042 :water-temp
-   45807202 :water-level})
+   52333388 :water-level})
 
 (defn to-timestamped [ var ]
   (timestamped-value (:t var) { (variable-names (:variable-id var)) (:val var)}))
@@ -71,5 +44,8 @@
 (defsensor usgs-oc-bay  {:poll-interval (minutes 60)}
   (vec (get-usgs-sensor-data)))
 
+(defsensor mschaef-site-cpu {:poll-interval (minutes 1)}
+  (.getSystemCpuLoad (java.lang.management.ManagementFactory/getOperatingSystemMXBean)))
 
-
+(defsensor mschaef-site-free-disk {:poll-interval (minutes 5)}
+  (.getFreeSpace (java.io.File. "/")))
