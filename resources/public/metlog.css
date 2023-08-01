@@ -14,19 +14,14 @@ input {
     font-size: 80%;
 }
 
-@media only screen and (min-device-width : 960px) {
+body {
+    font-size: 32pt;
+}
+
+@media only screen and (min-device-width : 640px) {
     body {
         font-size: 12px;
     }
-
-    input {
-        font-size: 80%;
-    }
-}
-
-#metlog {
-    height: inherit;
-    overflow-y: hidden;
 }
 
 .dashboard {
@@ -60,26 +55,40 @@ input {
     padding: 0.33em;
 
     box-sizing: border-box;
-    width:100%
 }
 
-.header .header-element {
-    margin-right: 5px;
+.header-element {
+    display: inline-flex;
+    align-items: center;
+    flex: 0;
 }
 
-.header span#app-name {
+.header-element select {
+    margin-right: 8px;
+}
+
+.header-element input {
+    margin-right: 8px;
+}
+
+
+.header-element.manage-dashboard {
+    flex: 1;
+}
+
+.header .header-element .query-window {
+    width: 100px;
+}
+
+.header .header-element.app-name{
     font-weight: bold;
     padding-right: 0.66em;
     flex: 0 0 auto;
 }
 
-div#add-series {
+.header .header-element.manage-dashboard {
     flex: 1 0 auto;
     padding-right: 0.33em;
-}
-
-div#query-window {
-    flex: 0 0 100px;
 }
 
 .header input.uncommitted.invalid {
@@ -104,11 +113,14 @@ div#query-window {
     background-color: white;
 }
 
-@media only screen and (min-device-width : 960px) {
+.series-pane {
+    border-bottom: none;
+    box-shadow: 1px 1px 1px 0px rgba(0,0,0,0.2);
+}
+
+@media only screen and (min-device-width : 640px) {
     .series-pane {
-        border-bottom: none;
         margin: 0.66em;
-        box-shadow: 1px 1px 1px 0px rgba(0,0,0,0.2);
     }
 }
 
@@ -137,10 +149,6 @@ div#query-window {
     color: blue;
 }
 
-.header-element {
-    display: inline-block;
-}
-
 .tsplot-container {
     line-height: 0px;
 }
@@ -149,18 +157,12 @@ div#query-window {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 150px;
 }
 
-
-.add-series-form label {
-    display: inline-block;
-    width: 100px;
-}
-
-.add-series-form .add-series-row {
-    margin-top: 6px;
-    text-align: right;
+@media only screen and (min-device-width : 640px) {
+    .add-series-body {
+        height: 150px;
+    }
 }
 
 .pill {
@@ -171,8 +173,36 @@ div#query-window {
 
     padding-left: 0.375em;
     padding-right: 0.375em;
-    font-size: 13px;
+    font-size: 36px;
 
     border-radius: 5px;
     background: #f0f0f0;
+}
+
+@media only screen and (min-device-width : 640px) {
+    .pill {
+        font-size: 11px;
+    }
+}
+
+.add-series-form {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.add-series-row {
+    margin-top: 3px;
+    margin-bottom: 3px;
+}
+
+.add-series-form label {
+    margin-right: 2px;
+}
+
+.add-series-form .submit-block {
+    margin-left: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: end;
 }

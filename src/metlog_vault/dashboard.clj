@@ -30,7 +30,8 @@
    [:html
     [:head {:name "viewport"
            ;; user-scalable=no fails to work on iOS n where n > 10
-            :content "width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0"}
+            :content "width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0"
+            }
      (hiccup-page/include-css (resource "metlog.css"))
      [:script {:type "module" :src (resource "metlog.js")}]
      [:title "Metlog - " (get-version)]]
@@ -56,9 +57,10 @@
 
 (defn- header [ dashboard-id query-window ]
   [:div.header
-   [:span#app-name "Metlog"]
+   [:div.header-element.app-name
+    "Metlog"]
 
-   [:div#add-series.header-element
+   [:div.header-element.manage-dashboard
     (dashboard-select dashboard-id)
     (hiccup-form/submit-button {:onclick "window._metlog.addDashboard();"} "Add Dashboard")
     (post-button {:target (str "/dashboard/" (hashid/encode :db dashboard-id) "/delete")}
@@ -79,18 +81,18 @@
     (hiccup-form/form-to
      {:class "add-series-form"} [:post (dashboard-link id)]
      [:div
-      [:label {:for "series-name"} "Series Name: "]
-      (series-select "series-name")]
+      [:div.add-series-row
+       [:label {:for "series-name"} "Series Name: "]
+       (series-select "series-name")]
 
-     [:div
-      [:label {:for "force-zero"} "Force Zero:"]
-      (hiccup-form/check-box "force-zero" false "Y")]
+      [:div.add-series-row
+       [:label {:for "force-zero"} "Force Zero:"]
+       (hiccup-form/check-box "force-zero" false "Y")]
 
-     [:div
-      [:label {:for "force-zero"} "Base 2 Y-Axis:"]
-      (hiccup-form/check-box "base-2-y-axis" false "Y")]
-
-     [:div.add-series-row
+      [:div.add-series-row
+       [:label {:for "force-zero"} "Base 2 Y-Axis:"]
+       (hiccup-form/check-box "base-2-y-axis" false "Y")]]
+     [:div.submit-block
       (hiccup-form/submit-button {:class "add-series-button"
                                   :onclick (str "window._metlog.onAddSeries(event)")}
                                  "Add Series")])]])

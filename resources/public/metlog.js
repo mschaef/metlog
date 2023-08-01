@@ -551,7 +551,7 @@ function drawPlot(ctx, w, h, seriesName, forceZero, base2YAxis, beginT, endT) {
 }
 
 function canvasSeriesDefn(canvas) {
-    return JSON.parse(canvas.dataset['series-defn']);
+    return JSON.parse(canvas.dataset['seriesDefn']);
 }
 
 function updatePlot(canvas, beginT, endT)  {
