@@ -201,7 +201,7 @@ function makeNumericIntervals(minMag, maxMag, base, scales) {
 
 const X_AXIS_SPACE = 20;
 const TSPLOT_RIGHT_MARGIN = 5;
-const Y_AXIS_SPACE = 50;
+const Y_AXIS_SPACE = 60;
 
 const PIXELS_PER_X_LABEL = 100;
 const PIXELS_PER_Y_LABEL = 20;
@@ -367,30 +367,30 @@ function formatYLabel(val, base2) {
     const mag = Math.abs(val);
 
     if (base2) {
-        if (mag > 1024 * 1024 * 1024) {
+        if (mag >= 1024 * 1024 * 1024) {
             suffix = "Gi";
             val = val / (1024 * 1024 * 1024);
-        } else if (mag > 1024 * 1024) {
+        } else if (mag >= 1024 * 1024) {
             suffix = "Mi";
             val = val / (1024 * 1024);
-        } else if (mag > 1024) {
+        } else if (mag >= 1024) {
             suffix = "Ki";
             val = val / 1024;
         }
     } else {
-        if (mag > 1000000000) {
+        if (mag >= 1000000000) {
             suffix = "G";
             val = val / 1000000000;
-        } else if (mag > 1000000) {
+        } else if (mag >= 1000000) {
             suffix = "M";
             val = val / 1000000;
-        } else if (mag > 1000) {
+        } else if (mag >= 1000) {
             suffix = "K";
             val = val / 1000;
         }
     }
 
-    return val.toFixed(base2 ? 0 : 1) + suffix;
+    return val.toFixed(1) + suffix;
 }
 
 function largestYRangeMagnitude(yRange) {
