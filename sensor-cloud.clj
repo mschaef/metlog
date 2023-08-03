@@ -1,15 +1,9 @@
 (def vault-url "http://metrics.mschaef.com/data")
 
-(defn request-json [ url ]
-  (let [response (http/get url)
-        body (safe-json-read-str (:body response))]
-    (and (= 200 (:status response))
-         body)))
-
 ;;; USGS Data
 
 (defn get-usgs-data []
-  (if-let [data (request-json "https://waterservices.usgs.gov/nwis/iv/?site=01411320&format=json&period=P1D&indent=on")]
+  (if-let [data (http-request-json "https://waterservices.usgs.gov/nwis/iv/?site=01411320&format=json&period=P1D&indent=on")]
     (get-in data ["value" "timeSeries"])))
 
 (defn get-usgs-value [ value ]
@@ -49,3 +43,4 @@
 
 (defsensor mschaef-site-free-disk {:poll-interval (minutes 5)}
   (.getFreeSpace (java.io.File. "/")))
+

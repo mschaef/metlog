@@ -11,3 +11,19 @@
   (if (number? val)
     val
     (try-parse-double val)))
+
+(defn constrain-sensor-range [ sensor-val low high ]
+  (and sensor-val
+       (>= sensor-val low)
+       (<= sensor-val high)
+       sensor-val))
+
+(defn http-request-json [ url ]
+  (let [response (http/get url)]
+    (and (= 200 (:status response))
+         (try-parse-json (:body response)))))
+
+(defn http-request-text [ url ]
+  (let [response (http/get url)]
+    (and (= 200 (:status response))
+         (:body response))))

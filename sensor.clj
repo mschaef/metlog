@@ -68,14 +68,8 @@
 (defsensor timestamped {:poll-interval (seconds 10)}
   (timestamped-value (java.util.Date.) (Math/random)))
 
-
-(defn request-json [ url ]
-  (let [response (http/get url)]
-    (and (= 200 (:status response))
-         (try-parse-json (:body response)))))
-
 (defn get-usgs-data []
-  (if-let [data (request-json "https://waterservices.usgs.gov/nwis/iv/?site=01411320&format=json&period=P1D&indent=on")]
+  (if-let [data (http-request-json "https://waterservices.usgs.gov/nwis/iv/?site=01411320&format=json&period=P1D&indent=on")]
     (get-in data ["value" "timeSeries"])))
 
 (defn get-usgs-value [ value ]

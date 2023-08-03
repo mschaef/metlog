@@ -10,19 +10,9 @@
        (<= sensor-val high)
        sensor-val))
 
-(defn request-json [ url ]
-  (let [response (http/get url)]
-    (and (= 200 (:status response))
-         (try-parse-json (:body response)))))
-
-(defn request-text [ url ]
-  (let [response (http/get url)]
-    (and (= 200 (:status response))
-         (:body response))))
-
 (defn measure-http-get [ url ]
   (let [begin-t (System/currentTimeMillis)
-        body (request-text url)]
+        body (http-request-text url)]
     (and body
          {:bytes (.length body)
           :duration-msec (- (System/currentTimeMillis) begin-t)})))
@@ -40,17 +30,17 @@
   (read-w1-sensor-at-path "/sys/bus/w1/devices/28-0000068f415f/w1_slave"))
 
 (defsensor "phl-downstairs-humidity" {:poll-interval (minutes 1)}
-   (let [body (request-json "http://10.0.0.150/tstat/humidity")]
+   (let [body (http-request-json "http://10.0.0.150/tstat/humidity")]
      (and body
         (ensure-number (get body "humidity" false)))))
 
 (defsensor "phl-upstairs-humidity" {:poll-interval (minutes 1)}
-   (let [body (request-json "http://10.0.0.151/tstat/humidity")]
+   (let [body (http-request-json "http://10.0.0.151/tstat/humidity")]
      (and body
         (ensure-number (get body "humidity" false)))))
 
 (defn poll-ct-80 [ url ]
-  (let [body (request-json url)]
+  (let [body (http-request-json url)]
     (and body
          (->
           {:temp-f (constrain-sensor-range (ensure-number (get body "temp" false)) 20 120)
