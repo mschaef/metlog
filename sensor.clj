@@ -109,37 +109,6 @@
     (throw (Exception. "test failure"))
     (Math/random)))
 
-(defn delta-sensor [ sensor-fn combine-fn ]
-  (let [ prev (atom nil) ]
-    (fn []
-      (let [sensor-current {:t (java.util.Date.)
-                            :val (sensor-fn)}]
-        (when (:val sensor-current)
-          (let [ sensor-prev @prev ]
-            (reset! prev sensor-current)
-            (if sensor-prev
-              (combine-fn sensor-prev sensor-current))))))))
-
-(defn read-nginx-stats []
-  (let [resp (http-request-text "http://localhost:8800/nginx_status")
-        [ ac-line _ req-count-line ] (clojure.string/split-lines resp)
-        ac (ensure-number (second (clojure.string/split ac-line #":")))
-        [ accepts handled requests ] (map ensure-number (clojure.string/split (.trim req-count-line) #" "))]
-    (and ac accepts handled requests
-         {:connections ac
-          :reqs-accepted accepts
-          :reqs-handled handled
-          :reqs requests})))
-
-(defsensor* mschaef-site-nginx {:poll-interval (seconds 10)}
-  (delta-sensor read-nginx-stats
-                (fn [{prev-t :t prev-val :val}
-                     {curr-t :t curr-val :val}]
-                  (let [delta-t-sec (/ (- (.getTime curr-t)
-                                          (.getTime prev-t))
-                                       1000.0)]
-                    {:connections (:connections curr-val)
-                     :accepted-per-sec (/ (- (:reqs-accepted curr-val) (:reqs-accepted prev-val)) delta-t-sec)
-                     :handled-per-sec (/ (- (:reqs-handled curr-val) (:reqs-handled prev-val)) delta-t-sec)
-                     :reqs-per-sec (/ (- (:reqs curr-val) (:reqs prev-val)) delta-t-sec)}))))
-
+(defsensor fx-btc-usd {:poll-interval (minutes 15)}
+  (get-in (http-request-json "https://api.coindesk.com/v1/bpi/currentprice/usd.json")
+          [:bpi :USD :rate_float]))
