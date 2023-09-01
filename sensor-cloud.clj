@@ -1,35 +1,10 @@
 (def vault-url "http://metrics.mschaef.com/data")
 
-(defn try-parse-json
- ([ json-string default-value ]
-  (try
-    (clojure.data.json/read-str json-string :key-fn keyword)
-    (catch Exception ex
-      (log/warn "Bad JSON:" (.getMessage ex) json-string)
-      default-value))))
-
-(defn http-request-json [ url ]
- (let [response (http/get url)]
-   (and (= 200 (:status response))
-        (try-parse-json (:body response) false))))
-
-(defn constrain-sensor-range [ sensor-val low high ]
- (and sensor-val
-      (>= sensor-val low)
-      (<= sensor-val high)
-      sensor-val))
-
-(defn http-request-text [ url ]
- (let [response (http/get url)]
-   (and (= 200 (:status response))
-        (:body response))))
-
 (defsensor mschaef-site-cpu {:poll-interval (minutes 1)}
  (.getSystemCpuLoad (java.lang.management.ManagementFactory/getOperatingSystemMXBean)))
 
 (defsensor mschaef-site-free-disk {:poll-interval (minutes 5)}
  (.getFreeSpace (java.io.File. "/")))
-
 
 (defn delta-sensor [ sensor-fn combine-fn ]
  (let [ prev (atom nil) ]
