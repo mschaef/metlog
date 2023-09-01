@@ -469,12 +469,17 @@ function drawXGrid(ctx, w, h, xRange) {
     const xInterval = findXGridTickInterval(w, xRange);
     const tx = translateFn(xRange, w);
 
-    const maxX = Math.floor(xRange.max / xInterval) * xInterval;
+    const tzOfs = new Date().getTimezoneOffset() * 60 * 1000;
+
+    // tzOfs used to ensure that this correctly round the displayed X
+    // intervals to intervals in the display time zone. ie: a 3 hour
+    // interval should display as 3:00, 6:00, 9:00, ...
+    const minX = Math.floor((xRange.min + xInterval - tzOfs) / xInterval) * xInterval + tzOfs;
 
     const gridLines = intervalMagnitude(xRange) / xInterval;
 
     for(var ii = 0; ii < gridLines; ii++) {
-        const x = maxX - ii * xInterval;
+        const x = minX + ii * xInterval;
         drawXGridLine(ctx, h, tx(x), x);
     }
 }
