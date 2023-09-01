@@ -109,6 +109,6 @@
     (throw (Exception. "test failure"))
     (Math/random)))
 
-(defsensor fx-btc-usd {:poll-interval (minutes 15)}
+(defsensor fx-btc-usd {:poll-interval (seconds 15)}
   (get-in (http-request-json "https://api.coindesk.com/v1/bpi/currentprice/usd.json")
           [:bpi :USD :rate_float]))
