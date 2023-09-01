@@ -6,7 +6,7 @@
 
 (defmacro get-version []
   ;; Capture compile-time property definition from Lein
-  (or (System/getProperty "metlog-vault.version")
+  (or (System/getProperty "metlog.version")
       "dev"))
 
 (defn pr-transit [ val ]
