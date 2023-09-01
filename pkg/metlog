@@ -43,7 +43,7 @@ METLOG_CONFIG_FILE=/etc/${SERVICE_NAME}/config.edn
 
 ### Start assembling commands
 
-JAVA_OPTS="-Xms512m -Xmx512m"
+JAVA_OPTS="-Xms512m -Xmx512m -XX:-OmitStackTraceInFastThrow"
 JAVA_OPTS="$JAVA_OPTS -Dconf=${METLOG_CONFIG_FILE}"
 JAVA_OPTS="$JAVA_OPTS -jar /usr/share/${SERVICE_NAME}/${METLOG_JAR}"
 
