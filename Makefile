@@ -6,6 +6,10 @@ run:
 uberjar:
 	lein uberjar
 
+.PHONY: run-uberjar
+run-uberjar: uberjar
+	java -Dconf=local-config.edn -jar ./target/uberjar/metlog-standalone.jar
+
 .PHONY: package
 package:
 	lein clean
