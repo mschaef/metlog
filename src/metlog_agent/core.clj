@@ -175,7 +175,8 @@
   (binding [ *ns* (find-ns 'metlog-agent.sensor)]
     (if (.exists (jio/as-file filename))
       (do
-        (log/info "Loading sensor file:" filename)
+        (log/report "Loading sensor file:" filename "*ns*=" *ns*)
+        (log/report "  Sensor *ns* public definitions: " (keys (ns-publics *ns*)))
         (load-file filename))
       (log/error "Cannot find sensor file: " filename))))
 
