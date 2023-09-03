@@ -724,7 +724,14 @@ function addDashboard() {
 function onDashboardSelectChange(event) {
     const dashboardId = event.target.value;
 
-    visitPage('/dashboard/' + dashboardId);
+    var url = '/dashboard/' + dashboardId;
+
+    const urlQueryWindow = new URL(window.location.href).searchParams.get('qw');
+    if (urlQueryWindow) {
+        url = url + '?qw=' + urlQueryWindow;
+    }
+
+    visitPage(url);
 }
 
 window._metlog = {
