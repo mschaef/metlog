@@ -366,6 +366,8 @@ function formatYLabel(val, base2) {
     var suffix = "";
     const mag = Math.abs(val);
 
+    let precision = 0;
+
     if (base2) {
         if (mag >= 1024 * 1024 * 1024) {
             suffix = "Gi";
@@ -388,9 +390,23 @@ function formatYLabel(val, base2) {
             suffix = "K";
             val = val / 1000;
         }
+
+        const mag2 = Math.abs(val);
+
+        if (mag2 > 100.0) {
+            precision = 1;
+        } else if (mag2 > 10.0) {
+            precision = 2;
+        } else if (mag2 > 1.0)  {
+            precision = 3;
+        } else if (mag2 > 0.0) {
+            precision = 4;
+        }
     }
 
-    return val.toFixed(1) + suffix;
+
+
+    return val.toFixed(precision) + suffix;
 }
 
 function largestYRangeMagnitude(yRange) {
