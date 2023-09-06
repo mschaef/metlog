@@ -1,5 +1,7 @@
 /* metlog.js */
 
+console.log('=== metlog ===');
+
 import { clearCache, visit } from './turbo-7.1.0.js';
 
 function visitPage(target)
