@@ -1,41 +1,42 @@
-* Version 0.1 - Ocean City
-** Static resources cached to avoid multiple fetch
-** X query window adjustable in width (360s, 10m, 2d, etc.)
-** Plots automatically update from server data.
-** X Ticks are displayed at label witdh with sensible time units
-** Y scale is displayed with units (count, byte, temp c, etc.)
-** Autoscale for time X-values (ms, sec, min, hour, etc.)
 * Backlog
-** Add a plot dynamically to the dashboard
-** Delete a plot from the dashboard
-** Reorder the plots on the dashboard with drag/drop
-** Persistently store the dashboard's configuration
-** Store multiple dashboard configurations and retrieve via URL
+** The maximum X value is always dispayed
+** The minimum and maximum Y values are always displayed.
+** Add support for unit-conversion/scaling to series display.
+** Y scale is displayed with units (count, byte, temp c, etc.)
+** Memory based data cache in vault.
+** Add multi-series-on-graph support
 ** JMX instruments can be easily added with definst form
-** X query window stored in URL for linking
 ** Plots display with a spinner when there are pending queries
-** Plots display with a gray background when there is stale data
+** Plots display with a gray background when there is stale or missing data
 ** Plots display with a red background when the vault is down
-** Plots update with incremental query
 ** Plots load initial data with incremental query
-** Y axis is always drawn at zero, even when range spans it
+** Reorder the plots on the dashboard with drag/drop
 ** Metlog available in clojars
+** Client uses local clock synced to server clock to measure local time.
 ** Drag and drop to zoom in X, all plots zoom in sync
 ** Drag and drop to zoom in Y
-** Plots scroll in X with clock, not with avail data.
-** Client uses local clock synced to server clock to measure local time.
 ** Plots can be dragged to form an additional column on the dashboard
 ** Annotate performance plots with comments
-** Add multi-series-on-graph support
 ** When a graph is added, it flashes and is scrolled to the screen
 ** There is an info bar at top of screen that shows server time and server name
 ** Test embedded operation within WAR
-** Switch storage layer to multiple series query (sname as set rather than scalar)
 ** Add light-on-dark theme
 ** Add theme switching through UI
 ** Remove series attr query from incremental data updates
-** Switch interval query to GET parameter
-** Stop sending a list of all series to the dashboard.
 * Complete
+** DONE Stop sending a list of all series to the dashboard.
+** DONE Persistently store the dashboard's configuration
+** DONE Store multiple dashboard configurations and retrieve via URL
+** DONE Delete a plot from the dashboard
+** DONE Static resources cached to avoid multiple fetch
+** DONE X query window stored in URL for linking
+** DONE Add a plot dynamically to the dashboard
+** DONE Switch interval query to GET parameter
+** DONE Plots update with incremental query
+** DONE Plots scroll in X with clock, not with avail data.
+** DONE X query window adjustable in width (360s, 10m, 2d, etc.)
+** DONE Plots automatically update from server data.
+** DONE X Ticks are displayed at label witdh with sensible time units
+** DONE Autoscale for time X-values (ms, sec, min, hour, etc.)
 ** DONE BUG - Plots displayed flipped around y-axis
 ** DONE BUG - Time utility functions can't be used to scale test series data in config.clj
