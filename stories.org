@@ -1,5 +1,4 @@
 * Backlog
-** The maximum X value is always dispayed
 ** The minimum and maximum Y values are always displayed.
 ** Add support for unit-conversion/scaling to series display.
 ** Y scale is displayed with units (count, byte, temp c, etc.)
@@ -24,6 +23,7 @@
 ** Add theme switching through UI
 ** Remove series attr query from incremental data updates
 * Complete
+** DONE The maximum X value is always dispayed
 ** DONE Stop sending a list of all series to the dashboard.
 ** DONE Persistently store the dashboard's configuration
 ** DONE Store multiple dashboard configurations and retrieve via URL

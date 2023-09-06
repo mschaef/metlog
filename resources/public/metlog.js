@@ -345,6 +345,15 @@ function drawSeriesLine(ctx, data, xRange, yRange, w, h) {
     ctx.stroke();
 }
 
+function drawXMaxLabel(ctx, text, x, y) {
+    preserveContext(ctx, () => {
+        ctx.font = "Bold 12px Arial";
+        ctx.textBaseline = "top";
+        ctx.textAlign = "right";
+        ctx.fillText(text, x, y);
+    });
+}
+
 function drawXLabel(ctx, text, x, y) {
     preserveContext(ctx, () => {
         ctx.textBaseline = "top";
@@ -449,9 +458,11 @@ function findYGridTickInterval(h, yRange, base2YAxis) {
     return yTickIntervals[yTickIntervals.length - 1];
 }
 
-function drawXGridLine(ctx, h, x, value) {
+function drawXGridLine(ctx, h, x, value, drawLabel) {
     preserveContext(ctx, () => {
-        drawXLabel(ctx, formatXLabel(value), x, h);
+        if (drawLabel) {
+            drawXLabel(ctx, formatXLabel(value), x, h);
+        }
         setStrokeGrid(ctx, false);
         drawLine(ctx, x, 0, x, h);
     });
@@ -498,10 +509,17 @@ function drawXGrid(ctx, w, h, xRange) {
 
     const gridLines = intervalMagnitude(xRange) / xInterval;
 
+    const maxXPos = tx(xRange.max);
+
     for(var ii = 0; ii < gridLines; ii++) {
-        const x = minX + ii * xInterval;
-        drawXGridLine(ctx, h, tx(x), x);
+        const xVal = minX + ii * xInterval;
+
+        const x = tx(xVal);
+
+        drawXGridLine(ctx, h, x, xVal, x < (maxXPos - PIXELS_PER_X_LABEL));
     }
+
+    drawXMaxLabel(ctx, formatXLabel(xRange.max), maxXPos, h);
 }
 
 function drawYGrid(ctx, w, h, yRange, base2YAxis) {
