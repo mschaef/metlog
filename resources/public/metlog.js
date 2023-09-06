@@ -437,8 +437,10 @@ function findYGridTickInterval(h, yRange, base2YAxis) {
     const yTickIntervals = base2YAxis ? Y2_TICK_INTERVALS : Y10_TICK_INTERVALS;
 
     for(var ii = 0; ii < yTickIntervals.length; ii++) {
-        if (PIXELS_PER_Y_LABEL * (mag / yTickIntervals[ii]) < availPixels)  {
-            return yTickIntervals[ii];
+        const interval = yTickIntervals[ii];
+
+        if (PIXELS_PER_Y_LABEL * (mag / interval) < availPixels)  {
+            return interval;
         }
     }
 
