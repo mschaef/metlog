@@ -395,11 +395,11 @@ function formatYLabel(val, base2) {
 
         const mag2 = Math.abs(val);
 
-        if (mag2 > 100.0) {
+        if (mag2 >= 100.0) {
             precision = 1;
-        } else if (mag2 > 10.0) {
+        } else if (mag2 >= 10.0) {
             precision = 2;
-        } else if (mag2 > 1.0)  {
+        } else if (mag2 >= 1.0)  {
             precision = 3;
         } else if (mag2 > 0.0) {
             precision = 4;
