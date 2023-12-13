@@ -59,9 +59,12 @@
   (with-daemon-thread 'vault-webserver
     (log/info "Starting vault with config: " (:vault config))
     (sql-file/with-pool [db-pool (db-conn-spec config)]
-      (let [scheduler (scheduler/start)]
+      (let [scheduler (scheduler/start)
+            healthchecks (atom {})]
         (archiver/start config scheduler db-pool)
         (web/start-webserver config
                              db-pool
-                             (routes/all-routes (queued-data-sink scheduler db-pool)))))))
+                             (routes/all-routes
+                              (queued-data-sink scheduler db-pool)
+                              healthchecks))))))
 

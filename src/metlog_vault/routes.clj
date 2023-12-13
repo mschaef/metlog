@@ -7,10 +7,10 @@
             [metlog-vault.healthcheck-service :as healthcheck-service]
             [metlog-vault.dashboard :as dashboard]))
 
-(defn all-routes [ store-samples ]
+(defn all-routes [ store-samples healthchecks ]
   (routes
    (data-service/all-routes store-samples)
-   (healthcheck-service/all-routes)
+   (healthcheck-service/all-routes healthchecks)
 
    (context "/dashboard" []
      (dashboard/all-routes))
