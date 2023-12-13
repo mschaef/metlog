@@ -65,6 +65,8 @@
     (post-button {:target (str "/dashboard/" (hashid/encode :db dashboard-id) "/delete")}
                  "Delete Dashboard")]
 
+   [:a {:href "/dashboard/healthchecks"} "Agent Health"]
+
    [:div.header-element
     (hiccup-form/text-field { :id "query-window" :maxlength "8" }
                             "query-window" (or query-window "1d"))]])
@@ -124,6 +126,27 @@
                          [])]
       (assoc dashboard :definition parsed))))
 
+(defn- render-healthcheck-display [ healthchecks ]
+  (render-page
+   [:h1 "Agent Health"]
+   [:table
+    [:tr
+     [:th "Name"]
+     [:th "Current Time"]
+     [:th "Start Time"]
+     [:th "Healthcheck Interval"]
+     [:th "Pending Readings"]]
+    (map (fn [ k ]
+           (let [ hc (get healthchecks k)]
+             [:tr
+              [:td (:name hc)]
+              [:td (:current-time hc)]
+              [:td (:start-time hc)]
+              [:td (:healthcheck-interval hc)]
+              [:td (:pending-readings hc)]]))
+         (keys healthchecks))]
+   [:a {:href "/"} "Dashboard"]))
+
 (defn- render-dashboard [ id req ]
   (when-let [ dashboard (get-dashboard id)]
     (let [ definition (:definition dashboard)]
@@ -176,10 +199,13 @@
     (POST "/delete" [ ]
       (delete-dashboard dashboard-id))))
 
-(defn all-routes [ ]
+(defn all-routes [ healthchecks ]
   (routes
    (context "/:dashboard-id" [ dashboard-id ]
      (dashboard-routes dashboard-id))
+
+   (GET "/healthchecks" []
+     (render-healthcheck-display @healthchecks))
 
    (GET "/data/:series-name" {params :params}
      (data-service/get-series-data params))

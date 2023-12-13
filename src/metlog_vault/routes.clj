@@ -15,7 +15,7 @@
       (healthcheck-service/all-routes healthchecks)))
 
    (context "/dashboard" []
-     (dashboard/all-routes))
+     (dashboard/all-routes healthchecks))
 
    (route/resources (str "/" (get-version)))
 
