@@ -4,11 +4,13 @@
         metlog-vault.util)
   (:require [compojure.route :as route]
             [metlog-vault.data-service :as data-service]
+            [metlog-vault.healthcheck-service :as healthcheck-service]
             [metlog-vault.dashboard :as dashboard]))
 
 (defn all-routes [ store-samples ]
   (routes
    (data-service/all-routes store-samples)
+   (healthcheck-service/all-routes)
 
    (context "/dashboard" []
      (dashboard/all-routes))
