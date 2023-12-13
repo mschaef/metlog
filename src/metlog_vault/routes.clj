@@ -14,6 +14,9 @@
       (data-service/all-routes store-samples)
       (healthcheck-service/all-routes healthchecks)))
 
+   ;; For backward compatability with unmigrated agents
+   (data-service/all-routes store-samples)
+
    (context "/dashboard" []
      (dashboard/all-routes healthchecks))
 
