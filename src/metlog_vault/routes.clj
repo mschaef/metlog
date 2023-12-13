@@ -9,8 +9,10 @@
 
 (defn all-routes [ store-samples healthchecks ]
   (routes
-   (data-service/all-routes store-samples)
-   (healthcheck-service/all-routes healthchecks)
+   (context "/agent" []
+     (routes
+      (data-service/all-routes store-samples)
+      (healthcheck-service/all-routes healthchecks)))
 
    (context "/dashboard" []
      (dashboard/all-routes))

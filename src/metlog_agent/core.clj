@@ -117,7 +117,7 @@
   (map #(assoc % :val (double (:val %))) unclean))
 
 (defn post-to-vault [ config path data ]
-  (let [ url (str (:vault-url (:agent config)) "/" path)]
+  (let [ url (str (:vault-url (:agent config)) "/agent/" path)]
     (log/debug "Posting to vault at:" url)
     (let [begin-t (System/currentTimeMillis)
           post-response
