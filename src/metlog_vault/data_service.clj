@@ -24,8 +24,7 @@
 
 (defn all-routes [ store-samples ]
   (routes
-   (GET "/data/:series-name" {params :params}
-     (get-series-data params))
+
 
    (POST "/data" req
      (store-series-data store-samples req))))

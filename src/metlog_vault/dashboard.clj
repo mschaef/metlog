@@ -9,7 +9,8 @@
             [ring.util.response :as ring]
             [clojure.data.json :as json]
             [playbook.hashid :as hashid]
-            [metlog-vault.data :as data]))
+            [metlog-vault.data :as data]
+            [metlog-vault.data-service :as data-service]))
 
 (defn- resource [ path ]
   (str "/" (get-version) "/" path))
@@ -179,6 +180,9 @@
   (routes
    (context "/:dashboard-id" [ dashboard-id ]
      (dashboard-routes dashboard-id))
+
+   (GET "/data/:series-name" {params :params}
+     (data-service/get-series-data params))
 
    (POST "/" req
      (create-dashboard req))))

@@ -48,7 +48,6 @@
       (doseq [ sample samples ]
         (.add sample-queue sample)))))
 
-
 (defn- db-conn-spec [ config ]
   {:name (or (config-property "db.subname")
              (get-in config [:vault :db :subname] "metlog-vault"))
