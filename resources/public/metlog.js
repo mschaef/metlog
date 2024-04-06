@@ -4,6 +4,10 @@ console.log('=== metlog ===');
 
 import { clearCache, visit } from './turbo-7.1.0.js';
 
+const EPSILON = 0.00001;
+
+const PLOT_Y_PADDING = 4;
+
 function visitPage(target)
 {
     clearCache();
@@ -279,7 +283,7 @@ function drawLine(ctx, x1, y1, x2, y2) {
 function drawFrame(ctx, w, h) {
     preserveContext(ctx, () => {
         setStrokeFrame(ctx);
-        drawLine(ctx, 0.5, 0.5, 0.5, h - 0.5);
+        drawLine(ctx, 0.5, PLOT_Y_PADDING, 0.5, h - PLOT_Y_PADDING);
     });
 }
 
@@ -299,25 +303,16 @@ function dataYRange(data, forceZero) {
         minV = Math.min(data[ii].val, minV);
     }
 
-    if (forceZero && minV > 0) {
-        minV = 0;
+    if (forceZero) {
+        minV = Math.min(minV, 0.0);
+        maxV = Math.max(maxV, 0.0);
     }
 
-    if (forceZero && maxV < 0) {
-        maxV = 0;
+    if (maxV - minV < EPSILON) {
+        return interval(minV - EPSILON, maxV + EPSILON);
+    } else {
+        return interval(minV, maxV);
     }
-
-    const EPSILON = 0.001;
-
-    var delta = 0.0;
-    if (Math.abs(maxV - minV) < EPSILON) {
-        delta = EPSILON;
-    }
-
-    minV -= delta;
-    maxV += delta;
-
-    return interval(minV, maxV);
 }
 
 function restrictData(data, beginT, endT) {
@@ -326,17 +321,19 @@ function restrictData(data, beginT, endT) {
     });
 }
 
-function translateFn(fromRange, toMax, flipped) {
-    return (x) => {
-        const scaled = toMax * ((x - fromRange.min) / (fromRange.max - fromRange.min));
+function translateFn(fromRange, toMax, padding, flipped) {
+    const scaleFactor = (toMax - padding * 2) / (fromRange.max - fromRange.min);
 
-        return flipped ? (toMax - scaled) : scaled;
+    return (x) => {
+        const scaled = (x - fromRange.min) * scaleFactor;
+
+        return flipped ? (toMax - scaled - padding) : scaled + padding;
     };
 }
 
 function drawSeriesLine(ctx, data, xRange, yRange, w, h) {
-    const tx = translateFn(xRange, w);
-    const ty = translateFn(yRange, h, true);
+    const tx = translateFn(xRange, w, 0);
+    const ty = translateFn(yRange, h, PLOT_Y_PADDING, true);
 
     setStrokeSeriesLine(ctx);
 
@@ -522,7 +519,7 @@ function findXGridTickInterval(w, range) {
 
 function drawXGrid(ctx, w, h, xRange) {
     const xInterval = findXGridTickInterval(w, xRange);
-    const tx = translateFn(xRange, w);
+    const tx = translateFn(xRange, w, 0);;
 
     const tzOfs = new Date().getTimezoneOffset() * 60 * 1000;
 
@@ -548,7 +545,7 @@ function drawXGrid(ctx, w, h, xRange) {
 
 function drawYGrid(ctx, w, h, yRange, base2YAxis) {
     const yInterval = findYGridTickInterval(h, yRange, base2YAxis);
-    const ty = translateFn(yRange, h, true);
+    const ty = translateFn(yRange, h, PLOT_Y_PADDING, true);
 
     let lineYs = [];
 
