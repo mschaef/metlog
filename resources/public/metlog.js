@@ -624,7 +624,7 @@ function drawPlot(ctx, w, h, beginT, endT, seriesDefn) {
 }
 
 function canvasSeriesDefn(canvas) {
-    const defn = JSON.parse(canvas.dataset['series-defn']);
+    const defn = JSON.parse(canvas.dataset.seriesDefn);
 
     return {
         seriesName: defn["series-name"],
