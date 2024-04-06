@@ -6,8 +6,6 @@ import { clearCache, visit } from './turbo-7.1.0.js';
 
 const EPSILON = 0.00001;
 
-const PLOT_Y_PADDING = 4;
-
 function visitPage(target)
 {
     clearCache();
@@ -126,7 +124,7 @@ function combineSeriesData(sA, sB) {
 
 
 function addPollSeries(seriesDefn) {
-    const seriesName = seriesDefn["series-name"];
+    const seriesName = seriesDefn.seriesName;
 
     if (seriesData[seriesName]) {
         return;
@@ -204,6 +202,8 @@ function makeNumericIntervals(minMag, maxMag, base, scales) {
 
     return intervals;
 }
+
+const PLOT_Y_PADDING = 4;
 
 const X_AXIS_SPACE = 20;
 const TSPLOT_RIGHT_MARGIN = 5;
@@ -585,31 +585,31 @@ function drawYGrid(ctx, w, h, yRange, base2YAxis) {
     }
 }
 
-function drawSeries(ctx, w, h, seriesName, forceZero, base2YAxis, beginT, endT) {
-    const series = seriesData[seriesName];
+function drawSeries(ctx, w, h, beginT, endT, seriesDefn) {
+    const series = seriesData[seriesDefn.seriesName];
 
     if (!series || !series.samples) {
         return;
     }
 
-    const samples = restrictData(seriesData[seriesName], beginT, endT);
+    const samples = restrictData(seriesData[seriesDefn.seriesName], beginT, endT);
 
     if (!samples.length) {
         return;
     }
 
-    const yRange = dataYRange(samples, forceZero);
+    const yRange = dataYRange(samples, seriesDefn.forceZero);
 
     preserveContext(ctx, () => {
         ctx.font = "12px Arial";
         drawXGrid(ctx, w, h, interval(beginT, endT));
-        drawYGrid(ctx, w, h, yRange, base2YAxis);
+        drawYGrid(ctx, w, h, yRange, seriesDefn.base2YAxis);
         clipRect(ctx, 0, 0, w, h);
         drawSeriesLine(ctx, samples, interval(beginT, endT), yRange, w, h);
     });
 }
 
-function drawPlot(ctx, w, h, seriesName, forceZero, base2YAxis, beginT, endT) {
+function drawPlot(ctx, w, h, beginT, endT, seriesDefn) {
     const pw = w - Y_AXIS_SPACE - TSPLOT_RIGHT_MARGIN;
     const ph = h - X_AXIS_SPACE;
 
@@ -618,21 +618,23 @@ function drawPlot(ctx, w, h, seriesName, forceZero, base2YAxis, beginT, endT) {
     preserveContext(ctx, () => {
         ctx.translate(Y_AXIS_SPACE, 0);
 
-        drawSeries(ctx, pw, ph, seriesName, forceZero, base2YAxis, beginT, endT);
+        drawSeries(ctx, pw, ph, beginT, endT, seriesDefn);
         drawFrame(ctx, pw, ph);
     });
 }
 
 function canvasSeriesDefn(canvas) {
-    return JSON.parse(canvas.dataset['series-defn']);
+    const defn = JSON.parse(canvas.dataset['series-defn']);
+
+    return {
+        seriesName: defn["series-name"],
+        forceZero: !!defn["force-zero"],
+        base2YAxis: !!defn["base-2-y-axis"]
+    };
 }
 
 function updatePlot(canvas, beginT, endT)  {
     const seriesDefn = canvasSeriesDefn(canvas);
-
-    const seriesName = seriesDefn["series-name"];
-    const forceZero = !!seriesDefn["force-zero"];
-    const base2YAxis = !!seriesDefn["base-2-y-axis"];
 
     const dpr = window.devicePixelRatio;
     const width = canvas.width / dpr;
@@ -640,7 +642,7 @@ function updatePlot(canvas, beginT, endT)  {
 
     const ctx = canvas.getContext("2d");
 
-    drawPlot(ctx, width, height, seriesName, forceZero, base2YAxis, beginT, endT);
+    drawPlot(ctx, width, height, beginT, endT, seriesDefn);
 }
 
 function setupCanvas(canvas) {
