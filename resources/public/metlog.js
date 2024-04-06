@@ -159,6 +159,14 @@ function extendSeriesData(seriesName, segBeginT, segEndT) {
         });
 }
 
+function latestSampleTime(seriesData) {
+    if (seriesData.samples.length > 0) {
+        return seriesData.samples[seriesData.samples.length - 1].t;
+    } else {
+        return Date.now();
+    }
+}
+
 function updateSeriesData(seriesName, queryBeginT, queryEndT) {
     const series = seriesData[seriesName];
 
@@ -173,7 +181,9 @@ function updateSeriesData(seriesName, queryBeginT, queryEndT) {
         replaceSeriesData(seriesName, queryBeginT, queryEndT);
     } else {
         extendSeriesData(seriesName, queryBeginT, series.beginT);
-        extendSeriesData(seriesName, series.endT, queryEndT);
+
+        var endT = Math.min(latestSampleTime(series), series.endT);
+        extendSeriesData(seriesName, endT, queryEndT);
     }
 }
 
