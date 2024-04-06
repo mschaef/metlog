@@ -37,8 +37,11 @@
   1.5)
 
 (defsensor math {:poll-interval (seconds 10)}
-  {:sine (+ 0.3 (Math/sin (/ (- (System/currentTimeMillis) start-t) (minutes 1))))
-   :cosine (Math/cos (/ (- (System/currentTimeMillis) start-t) (minutes 1))) })
+  (let [x (/ (- (System/currentTimeMillis) start-t) (minutes 1))
+        sine (+ 0.3 (Math/sin x))]
+    {:sine sine
+     :square (if (> sine 0.0) 1 -1)
+     :cosine (Math/cos x) }))
 
 (defsensor steps-ascending {:poll-interval (seconds 5)}
   (+ 2.3
