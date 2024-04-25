@@ -5,7 +5,9 @@
  :vault {:http-port 8080
          :http-thread-count 4
          :hot-storage-days 180}
- :agent {:vault-url "http://metrics.mschaef.com/data"
+ :agent {:name "default"
+         :vault-url "http://metrics.mschaef.com"
          :vault-update-size-limit 200
          :vault-update-interval-sec 60
+         :vault-healthcheck-interval-sec 60
          :sensor-file "/etc/metlog/config.clj"}}

@@ -4,14 +4,21 @@
         metlog-vault.util)
   (:require [compojure.route :as route]
             [metlog-vault.data-service :as data-service]
+            [metlog-vault.healthcheck-service :as healthcheck-service]
             [metlog-vault.dashboard :as dashboard]))
 
-(defn all-routes [ store-samples ]
+(defn all-routes [ store-samples healthchecks ]
   (routes
+   (context "/agent" []
+     (routes
+      (data-service/all-routes store-samples)
+      (healthcheck-service/all-routes healthchecks)))
+
+   ;; For backward compatability with unmigrated agents
    (data-service/all-routes store-samples)
 
    (context "/dashboard" []
-     (dashboard/all-routes))
+     (dashboard/all-routes healthchecks))
 
    (route/resources (str "/" (get-version)))
 

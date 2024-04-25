@@ -116,20 +116,22 @@
 (defn clean-readings [ unclean ]
   (map #(assoc % :val (double (:val %))) unclean))
 
-(defn post-readings [ url readings ]
-  (log/debug "Posting" (count readings) "reading(s) to" url)
-  (let [begin-t (System/currentTimeMillis)
-        post-response
-        (try
-          (http/post url {:content-type "application/transit+json"
-                          :body (pr-transit readings)})
-          (catch java.net.ConnectException ex
-            ;; Pretend connection errors are HTTP errors
-            (log/error (str "Error posting readings to " url " (" (.getMessage ex) ")"))
-            {:status 400}))]
-    (log/debug "Post readings response, status" (:status post-response)
-              "(" (- (System/currentTimeMillis) begin-t) "msec. )")
-    (= (:status post-response) 200)))
+(defn post-to-vault [ config path data ]
+  (let [ url (str (:vault-url (:agent config)) "/agent/" path)]
+    (log/debug "Posting to vault at:" url)
+    (let [begin-t (System/currentTimeMillis)
+          post-response
+          (try
+            (http/post url {:content-type "application/transit+json"
+                            :body (pr-transit data)})
+            (catch java.net.ConnectException ex
+              ;; Pretend connection errors are HTTP errors
+              (log/error (str "Error posting to vault at " url
+                              " (" (.getMessage ex) ")"))
+              {:status 400}))]
+      (log/debug "Vault post response, status" (:status post-response)
+                 "(" (- (System/currentTimeMillis) begin-t) "msec. )")
+      (= (:status post-response) 200))))
 
 (defn- snapshot-to-update-queue [ config ]
   (let [ update-size-limit (:vault-update-size-limit (:agent config) )]
@@ -144,7 +146,7 @@
 (defn- post-update [ config ]
   (locking update-queue
     (and (not (.isEmpty update-queue))
-         (post-readings (:vault-url (:agent config)) (clean-readings (seq update-queue)))
+         (post-to-vault config "data" (clean-readings (seq update-queue)))
          (do
            (.clear update-queue)
            true))))
@@ -155,6 +157,18 @@
     (let [snapshot (snapshot-to-update-queue config)]
       (when (post-update config)
         (recur)))))
+
+
+(defn- send-healthcheck-to-vault  [ config ]
+  (log/info "Sending healthcheck")
+  (locking sensor-result-queue
+    (let [pending-readings (.size sensor-result-queue)]
+      (post-to-vault config "healthcheck"
+                     {:name (:name (:agent config))
+                      :current-time (current-time)
+                      :start-time (:start-time config)
+                      :healthcheck-interval (:vault-healthcheck-interval-sec (:agent config))
+                      :pending-readings pending-readings}))))
 
 (defn- start-sensor-polls []
   (doseq [ [ poll-interval sensors ] (group-by :poll-interval (all-sensors))]
@@ -171,6 +185,13 @@
                   (update-vault config))
                my-pool))
 
+(defn- start-vault-healthcheck [ config ]
+  (log/info "Starting vault healthcheck, period:" (:vault-healthcheck-interval-sec (:agent config)) "sec.")
+  (at-at/every (seconds (:vault-healthcheck-interval-sec (:agent config)))
+               #(with-exception-barrier "vault-healthcheck"
+                  (send-healthcheck-to-vault config))
+               my-pool))
+
 (defn- maybe-load-sensor-file [ filename ]
   (binding [ *ns* (find-ns 'metlog-agent.sensor)]
     (if (.exists (jio/as-file filename))
@@ -181,8 +202,10 @@
       (log/error "Cannot find sensor file: " filename))))
 
 (defn start-app [ config ]
-  (log/info "Starting agent with config: " (:agent config))
-  (maybe-load-sensor-file (:sensor-file (:agent config)))
-  (start-sensor-polls)
-  (start-vault-update config)
-  (log/info "Agent started."))
+  (let [ config (assoc config :start-time (current-time))]
+    (log/info "Starting agent with config: " (:agent config))
+    (maybe-load-sensor-file (:sensor-file (:agent config)))
+    (start-sensor-polls)
+    (start-vault-healthcheck config)
+    (start-vault-update config)
+    (log/info "Agent started.")))

@@ -2,5 +2,6 @@
  :development-mode true
  :vault {:http-port 8080
          :db {:subname "./local-db/metlog-vault"}}
- :agent {:vault-url "http://localhost:8080/data"
+ :agent {:name "local"
+         :vault-url "http://localhost:8080"
          :sensor-file "./sensor.clj"}}
