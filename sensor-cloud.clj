@@ -28,7 +28,7 @@
          :reqs-handled handled
          :reqs requests})))
 
-(defsensor* mschaef-site-nginx {:poll-interval (seconds 10)}
+(defsensor* mschaef-site-nginx {:poll-interval (minutes 2)}
  (delta-sensor read-nginx-stats
                (fn [{prev-t :t prev-val :val}
                     {curr-t :t curr-val :val}]
@@ -78,3 +78,18 @@
 
 (defsensor usgs-oc-bay  {:poll-interval (minutes 60)}
  (vec (get-usgs-sensor-data)))
+
+;;; Internet connectivity
+
+(defn measure-http-get [ url ]
+  (let [begin-t (System/currentTimeMillis)
+        body (http-request-text url)]
+    (and body
+         {:bytes (.length body)
+          :duration-msec (- (System/currentTimeMillis) begin-t)})))
+
+(defsensor "mschaef-main-cloud" {:poll-interval (minutes 1)}
+  (measure-http-get "http://www.mschaef.com"))
+
+(defsensor "mschaef-rss-cloud" {:poll-interval (minutes 1)}
+  (measure-http-get "http://www.mschaef.com/feed/rss"))
