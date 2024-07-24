@@ -71,7 +71,7 @@
   (let [ series-name (:series-name (:params req)) ]
     (log/debug "Incoming sample for " series-name ", content-type:" (:content-type req))
     (try
-      (store-samples (log/spy :info (normalize-samples [ (make-sample series-name (read-request-body req)) ])))
+      (store-samples (normalize-samples [ (make-sample series-name (read-request-body req)) ]))
       (respond-success "Incoming sample accepted.")
       (catch Exception ex
         (log/error "Error accepting inbound data" ex)
