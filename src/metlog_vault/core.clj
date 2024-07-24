@@ -19,6 +19,12 @@
    :series_name series-name
    :val value})
 
+(defn- ensure-timestamp [ sample ]
+  "Ensure a sample is timestamped at the current time if it does not
+already have a timestamp."
+  (assoc sample :t (or (:t sample)
+                       (java.util.Date.))))
+
 (defn- queued-data-sink [ scheduler db-pool ]
   (let [ sample-queue (java.util.concurrent.LinkedBlockingQueue.) ]
     (scheduler/schedule-job
@@ -46,7 +52,7 @@
     (fn [ samples ]
       (log/debug "Enqueuing " (count samples) " samples for later storage.")
       (doseq [ sample samples ]
-        (.add sample-queue sample)))))
+        (.add sample-queue (ensure-timestamp sample))))))
 
 (defn- db-conn-spec [ config ]
   {:name (or (config-property "db.subname")
