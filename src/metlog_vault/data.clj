@@ -78,7 +78,7 @@
                         [:series_id :t :val]
                         (map (fn [ sample ]
                                [(intern-series-name (:series_name sample))
-                                (:t sample)
+                                (.toInstant (:t sample))
                                 (:val sample)])
                              sample-batch))))
 
