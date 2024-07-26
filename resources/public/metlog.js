@@ -341,18 +341,37 @@ function translateFn(fromRange, toMax, padding, flipped) {
     };
 }
 
-function drawSeriesLine(ctx, data, xRange, yRange, w, h) {
+const POINT_DIMEN = 2;
+
+function drawSeriesLine(ctx, data, xRange, yRange, w, h, drawPoints) {
     const tx = translateFn(xRange, w, 0);
     const ty = translateFn(yRange, h, PLOT_Y_PADDING, true);
 
     setStrokeSeriesLine(ctx);
 
-    ctx.beginPath();
-    ctx.moveTo(tx(data[0].t), ty(data[0].val));
-    for(var ii = 1; ii < data.length; ii++) {
-        ctx.lineTo(tx(data[ii].t), ty(data[ii].val));
+    if (drawPoints) {
+        for(var ii = 1; ii < data.length; ii++) {
+            const xx = tx(data[ii].t);
+            const yy = ty(data[ii].val);
+
+            ctx.beginPath();
+            ctx.moveTo(xx - POINT_DIMEN, yy);
+            ctx.lineTo(xx + POINT_DIMEN, yy);
+
+            ctx.moveTo(xx, yy - POINT_DIMEN);
+            ctx.lineTo(xx, yy + POINT_DIMEN);
+            ctx.stroke();
+        }
+
+
+    } else {
+        ctx.beginPath();
+        ctx.moveTo(tx(data[0].t), ty(data[0].val));
+        for(var ii = 1; ii < data.length; ii++) {
+            ctx.lineTo(tx(data[ii].t), ty(data[ii].val));
+        }
+        ctx.stroke();
     }
-    ctx.stroke();
 }
 
 function drawXMaxLabel(ctx, text, x, y) {
@@ -615,7 +634,7 @@ function drawSeries(ctx, w, h, beginT, endT, seriesDefn) {
         drawXGrid(ctx, w, h, interval(beginT, endT));
         drawYGrid(ctx, w, h, yRange, seriesDefn.base2YAxis);
         clipRect(ctx, 0, 0, w, h);
-        drawSeriesLine(ctx, samples, interval(beginT, endT), yRange, w, h);
+        drawSeriesLine(ctx, samples, interval(beginT, endT), yRange, w, h, seriesDefn.drawPoints);
     });
 }
 
@@ -639,7 +658,8 @@ function canvasSeriesDefn(canvas) {
     return {
         seriesName: defn["series-name"],
         forceZero: !!defn["force-zero"],
-        base2YAxis: !!defn["base-2-y-axis"]
+        base2YAxis: !!defn["base-2-y-axis"],
+        drawPoints: !!defn["draw-points"],
     };
 }
 
@@ -784,12 +804,14 @@ function onAddSeries(event) {
     const seriesName = formData.get("series-name");
     const forceZero = formData.get("force-zero") === "Y";
     const base2YAxis = formData.get("base-2-y-axis") === "Y";
+    const drawPoints = formData.get("draw-points") === "Y";
 
     doPost(window.location.pathname, {
         "new-definition": JSON.stringify(dashboard.concat(({
             "series-name": seriesName,
             "force-zero": forceZero,
-            "base-2-y-axis": base2YAxis
+            "base-2-y-axis": base2YAxis,
+            "draw-points": drawPoints,
         })))
     });
 }

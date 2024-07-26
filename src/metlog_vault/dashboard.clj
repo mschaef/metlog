@@ -90,8 +90,12 @@
       (hiccup-form/check-box "force-zero" false "Y")]
 
      [:div
-      [:label {:for "force-zero"} "Base 2 Y-Axis:"]
+      [:label {:for "base-2-y-axis"} "Base 2 Y-Axis:"]
       (hiccup-form/check-box "base-2-y-axis" false "Y")]
+
+     [:div
+      [:label {:for "draw-points"} "Draw Points:"]
+      (hiccup-form/check-box "draw-points" false "Y")]
 
      [:div.add-series-row
       (hiccup-form/submit-button {:class "add-series-button"
@@ -103,7 +107,8 @@
   (if (string? series-defn)
     {:series-name series-defn
      :force-zero false
-     :base-2-y-axis false}
+     :base-2-y-axis false
+     :draw-points false}
     series-defn))
 
 (defn- series-pane [ dashboard-id index series-defn ]
