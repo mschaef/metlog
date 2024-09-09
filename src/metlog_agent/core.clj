@@ -193,17 +193,22 @@
   (log/info "Sending healthcheck")
   (locking sensor-result-queue
     (let [pending-readings (.size sensor-result-queue)]
-      (post-to-vault config "healthcheck"
-                     {:name (:name (:agent config))
-                      :current-time (current-time)
-                      :start-time (:start-time config)
-                      :healthcheck-interval (:vault-healthcheck-interval-sec (:agent config))
-                      :pending-readings pending-readings
-                      :local-ip-address (get-local-ip-address)
-                      :count-sensor-poll @count-sensor-poll
-                      :count-sensor-poll-error @count-sensor-poll-error 
-                      :count-vault-post @count-vault-post
-                      :count-vault-post-error @count-vault-post-error}))))
+      (let [agent-name (:name (:agent config))
+            agent-sensors {:pending-readings pending-readings
+                           :sensor-polls @count-sensor-poll
+                           :sensor-errors @count-sensor-poll-error
+                           :vault-posts @count-vault-post
+                           :vault-errors @count-vault-post-error}]
+        (process-sensor-reading (str "agent-" agent-name)
+                                (ensure-timestamped agent-sensors))
+        (post-to-vault config "healthcheck"
+                       (merge
+                        {:name agent-name
+                         :current-time (current-time)
+                         :start-time (:start-time config)
+                         :healthcheck-interval (:vault-healthcheck-interval-sec (:agent config))
+                         :local-ip-address (get-local-ip-address)}
+                        agent-sensors))))))
 
 (defn- start-sensor-polls []
   (doseq [ [ poll-interval sensors ] (group-by :poll-interval (all-sensors))]

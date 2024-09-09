@@ -155,10 +155,10 @@
               [:td (:start-time hc)]
               [:td (:healthcheck-interval hc)]
               [:td (:pending-readings hc)]
-              [:td (:count-sensor-poll hc)]
-              [:td (:count-sensor-poll-error hc)]
-              [:td (:count-vault-post hc)]
-              [:td (:count-vault-post-error hc)]]))
+              [:td (:sensor-polls hc)]
+              [:td (:sensor-errors hc)]
+              [:td (:vault-posts hc)]
+              [:td (:vault-errors hc)]]))
          (keys healthchecks))]
    [:a {:href "/"} "Dashboard"]))
 
