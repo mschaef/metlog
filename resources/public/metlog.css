@@ -154,7 +154,6 @@ div#query-window {
     height: 150px;
 }
 
-
 .add-series-form label {
     display: inline-block;
     margin-right: 0.33em;
@@ -184,3 +183,18 @@ div#query-window {
     border-radius: 5px;
     background: #f0f0f0;
 }
+
+.agent-healthcheck {
+    width: 100%;
+
+    padding: 0px 10px 20px 10px;
+}
+
+.agent-healthcheck th {
+    text-align: center;
+}
+
+.agent-healthcheck td {
+    text-align: center;
+}
+

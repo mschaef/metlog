@@ -8,6 +8,22 @@
             [clj-time.format :as time-format]
             [clj-time.coerce :as time-coerce]))
 
+(defn- get-local-ip-address []
+  (try
+    (-> (->> (java.net.NetworkInterface/getNetworkInterfaces)
+             enumeration-seq
+             (map bean)
+             (mapcat :interfaceAddresses)
+             (map bean)
+             (filter :broadcast)
+             (filter #(= (.getClass (:address %)) java.net.Inet4Address)))
+        (nth 0)
+        (get :address)
+        .getHostAddress)
+    (catch Exception ex
+      (log/error (str "Error determining local IP address (" (.getMessage ex) ")"))
+      "unknown")))
+
 (defn pr-transit [ val ]
   (let [out (java.io.ByteArrayOutputStream. 4096)
         writer (transit/writer out :json)]
@@ -20,6 +36,15 @@
 (defn days [ days ] (hours (* 24 days)))
 
 (def my-pool (at-at/mk-pool))
+
+(def count-vault-post (atom 0))
+(def count-vault-post-error (atom 0))
+
+(def count-sensor-poll (atom 0))
+(def count-sensor-poll-error (atom 0))
+
+(defn- count-inc! [ count ]
+  (swap! count inc))
 
 (def sensor-result-queue (java.util.concurrent.LinkedBlockingQueue.))
 
@@ -68,8 +93,10 @@
 
 (defn poll-sensor [ sensor-def ]
   (try
+    (count-inc! count-sensor-poll)
     ((:sensor-fn sensor-def))
     (catch Exception ex
+      (count-inc! count-sensor-poll-error)
       (log/error (str "Error polling sensor: " (:sensor-name sensor-def)
                       " (" (.getMessage ex) ")"))
       false)))
@@ -119,6 +146,7 @@
 (defn post-to-vault [ config path data ]
   (let [ url (str (:vault-url (:agent config)) "/agent/" path)]
     (log/debug "Posting to vault at:" url)
+    (count-inc! count-vault-post)
     (let [begin-t (System/currentTimeMillis)
           post-response
           (try
@@ -131,7 +159,10 @@
               {:status 400}))]
       (log/debug "Vault post response, status" (:status post-response)
                  "(" (- (System/currentTimeMillis) begin-t) "msec. )")
-      (= (:status post-response) 200))))
+      (let [ success (= (:status post-response) 200) ]
+        (when (not success)
+          (count-inc! count-vault-post-error))
+        success))))
 
 (defn- snapshot-to-update-queue [ config ]
   (let [ update-size-limit (:vault-update-size-limit (:agent config) )]
@@ -158,7 +189,6 @@
       (when (post-update config)
         (recur)))))
 
-
 (defn- send-healthcheck-to-vault  [ config ]
   (log/info "Sending healthcheck")
   (locking sensor-result-queue
@@ -168,7 +198,12 @@
                       :current-time (current-time)
                       :start-time (:start-time config)
                       :healthcheck-interval (:vault-healthcheck-interval-sec (:agent config))
-                      :pending-readings pending-readings}))))
+                      :pending-readings pending-readings
+                      :local-ip-address (get-local-ip-address)
+                      :count-sensor-poll @count-sensor-poll
+                      :count-sensor-poll-error @count-sensor-poll-error 
+                      :count-vault-post @count-vault-post
+                      :count-vault-post-error @count-vault-post-error}))))
 
 (defn- start-sensor-polls []
   (doseq [ [ poll-interval sensors ] (group-by :poll-interval (all-sensors))]

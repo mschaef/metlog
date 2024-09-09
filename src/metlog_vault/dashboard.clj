@@ -134,21 +134,31 @@
 (defn- render-healthcheck-display [ healthchecks ]
   (render-page
    [:h1 "Agent Health"]
-   [:table
+   [:table.agent-healthcheck
     [:tr
      [:th "Name"]
+     [:th "IP Address"]
      [:th "Current Time"]
      [:th "Start Time"]
      [:th "Healthcheck Interval"]
-     [:th "Pending Readings"]]
+     [:th "Pending Readings"]
+     [:th "Sensor Polls"]
+     [:th "Sensor Poll Errors"]
+     [:th "Vault Posts"]
+     [:th "Vault Post Errors"]]
     (map (fn [ k ]
            (let [ hc (get healthchecks k)]
              [:tr
               [:td (:name hc)]
+              [:td (:local-ip-address hc)]
               [:td (:current-time hc)]
               [:td (:start-time hc)]
               [:td (:healthcheck-interval hc)]
-              [:td (:pending-readings hc)]]))
+              [:td (:pending-readings hc)]
+              [:td (:count-sensor-poll hc)]
+              [:td (:count-sensor-poll-error hc)]
+              [:td (:count-vault-post hc)]
+              [:td (:count-vault-post-error hc)]]))
          (keys healthchecks))]
    [:a {:href "/"} "Dashboard"]))
 
