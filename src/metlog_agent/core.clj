@@ -152,8 +152,8 @@
           (try
             (http/post url {:content-type "application/transit+json"
                             :body (pr-transit data)})
-            (catch java.net.ConnectException ex
-              ;; Pretend connection errors are HTTP errors
+            (catch Exception ex
+              ;; Pretend POST exceptions are HTTP errors
               (log/error (str "Error posting to vault at " url
                               " (" (.getMessage ex) ")"))
               {:status 400}))]
