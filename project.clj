@@ -1,4 +1,4 @@
-(defproject metlog "0.8.21"
+(defproject metlog "0.8.22-SNAPSHOT"
   :description "Lightweight tool for gathering, storing, and inspecting metrics."
 
   :license {:name "Eclipse Public License"
