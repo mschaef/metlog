@@ -45,7 +45,7 @@ if [ "$1" = "agent" ]; then
     echo "Installing as an agent only..."
     install -v --group=root --owner=root config-agent.edn /etc/${METLOG_SERVICE_NAME}/config.edn
 
-    echo "Please edit ${/etc/${METLOG_SERVICE_NAME}/config.edn} with the agent and sensor file names."
+    echo "Please edit /etc/${METLOG_SERVICE_NAME}/config.edn with the agent and sensor file names."
 else
     echo "Installing as agent and vault..."
     install -v --group=root --owner=root config.edn /etc/${METLOG_SERVICE_NAME}/config.edn
