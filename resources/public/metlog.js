@@ -497,19 +497,17 @@ function drawXGridLine(ctx, h, x, value, drawLabel) {
     });
 }
 
-function drawYLabel(ctx, text, x, y) {
+function drawYLabel(ctx, text, y, baseline) {
     preserveContext(ctx, () => {
-        ctx.textBaseline = "middle";
+        ctx.textBaseline = baseline;
         ctx.textAlign = "right";
-        ctx.fillText(text, x, y);
+        ctx.fillText(text, -2, y);
     });
 }
 
-function drawYGridLine(ctx, w, y, value, emphasis, base2, drawLabel) {
+function drawYGridLine(ctx, w, y, value, emphasis, base2) {
     preserveContext(ctx, () => {
-        if (drawLabel) {
-            drawYLabel(ctx, formatYLabel(value, base2), -2, y);
-        }
+        drawYLabel(ctx, formatYLabel(value, base2), y, "middle");
         setStrokeGrid(ctx, emphasis);
         drawLine(ctx, 0, y, w, y);
     });
@@ -582,14 +580,26 @@ function drawYGrid(ctx, w, h, yRange, base2YAxis) {
         }
     }
 
+    var needYMin = true;
+    var needYMax = true;
+
     for(var gy of lineYs) {
         const yPos = ty(gy);
 
-        const drawLabel = (yPos > 0) && (yPos < h - 0);
+        if (yPos > 0 && yPos < h - 0) {
+            needYMax = needYMax && yPos > PIXELS_PER_Y_LABEL;
+            needYMin = needYMin && yPos < h - PIXELS_PER_Y_LABEL;
 
-        if (drawLabel) {
-            drawYGridLine(ctx, w, pixelSnap(yPos), gy, gy == 0, base2YAxis, drawLabel);
+            drawYGridLine(ctx, w, pixelSnap(yPos), gy, gy == 0, base2YAxis);
         }
+    }
+
+    if (needYMin) {
+        drawYLabel(ctx, formatYLabel(yRange.min, base2YAxis), h, "bottom");
+    }
+
+    if (needYMax) {
+        drawYLabel(ctx, formatYLabel(yRange.max, base2YAxis), 0, "top");
     }
 }
 
