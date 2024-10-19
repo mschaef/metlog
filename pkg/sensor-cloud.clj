@@ -6,7 +6,6 @@
 (defsensor mschaef-site-free-disk {:poll-interval (minutes 1)}
   (.getFreeSpace (java.io.File. "/")))
 
-
 (defn delta-sensor [ sensor-fn combine-fn ]
   (let [ prev (atom nil) ]
     (fn []
@@ -94,3 +93,15 @@
 
 (defsensor "mschaef-rss-cloud" {:poll-interval (minutes 1)}
   (measure-http-get "http://www.mschaef.com/feed/rss"))
+
+(defn directory-space-used [ dir ]
+  (apply + (map #(.length %) (file-seq (clojure.java.io/file dir)))))
+
+(defsensor space-used-toto {:poll-interval (seconds 30)}
+  (directory-space-used "/var/lib/toto"))
+
+(defsensor space-used-stocking {:poll-interval (seconds 30)}
+  (directory-space-used "/var/lib/stocking"))
+
+(defsensor space-used-metlog {:poll-interval (seconds 30)}
+  (directory-space-used "/var/lib/metlog"))
