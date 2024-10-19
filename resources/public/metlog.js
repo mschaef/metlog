@@ -343,6 +343,16 @@ function translateFn(fromRange, toMax, padding, flipped) {
 
 const POINT_DIMEN = 2;
 
+function averageT(data) {
+    const n = data.length;
+
+    if (n > 2) {
+        return (data[n - 1].t - data[0].t) / n;
+    } else {
+        return 0.0;
+    }
+}
+
 function drawSeriesLine(ctx, data, xRange, yRange, w, h, drawPoints) {
     const tx = translateFn(xRange, w, 0);
     const ty = translateFn(yRange, h, PLOT_Y_PADDING, true);
@@ -364,11 +374,21 @@ function drawSeriesLine(ctx, data, xRange, yRange, w, h, drawPoints) {
         }
 
 
-    } else {
+    } else if (data.length > 0) {
         ctx.beginPath();
         ctx.moveTo(tx(data[0].t), ty(data[0].val));
+        const avgT = averageT(data);
+        var lastT = data[0].t;
         for(var ii = 1; ii < data.length; ii++) {
-            ctx.lineTo(tx(data[ii].t), ty(data[ii].val));
+            var t = data[ii].t;
+
+            if (t - lastT > avgT * 4) {
+                ctx.moveTo(tx(t), ty(data[ii].val));
+            } else {
+                ctx.lineTo(tx(t), ty(data[ii].val));
+            }
+
+            lastT = t;
         }
         ctx.stroke();
     }
