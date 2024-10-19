@@ -243,7 +243,7 @@ function preserveContext(ctx, draw) {
 }
 
 function intervalContainsZero(interval) {
-    return interval.min < 0.0 && interval.max > 0.0;
+    return interval.min <= 0.0 && interval.max >= 0.0;
 }
 
 function intervalMagnitude(interval) {
@@ -314,8 +314,8 @@ function dataYRange(data, forceZero) {
     }
 
     if (forceZero) {
-        minV = Math.min(minV, 0.0);
         maxV = Math.max(maxV, 0.0);
+        minV = Math.min(minV, 0.0);
     }
 
     if (maxV - minV < EPSILON) {
@@ -497,24 +497,6 @@ function drawXGridLine(ctx, h, x, value, drawLabel) {
     });
 }
 
-function drawYMinLabel(ctx, text, x, y) {
-    preserveContext(ctx, () => {
-        ctx.font = "Bold 12px Arial";
-        ctx.textBaseline = "bottom";
-        ctx.textAlign = "right";
-        ctx.fillText(text, x, y);
-    });
-}
-
-function drawYMaxLabel(ctx, text, x, y) {
-    preserveContext(ctx, () => {
-        ctx.font = "Bold 12px Arial";
-        ctx.textBaseline = "top";
-        ctx.textAlign = "right";
-        ctx.fillText(text, x, y);
-    });
-}
-
 function drawYLabel(ctx, text, x, y) {
     preserveContext(ctx, () => {
         ctx.textBaseline = "middle";
@@ -600,13 +582,10 @@ function drawYGrid(ctx, w, h, yRange, base2YAxis) {
         }
     }
 
-    drawYMinLabel(ctx, formatYLabel(yRange.min, base2YAxis), -2, ty(yRange.min));
-    drawYMaxLabel(ctx, formatYLabel(yRange.max, base2YAxis), -2, ty(yRange.max));
-
     for(var gy of lineYs) {
         const yPos = ty(gy);
 
-        const drawLabel = (yPos > PIXELS_PER_Y_LABEL) && (yPos < h - PIXELS_PER_Y_LABEL);
+        const drawLabel = (yPos > 0) && (yPos < h - 0);
 
         if (drawLabel) {
             drawYGridLine(ctx, w, pixelSnap(yPos), gy, gy == 0, base2YAxis, drawLabel);
