@@ -3,6 +3,7 @@
         metlog-vault.util
         sql-file.middleware)
   (:require [taoensso.timbre :as log]
+            [playbook.config :as config]
             [metlog-vault.data :as data]
             [metlog-vault.scheduler :as scheduler]))
 
@@ -12,14 +13,14 @@
     (data/archive-old-samples series-id archive-cutoff-date)
     (data/delete-old-samples series-id archive-cutoff-date)))
 
-(defn- archive-job [ config db-pool ]
-  (let [ archive-cutoff-date (add-days (current-time) (- (:hot-storage-days (:vault config))))]
+(defn- archive-job [ db-pool ]
+  (let [ archive-cutoff-date (add-days (current-time) (- (config/cval :vault :hot-storage-days)))]
     (log/info "Archive job running with cutoff:" archive-cutoff-date)
     (with-db-connection db-pool
       (doseq [ series (data/get-all-series) ]
         (archive-series (:series_id series) archive-cutoff-date)))))
 
-(defn start [ config scheduler db-pool  ]
+(defn start [ scheduler db-pool  ]
   (scheduler/schedule-job scheduler "data-archiver"
                           "10 * * * *"
-                          (partial archive-job config db-pool)))
+                          (partial archive-job db-pool)))

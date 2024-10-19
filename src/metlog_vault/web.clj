@@ -11,6 +11,7 @@
             [ring.middleware.reload :as ring-reload]
             [ring.middleware.json :as ring-json]
             [compojure.handler :as handler]
+            [playbook.config :as config]
             [metlog-vault.data :as data]))
 
 (defn wrap-request-logging [ app ]
@@ -36,9 +37,9 @@
         (finally
           (.setName thread initial-thread-name))))))
 
-(defn start-webserver [ config db-pool routes ]
-  (let [http-port (:http-port (:vault config))
-        http-thread-count (:http-thread-count (:vault config))]
+(defn start-webserver [ db-pool routes ]
+  (let [http-port (config/cval :vault :http-port)
+        http-thread-count (config/cval :vault :http-thread-count)]
     (log/info "Starting Vault Webserver on port" http-port
               (str "(HTTP threads=" http-thread-count ")"))
     (let [server (jetty/run-jetty (-> routes
@@ -47,7 +48,8 @@
                                                              "text/css" 360000})
                                       (wrap-db-connection db-pool)
                                       (wrap-not-modified)
-                                      (wrap-dev-support (:development-mode config))
+                                      (config/wrap-config)
+                                      (wrap-dev-support (config/cval :development-mode))
                                       (ring-json/wrap-json-response)
                                       (handler/site)
                                       (wrap-request-thread-naming))

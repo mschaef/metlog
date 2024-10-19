@@ -6,7 +6,8 @@
             [clj-http.client :as http]
             [cognitect.transit :as transit]
             [clj-time.format :as time-format]
-            [clj-time.coerce :as time-coerce]))
+            [clj-time.coerce :as time-coerce]
+            [playbook.config :as config]))
 
 (defn- get-local-ip-address []
   (try
@@ -143,8 +144,8 @@
 (defn clean-readings [ unclean ]
   (map #(assoc % :val (double (:val %))) unclean))
 
-(defn post-to-vault [ config path data ]
-  (let [ url (str (:vault-url (:agent config)) "/agent/" path)]
+(defn post-to-vault [ path data ]
+  (let [ url (str (config/cval :agent :vault-url) "/agent/" path)]
     (log/debug "Posting to vault at:" url)
     (count-inc! count-vault-post)
     (let [begin-t (System/currentTimeMillis)
@@ -164,8 +165,8 @@
           (count-inc! count-vault-post-error))
         success))))
 
-(defn- snapshot-to-update-queue [ config ]
-  (let [ update-size-limit (:vault-update-size-limit (:agent config) )]
+(defn- snapshot-to-update-queue [ ]
+  (let [ update-size-limit (config/cval :agent :vault-update-size-limit)]
     (locking update-queue
       (let [snapshot (take-result-queue-snapshot
                       (min update-size-limit
@@ -174,26 +175,26 @@
           (.addAll update-queue snapshot))
         snapshot))))
 
-(defn- post-update [ config ]
+(defn- post-update [ ]
   (locking update-queue
     (and (not (.isEmpty update-queue))
-         (post-to-vault config "data" (clean-readings (seq update-queue)))
+         (post-to-vault "data" (clean-readings (seq update-queue)))
          (do
            (.clear update-queue)
            true))))
 
-(defn- update-vault [ config ]
+(defn- update-vault [ ]
   (log/info "Updating vault")
   (loop []
-    (let [snapshot (snapshot-to-update-queue config)]
-      (when (post-update config)
+    (let [snapshot (snapshot-to-update-queue)]
+      (when (post-update)
         (recur)))))
 
-(defn- send-healthcheck-to-vault  [ config ]
+(defn- send-healthcheck-to-vault  [ start-time ]
   (log/info "Sending healthcheck")
   (locking sensor-result-queue
     (let [pending-readings (.size sensor-result-queue)]
-      (let [agent-name (:name (:agent config))
+      (let [agent-name (config/cval :agent :name)
             agent-sensors {:pending-readings pending-readings
                            :sensor-polls @count-sensor-poll
                            :sensor-errors @count-sensor-poll-error
@@ -201,35 +202,43 @@
                            :vault-errors @count-vault-post-error}]
         (process-sensor-reading (str "agent-" agent-name)
                                 (ensure-timestamped agent-sensors))
-        (post-to-vault config "healthcheck"
+        (post-to-vault "healthcheck"
                        (merge
                         {:name agent-name
                          :current-time (current-time)
-                         :start-time (:start-time config)
-                         :healthcheck-interval (:vault-healthcheck-interval-sec (:agent config))
+                         :start-time start-time
+                         :healthcheck-interval (config/cval :agent :vault-healthcheck-interval-sec)
                          :local-ip-address (get-local-ip-address)}
                         agent-sensors))))))
 
-(defn- start-sensor-polls []
+(defn wrap-with-current-config [ f ]
+  (let [ config (config/cval) ]
+    #(config/with-config config
+       (f))))
+
+(defn- start-sensor-polls [ ]
   (doseq [ [ poll-interval sensors ] (group-by :poll-interval (all-sensors))]
     (log/info "Scheduling poll job @" poll-interval "msec. for" (map :sensor-name sensors))
     (at-at/every poll-interval
-                 #(with-exception-barrier (str "poller-" poll-interval)
-                    (poll-sensors sensors))
+                 (wrap-with-current-config
+                  #(with-exception-barrier (str "poller-" poll-interval)
+                     (poll-sensors sensors)))
                  my-pool)))
 
-(defn- start-vault-update [ config ]
-  (log/info "Starting vault update, period:" (:vault-update-interval-sec (:agent config)) "sec.")
-  (at-at/every (seconds (:vault-update-interval-sec (:agent config)))
-               #(with-exception-barrier "vault-update"
-                  (update-vault config))
+(defn- start-vault-update [ ]
+  (log/info "Starting vault update, period:" (config/cval :agent :vault-update-interval-sec) "sec.")
+  (at-at/every (seconds (config/cval :agent :vault-update-interval-sec))
+               (wrap-with-current-config
+                #(with-exception-barrier "vault-update"
+                   (update-vault)))
                my-pool))
 
-(defn- start-vault-healthcheck [ config ]
-  (log/info "Starting vault healthcheck, period:" (:vault-healthcheck-interval-sec (:agent config)) "sec.")
-  (at-at/every (seconds (:vault-healthcheck-interval-sec (:agent config)))
-               #(with-exception-barrier "vault-healthcheck"
-                  (send-healthcheck-to-vault config))
+(defn- start-vault-healthcheck [ start-time ]
+  (log/info "Starting vault healthcheck, period:" (config/cval :agent :vault-healthcheck-interval-sec) "sec.")
+  (at-at/every (seconds (config/cval :agent :vault-healthcheck-interval-sec))
+               (wrap-with-current-config
+                #(with-exception-barrier "vault-healthcheck"
+                   (send-healthcheck-to-vault start-time)))
                my-pool))
 
 (defn- maybe-load-sensor-file [ filename ]
@@ -241,11 +250,11 @@
         (load-file filename))
       (log/error "Cannot find sensor file: " filename))))
 
-(defn start-app [ config ]
-  (let [ config (assoc config :start-time (current-time))]
-    (log/info "Starting agent with config: " (:agent config))
-    (maybe-load-sensor-file (:sensor-file (:agent config)))
+(defn start-app [ ]
+  (let [ start-time (current-time)]
+    (log/info "Starting agent with config: " (config/cval :agent))
+    (maybe-load-sensor-file (:sensor-file (config/cval :agent)))
     (start-sensor-polls)
-    (start-vault-healthcheck config)
-    (start-vault-update config)
+    (start-vault-healthcheck start-time)
+    (start-vault-update)
     (log/info "Agent started.")))

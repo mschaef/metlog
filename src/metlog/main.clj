@@ -1,5 +1,6 @@
 (ns metlog.main
   (:gen-class)
+  (:use playbook.main)
   (:require [playbook.logging :as logging]
             [playbook.config :as config]
             [taoensso.timbre :as log]
@@ -7,20 +8,16 @@
             [metlog-vault.core :as vault]
             [metlog-agent.sensor :as sensor]))
 
-(defn -main [& args]
-  (let [config (config/load-config)
-        mode (:mode config)]
-    (logging/setup-logging
-     (assoc config
-            :log-levels [[#{"metlog.main"} :info]
-                         [#{"hsqldb.*" "com.zaxxer.hikari.*"} :warn]]))
-    (log/info "config: " config)
+(defmain [ & args ]
+
+  (let [mode (config/cval :mode)]
+    (log/info "config: " (config/cval))
     (when (:agent mode)
       (log/info "Starting Agent")
-      (agent/start-app config))
+      (agent/start-app))
     (when (:vault mode)
       (log/info "Starting Vault")
-      (vault/start-app config))
+      (vault/start-app))
     (if (> (count mode) 0)
       (log/info "running, mode: " mode)
       (log/error "No modes specified. Ending run."))))

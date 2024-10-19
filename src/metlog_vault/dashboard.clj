@@ -9,6 +9,7 @@
             [ring.util.response :as ring]
             [clojure.data.json :as json]
             [playbook.hashid :as hashid]
+            [playbook.config :as config]
             [metlog-vault.data :as data]
             [metlog-vault.data-service :as data-service]))
 
@@ -26,15 +27,29 @@
                                      :data-target target}))
      body)))
 
-(defn- render-page [ & contents ]
-  (hiccup-page/html5
-   [:html
-    [:head {:name "viewport"
-           ;; user-scalable=no fails to work on iOS n where n > 10
-            :content "width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0"}
+(defn- render-standard-header [ attrs ]
+  (let [title (:title attrs)
+        client-redirect-time (:client-redirect-time attrs)
+        client-redirect (:client-redirect attrs)]
+    [:head
+     [:meta
+      {:name "viewport"
+       ;; user-scalable=no fails to work on iOS n where n > 10
+       :content "width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0"}]
+     (when client-redirect
+       [:meta {:http-equiv "refresh"
+               :content (str (or client-redirect-time 2) "; url=" client-redirect)}])
      (hiccup-page/include-css (resource "metlog.css"))
      [:script {:type "module" :src (resource "metlog.js")}]
-     [:title "Metlog - " (get-version)]]
+     [:title
+      (when (config/cval :development-mode) "DEV - ")
+      (config/cval :app :title)
+      (when title (str " - " title))]]))
+
+(defn- render-page [ attr & contents ]
+  (hiccup-page/html5
+   [:html
+    (render-standard-header attr)
     [:body
      contents]]))
 
@@ -132,13 +147,13 @@
       (assoc dashboard :definition parsed))))
 
 (defn- render-healthcheck-display [ healthchecks ]
-  (render-page
+  (render-page {}
    [:h1 "Agent Health"]
    [:table.agent-healthcheck
     [:tr
      [:th "Name"]
      [:th "IP Address"]
-     [:th "Current Time"]
+     [:th "Last Sample Time"]
      [:th "Start Time"]
      [:th "Healthcheck Interval"]
      [:th "Pending Readings"]
@@ -165,7 +180,7 @@
 (defn- render-dashboard [ id req ]
   (when-let [ dashboard (get-dashboard id)]
     (let [ definition (:definition dashboard)]
-      (render-page
+      (render-page {}
        [:script "var dashboard = " (json/write-str (:definition dashboard)) ";"]
        [:div.dashboard
         (header id (:query-window (:params req)))
