@@ -36,21 +36,25 @@
       {:name "viewport"
        ;; user-scalable=no fails to work on iOS n where n > 10
        :content "width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0"}]
-     (when client-redirect
+     (when (or client-redirect-time
+               client-redirect)
        [:meta {:http-equiv "refresh"
-               :content (str (or client-redirect-time 2) "; url=" client-redirect)}])
+               :content (str (or client-redirect-time 2)
+                             (if client-redirect
+                               (str "; url=" client-redirect)))}])
      (hiccup-page/include-css (resource "metlog.css"))
      [:script {:type "module" :src (resource "metlog.js")}]
      [:title
       (when (config/cval :development-mode) "DEV - ")
-      (config/cval :app :title)
+      (config/cval :app :name)
       (when title (str " - " title))]]))
 
-(defn- render-page [ attr & contents ]
+(defn- render-page [ attrs & contents ]
   (hiccup-page/html5
    [:html
-    (render-standard-header attr)
-    [:body
+    (render-standard-header attrs)
+    [:body (when-let [ body-class (:body-class attrs)] 
+             {:class body-class})
      contents]]))
 
 (defn dashboard-select [ dashboard-id ]
@@ -80,7 +84,7 @@
     (post-button {:target (str "/dashboard/" (hashid/encode :db dashboard-id) "/delete")}
                  "Delete Dashboard")]
 
-   [:a {:href "/dashboard/healthchecks"} "Agent Health"]
+   [:a {:href "/dashboard/healthchecks"} "Agent Status"]
 
    [:div.header-element
     (hiccup-form/text-field { :id "query-window" :maxlength "8" }
@@ -146,41 +150,64 @@
                          [])]
       (assoc dashboard :definition parsed))))
 
+(defn- render-duration [ msec ]
+  (let [ s (quot msec 1000) ]
+    (if (< s 60)
+      (str s "s")
+      (let [ m (quot s 60) ]
+        (if (< m 60)
+          (str m "m")
+          (let [ h (quot m 60) ]
+            (if (< h 48)
+              (str h "h")
+              (str (quot h 24) "d"))))))))
+
+(defn- time-diff [ t1 t2 ]
+  (- (.getTime t1)
+     (.getTime t2)))
+
 (defn- render-healthcheck-display [ healthchecks ]
-  (render-page {}
-   [:h1 "Agent Health"]
-   [:table.agent-healthcheck
-    [:tr
-     [:th "Name"]
-     [:th "IP Address"]
-     [:th "Last Sample Time"]
-     [:th "Start Time"]
-     [:th "Healthcheck Interval"]
-     [:th "Pending Readings"]
-     [:th "Sensor Polls"]
-     [:th "Sensor Poll Errors"]
-     [:th "Vault Posts"]
-     [:th "Vault Post Errors"]]
-    (map (fn [ k ]
-           (let [ hc (get healthchecks k)]
-             [:tr
-              [:td (:name hc)]
-              [:td (:local-ip-address hc)]
-              [:td (:current-time hc)]
-              [:td (:start-time hc)]
-              [:td (:healthcheck-interval hc)]
-              [:td (:pending-readings hc)]
-              [:td (:sensor-polls hc)]
-              [:td (:sensor-errors hc)]
-              [:td (:vault-posts hc)]
-              [:td (:vault-errors hc)]]))
-         (keys healthchecks))]
-   [:a {:href "/"} "Dashboard"]))
+  (let [ t (current-time) ]
+    (render-page
+     {:client-redirect-time 5
+      :title "Agent Status"
+      :body-class "healthcheck"}
+     [:h1 "Agent Status"]
+     [:p "Current Time: " t]
+     [:table.agent-healthcheck
+      [:tr
+       [:th "Name"]
+       [:th "IP Address"]
+       [:th "Time Since Start"]
+       [:th "Time Since Sample"]
+       [:th "Healthcheck Interval"]
+       [:th "Pending Readings"]
+       [:th "Sensor Polls"]
+       [:th "Sensor Poll Errors"]
+       [:th "Vault Posts"]
+       [:th "Vault Post Errors"]]
+      (map (fn [ k ]
+             (let [ hc (get healthchecks k)]
+               [:tr
+                [:td (:name hc)]
+                [:td (:local-ip-address hc)]
+                [:td
+                 (render-duration (time-diff t (:start-time hc)))]
+                [:td
+                 (render-duration (time-diff t (:current-time hc)))]
+                [:td (:healthcheck-interval hc)]
+                [:td (:pending-readings hc)]
+                [:td (:sensor-polls hc)]
+                [:td (:sensor-errors hc)]
+                [:td (:vault-posts hc)]
+                [:td (:vault-errors hc)]]))
+           (keys healthchecks))]
+     [:a {:href "/"} "Dashboard"])))
 
 (defn- render-dashboard [ id req ]
   (when-let [ dashboard (get-dashboard id)]
     (let [ definition (:definition dashboard)]
-      (render-page {}
+      (render-page { :title (:name dashboard) }
        [:script "var dashboard = " (json/write-str (:definition dashboard)) ";"]
        [:div.dashboard
         (header id (:query-window (:params req)))

@@ -13,8 +13,7 @@
   (let [ healthcheck-data (if (= "application/transit+json" (:content-type req))
                             (read-transit (slurp (:body req)))
                             (edn/read-string (slurp (:body req))))]
-    (swap! healthchecks assoc (:name healthcheck-data) healthcheck-data)
-    (log/info "Healthchecks: " @healthchecks))
+    (swap! healthchecks assoc (:name healthcheck-data) healthcheck-data))
   "Incoming healthcheck accepted.")
 
 (defn all-routes [ healthchecks ]

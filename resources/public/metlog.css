@@ -10,6 +10,10 @@ body {
     overflow-y: hidden;
 }
 
+body.healthcheck {
+    margin: 8px;
+}
+
 @media only screen and (min-device-width : 960px) {
     body {
         font-size: 12px;
