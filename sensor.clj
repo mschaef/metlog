@@ -1,5 +1,8 @@
 (def start-t (System/currentTimeMillis))
 
+(defsensor working-dir-size {:poll-interval (seconds 30)}
+  (directory-space-used "."))
+
 (defn random-sampler [ ]
   (let [current (atom 0.0)]
     (fn [ ]

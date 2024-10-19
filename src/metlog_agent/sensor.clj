@@ -27,3 +27,6 @@
   (let [response (http/get url)]
     (and (= 200 (:status response))
          (:body response))))
+
+(defn directory-space-used [ dir ]
+  (apply + (map #(.length %) (file-seq (clojure.java.io/file dir)))))
