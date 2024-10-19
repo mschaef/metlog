@@ -84,7 +84,9 @@
     (post-button {:target (str "/dashboard/" (hashid/encode :db dashboard-id) "/delete")}
                  "Delete Dashboard")]
 
-   [:a {:href "/dashboard/healthchecks"} "Agent Status"]
+   [:a {:href "/dashboard/healthchecks"
+        :data-turbo "false"}
+    "Agent Status"]
 
    [:div.header-element
     (hiccup-form/text-field { :id "query-window" :maxlength "8" }
@@ -202,7 +204,9 @@
                 [:td (:vault-posts hc)]
                 [:td (:vault-errors hc)]]))
            (keys healthchecks))]
-     [:a {:href "/"} "Dashboard"])))
+     [:a {:href "/"
+          :data-turbo "false"}
+      "Dashboard"])))
 
 (defn- render-dashboard [ id req ]
   (when-let [ dashboard (get-dashboard id)]
