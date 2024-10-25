@@ -55,12 +55,11 @@
    :schema-path [ "sql/" ]
    :schemas [[ "metlog" 3 ]]})
 
-(defn start-app [ ]
+(defn start-app [ scheduler ]
   (with-daemon-thread 'vault-webserver
     (log/info "Starting vault with config: " (config/cval :vault))
     (sql-file/with-pool [db-pool (db-conn-spec (config/cval))]
-      (let [scheduler (scheduler/start)
-            healthchecks (atom {})]
+      (let [healthchecks (atom {})]
         (archiver/start scheduler db-pool)
         (web/start-webserver db-pool
                              (routes/all-routes

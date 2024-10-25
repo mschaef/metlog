@@ -1,5 +1,6 @@
 (ns metlog-agent.core
-  (:use playbook.core)
+  (:use playbook.core
+        metlog.util)
   (:require [taoensso.timbre :as log]
             [clojure.java.io :as jio]
             [overtone.at-at :as at-at]
@@ -7,7 +8,8 @@
             [cognitect.transit :as transit]
             [clj-time.format :as time-format]
             [clj-time.coerce :as time-coerce]
-            [playbook.config :as config]))
+            [playbook.config :as config]
+            [playbook.scheduler :as scheduler]))
 
 (defn- get-local-ip-address []
   (try
@@ -24,12 +26,6 @@
     (catch Exception ex
       (log/error (str "Error determining local IP address (" (.getMessage ex) ")"))
       "unknown")))
-
-(defn pr-transit [ val ]
-  (let [out (java.io.ByteArrayOutputStream. 4096)
-        writer (transit/writer out :json)]
-    (transit/write writer val)
-    (.toString out)))
 
 (defn seconds [ seconds ] (* 1000 seconds))
 (defn minutes [ minutes ] (seconds (* 60 minutes)))
@@ -183,14 +179,14 @@
            (.clear update-queue)
            true))))
 
-(defn- update-vault [ ]
+(defn- agent-vault-update [ ]
   (log/info "Updating vault")
   (loop []
     (let [snapshot (snapshot-to-update-queue)]
       (when (post-update)
         (recur)))))
 
-(defn- send-healthcheck-to-vault  [ start-time ]
+(defn- agent-vault-healthcheck  [ start-time ]
   (log/info "Sending healthcheck")
   (locking sensor-result-queue
     (let [pending-readings (.size sensor-result-queue)]
@@ -225,22 +221,6 @@
                      (poll-sensors sensors)))
                  my-pool)))
 
-(defn- start-vault-update [ ]
-  (log/info "Starting vault update, period:" (config/cval :agent :vault-update-interval-sec) "sec.")
-  (at-at/every (seconds (config/cval :agent :vault-update-interval-sec))
-               (wrap-with-current-config
-                #(with-exception-barrier "vault-update"
-                   (update-vault)))
-               my-pool))
-
-(defn- start-vault-healthcheck [ start-time ]
-  (log/info "Starting vault healthcheck, period:" (config/cval :agent :vault-healthcheck-interval-sec) "sec.")
-  (at-at/every (seconds (config/cval :agent :vault-healthcheck-interval-sec))
-               (wrap-with-current-config
-                #(with-exception-barrier "vault-healthcheck"
-                   (send-healthcheck-to-vault start-time)))
-               my-pool))
-
 (defn- maybe-load-sensor-file [ filename ]
   (binding [ *ns* (find-ns 'metlog-agent.sensor)]
     (if (.exists (jio/as-file filename))
@@ -250,11 +230,13 @@
         (load-file filename))
       (log/error "Cannot find sensor file: " filename))))
 
-(defn start-app [ ]
+(defn start-app [ scheduler ]
   (let [ start-time (current-time)]
     (log/info "Starting agent with config: " (config/cval :agent))
     (maybe-load-sensor-file (:sensor-file (config/cval :agent)))
     (start-sensor-polls)
-    (start-vault-healthcheck start-time)
-    (start-vault-update)
+    (scheduler/schedule-job scheduler :agent-vault-update
+                            #(agent-vault-update))
+    (scheduler/schedule-job scheduler :agent-vault-healthcheck
+                            #(agent-vault-healthcheck start-time))
     (log/info "Agent started.")))
