@@ -5,7 +5,7 @@
   (:require [taoensso.timbre :as log]
             [playbook.config :as config]
             [metlog-vault.data :as data]
-            [metlog-vault.scheduler :as scheduler]))
+            [playbook.scheduler :as scheduler]))
 
 (defn- archive-series [ series-id archive-cutoff-date ]
   (with-db-transaction

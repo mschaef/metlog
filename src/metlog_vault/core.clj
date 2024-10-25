@@ -4,12 +4,11 @@
          compojure.core
          sql-file.middleware)
    (:require [taoensso.timbre :as log]
+             [playbook.config :as config]
+             [playbook.scheduler :as scheduler]
+             [sql-file.core :as sql-file]
              [metlog-vault.data :as data]
              [metlog-vault.data-service :as data-service]
-             [metlog-vault.scheduler :as scheduler]
-             [sql-file.core :as sql-file]
-             [playbook.config :as config]
-             [metlog-vault.data :as data]
              [metlog-vault.web :as web]
              [metlog-vault.routes :as routes]
              [metlog-vault.archiver :as archiver]))

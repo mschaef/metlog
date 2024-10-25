@@ -4,4 +4,6 @@
          :db {:subname "./local-db/metlog-vault"}}
  :agent {:name "local"
          :vault-url "http://localhost:8080"
-         :sensor-file "./sensor.clj"}}
+         :sensor-file "./sensor.clj"}
+
+ :job-schedule {:data-archiver "*/5 * * * *" }}

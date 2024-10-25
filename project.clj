@@ -20,8 +20,7 @@
                  [clj-time "0.15.2"]
                  [clj-http "3.12.3"
                   :exclusions [com.fasterxml.jackson.core/jackson-core]]
-                 [it.sauronsoftware.cron4j/cron4j "2.2.5"]
-                 [com.mschaef/playbook "0.1.2"]]
+                 [com.mschaef/playbook "0.1.3-SNAPSHOT"]]
 
   :plugins [[lein-tar "3.3.0"]]
 
