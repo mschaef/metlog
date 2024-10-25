@@ -2,8 +2,6 @@
 ;;
 ;; Custom configuration goes here
 
-(def vault-url "http://metrics.mschaef.com/data")
-
 (defn constrain-sensor-range [ sensor-val low high ]
   (and sensor-val
        (>= sensor-val low)

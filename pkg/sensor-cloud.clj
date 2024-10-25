@@ -1,4 +1,3 @@
-(def vault-url "http://metrics.mschaef.com/data")
 
 (defsensor mschaef-site-cpu {:poll-interval (minutes 1)}
   (.getSystemCpuLoad (java.lang.management.ManagementFactory/getOperatingSystemMXBean)))
