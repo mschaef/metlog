@@ -24,29 +24,26 @@
 (defn- queued-data-sink [ scheduler db-pool ]
   (let [ sample-queue (java.util.concurrent.LinkedBlockingQueue.) ]
     (scheduler/schedule-job
-     scheduler "sample-ingress-queue" "*/1 * * * *"
-     (wrap-with-current-config
-      #(doto sample-queue
-         (.add (data-service/make-sample "vault-ingress-queue-size" (.size sample-queue)))
-         (.add (data-service/make-sample "vault-free-memory" (.freeMemory jvm-runtime))))))
+     scheduler :sample-ingress-queue
+     #(doto sample-queue
+        (.add (data-service/make-sample "vault-ingress-queue-size" (.size sample-queue)))
+        (.add (data-service/make-sample "vault-free-memory" (.freeMemory jvm-runtime)))))
 
     (scheduler/schedule-job
-     scheduler "sample-jvm-stats" "0 * * * *"
-     (wrap-with-current-config
-      #(doto sample-queue
-         (.add (data-service/make-sample "vault-total-memory" (.totalMemory jvm-runtime)))
-         (.add (data-service/make-sample "vault-max-memory" (.maxMemory jvm-runtime))))))
+     scheduler :sample-jvm-stats
+     #(doto sample-queue
+        (.add (data-service/make-sample "vault-total-memory" (.totalMemory jvm-runtime)))
+        (.add (data-service/make-sample "vault-max-memory" (.maxMemory jvm-runtime)))))
 
     (scheduler/schedule-job
-     scheduler "store-ingress-queue" "*/1 * * * *"
-     (wrap-with-current-config
-      #(let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
-         (locking sample-queue
-           (.drainTo sample-queue snapshot))
-         (when (> (count snapshot) 0)
-           (log/debug "Storing " (count snapshot) " samples.")
-           (with-db-connection db-pool
-             (data/store-data-samples-monotonic (seq snapshot)))))))
+     scheduler :store-ingress-queue
+     #(let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
+        (locking sample-queue
+          (.drainTo sample-queue snapshot))
+        (when (> (count snapshot) 0)
+          (log/debug "Storing " (count snapshot) " samples.")
+          (with-db-connection db-pool
+            (data/store-data-samples-monotonic (seq snapshot))))))
 
     (fn [ samples ]
       (log/debug "Enqueuing " (count samples) " samples for later storage.")

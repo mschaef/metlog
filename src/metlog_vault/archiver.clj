@@ -20,7 +20,6 @@
       (doseq [ series (data/get-all-series) ]
         (archive-series (:series_id series) archive-cutoff-date)))))
 
-(defn start [ scheduler db-pool  ]
-  (scheduler/schedule-job scheduler "data-archiver"
-                          "10 * * * *"
+(defn start [ scheduler db-pool ]
+  (scheduler/schedule-job scheduler :data-archiver
                           (partial archive-job db-pool)))

@@ -10,4 +10,9 @@
          :vault-update-size-limit 200
          :vault-update-interval-sec 60
          :vault-healthcheck-interval-sec 60
-         :sensor-file "/etc/metlog/config.clj"}}
+         :sensor-file "/etc/metlog/config.clj"}
+
+ :job-schedule {:data-archiver "10 * * * *"
+                :sample-ingress-queue "*/1 * * * *"
+                :sample-jvm-stats "0 * * * *"
+                :store-ingress-queue "*/1 * * * *"}}
