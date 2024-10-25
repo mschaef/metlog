@@ -4,21 +4,22 @@
             [clojure.data.json :as json]
             [ring.util.response :as ring]))
 
-(defmacro get-version []
-  ;; Capture compile-time property definition from Lein
-  (or (System/getProperty "metlog.version")
-      "dev"))
+(defn respond-success
+  ([ message details ]
+   (ring/response
+    (merge details {:message message :success true})))
 
-(defn pr-transit [ val ]
-  (let [out (java.io.ByteArrayOutputStream. 4096)
-        writer (transit/writer out :json)]
-    (transit/write writer val)
-    (.toString out)))
+  ([ message ]
+   (respond-success message {}))
 
-(defn read-transit [ string ]
-  (let [in (java.io.ByteArrayInputStream. (.getBytes string))
-        reader (transit/reader in :json)]
-    (transit/read reader)))
+  ([]
+   (respond-success "ok")))
 
-(defn success []
-  (ring/response "ok"))
+(defn respond-bad-request
+  ([ message details ]
+   (ring/bad-request
+    (merge details {:message message :success false})))
+
+  ([ message ]
+   (respond-bad-request message {})))
+

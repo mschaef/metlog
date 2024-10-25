@@ -2,6 +2,7 @@
   (:use compojure.core
         playbook.core
         playbook.web
+        metlog.util
         metlog-vault.util)
   (:require [taoensso.timbre :as log]
             [hiccup.page :as hiccup-page]
@@ -223,7 +224,7 @@
   (let [ new-definition (or (try-parse-json (:new-definition (:params req)))
                             []) ]
     (data/update-dashboard-definition dashboard-id new-definition)
-    (success)))
+    (respond-success)))
 
 (defn- ensure-dashboard-id-by-name [ dashboard-name ]
   (or

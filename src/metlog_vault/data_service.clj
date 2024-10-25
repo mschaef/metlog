@@ -1,6 +1,7 @@
 (ns metlog-vault.data-service
   (:use compojure.core
         playbook.core
+        metlog.util
         metlog-vault.util)
   (:require [taoensso.timbre :as log]
             [compojure.route :as route]
@@ -20,22 +21,6 @@
     (data/get-data-for-series-name (:series-name params)
                                    (try-parse-long (:begin-t params))
                                    (try-parse-long (:end-t params))))})
-
-(defn- respond-success
-  ([ message details ]
-   (ring/response
-    (merge details {:message message :success true})))
-
-  ([ message ]
-   (respond-success message {})))
-
-(defn- respond-bad-request
-  ([ message details ]
-   (ring/bad-request
-    (merge details {:message message :success false})))
-
-  ([ message ]
-   (respond-bad-request message {})))
 
 (defn- read-request-body [ req ]
   (let [req-body (slurp (:body req))]

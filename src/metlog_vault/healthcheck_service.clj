@@ -1,6 +1,7 @@
 (ns metlog-vault.healthcheck-service
   (:use compojure.core
         playbook.core
+        metlog.util
         metlog-vault.util)
   (:require [taoensso.timbre :as log]
             [compojure.route :as route]

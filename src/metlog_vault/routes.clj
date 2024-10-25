@@ -1,6 +1,7 @@
 (ns metlog-vault.routes
   (:use compojure.core
         playbook.core
+        metlog.util
         metlog-vault.util)
   (:require [compojure.route :as route]
             [metlog-vault.data-service :as data-service]
