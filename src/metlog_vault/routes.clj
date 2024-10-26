@@ -12,11 +12,11 @@
   (routes
    (context "/agent" []
      (routes
-      (data-service/all-routes store-samples)
+      (data-service/all-routes store-samples healthchecks)
       (healthcheck-service/all-routes healthchecks)))
 
    ;; For backward compatability with unmigrated agents
-   (data-service/all-routes store-samples)
+   (data-service/all-routes store-samples healthchecks)
 
    (context "/dashboard" []
      (dashboard/all-routes healthchecks))

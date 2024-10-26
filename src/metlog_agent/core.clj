@@ -140,8 +140,8 @@
 (defn clean-readings [ unclean ]
   (map #(assoc % :val (double (:val %))) unclean))
 
-(defn post-to-vault [ path data ]
-  (let [ url (str (config/cval :agent :vault-url) "/agent/" path)]
+(defn post-to-vault [ data ]
+  (let [ url (str (config/cval :agent :vault-url) "/agent/data")]
     (log/debug "Posting to vault at:" url)
     (count-inc! count-vault-post)
     (let [begin-t (System/currentTimeMillis)
@@ -171,22 +171,7 @@
           (.addAll update-queue snapshot))
         snapshot))))
 
-(defn- post-update [ ]
-  (locking update-queue
-    (and (not (.isEmpty update-queue))
-         (post-to-vault "data" (clean-readings (seq update-queue)))
-         (do
-           (.clear update-queue)
-           true))))
-
-(defn- agent-vault-update [ ]
-  (log/info "Updating vault")
-  (loop []
-    (let [snapshot (snapshot-to-update-queue)]
-      (when (post-update)
-        (recur)))))
-
-(defn- agent-vault-healthcheck  [ start-time ]
+(defn- capture-agent-health  [ start-time ]
   (log/info "Sending healthcheck")
   (locking sensor-result-queue
     (let [pending-readings (.size sensor-result-queue)]
@@ -198,14 +183,31 @@
                            :vault-errors @count-vault-post-error}]
         (process-sensor-reading (str "agent-" agent-name)
                                 (ensure-timestamped agent-sensors))
-        (post-to-vault "healthcheck"
-                       (merge
-                        {:name agent-name
-                         :current-time (current-time)
-                         :start-time start-time
-                         :healthcheck-interval (config/cval :agent :vault-healthcheck-interval-sec)
-                         :local-ip-address (get-local-ip-address)}
-                        agent-sensors))))))
+        (merge
+         {:name agent-name
+          :current-time (current-time)
+          :start-time start-time
+          :healthcheck-interval (config/cval :agent :vault-healthcheck-interval-sec)
+          :local-ip-address (get-local-ip-address)}
+         agent-sensors)))))
+
+(defn- post-update [ update-extras ]
+  (locking update-queue
+    (let [has-samples? (not (.isEmpty update-queue))]
+      (post-to-vault (merge
+                      update-extras
+                      {:samples (clean-readings (seq update-queue))}))
+      (.clear update-queue)
+      has-samples?)))
+
+(defn- agent-vault-update [ start-time ]
+  (log/info "Updating vault")
+  (loop [ need-healthcheck? true ]
+    (let [snapshot (snapshot-to-update-queue)]
+      (when (post-update (if need-healthcheck?
+                           {:healthcheck (capture-agent-health start-time)}
+                           {}))
+        (recur false)))))
 
 (defn wrap-with-current-config [ f ]
   (let [ config (config/cval) ]
@@ -236,7 +238,5 @@
     (maybe-load-sensor-file (:sensor-file (config/cval :agent)))
     (start-sensor-polls)
     (scheduler/schedule-job scheduler :agent-vault-update
-                            #(agent-vault-update))
-    (scheduler/schedule-job scheduler :agent-vault-healthcheck
-                            #(agent-vault-healthcheck start-time))
+                            #(agent-vault-update start-time))
     (log/info "Agent started.")))

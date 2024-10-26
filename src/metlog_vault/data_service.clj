@@ -8,7 +8,8 @@
             [ring.util.response :as ring]
             [clojure.edn :as edn]
             [clojure.data.json :as json]
-            [metlog-vault.data :as data]))
+            [metlog-vault.data :as data]
+            [metlog-vault.healthcheck-service :as healthcheck-service]))
 
 (defn make-sample [ series-name value ]
   {:t (java.util.Date.)
@@ -22,18 +23,17 @@
                                    (try-parse-long (:begin-t params))
                                    (try-parse-long (:end-t params))))})
 
-(defn- read-request-body [ req ]
-  (let [req-body (slurp (:body req))]
-    (case (:content-type req)
-      "application/json" (json/read-str req-body :key-fn keyword)
-      "application/transit+json" (read-transit req-body)
-      (edn/read-string req-body))))
-
 (def series-name-re #"^([a-zA-Z0-9]+-?)+$")
 
 (defn- validate-series-name [ series-name ]
   (when (not (re-find series-name-re (str series-name)))
     (throw (Exception. (str "Invalid data series name: " series-name)))))
+
+(defn- read-sample-data-request-body [ req ]
+  (let [body (read-request-body req)]
+    (if (map? body)
+      body
+      {:samples body})))
 
 (defn- validate-samples [ samples ]
   (map (fn [ sample ]
@@ -43,10 +43,12 @@
          sample)
        samples))
 
-(defn store-series-data [ store-samples req ]
-  (log/debug "Incoming data, content-type:" (:content-type req))
+(defn store-series-data [ store-samples healthchecks req ]
   (try
-    (let [samples (read-request-body req)]
+    (let [{samples :samples
+           healthcheck-data :healthcheck} (read-sample-data-request-body req)]
+      (when healthcheck-data
+        (healthcheck-service/notice-healthcheck healthcheck-data healthchecks))
       (store-samples (validate-samples samples))
       (respond-success "Incoming data accepted." {:n (count samples)}))
     (catch Exception ex
@@ -63,10 +65,10 @@
         (log/error "Error accepting inbound data" ex)
         (respond-bad-request (str "Error accepting inbound data: " (.getMessage ex)))))))
 
-(defn all-routes [ store-samples ]
+(defn all-routes [ store-samples healthchecks ]
   (routes
    (POST "/data" req
-     (store-series-data store-samples req))
+     (store-series-data store-samples healthchecks req))
 
    (POST "/sample/:series-name" req
      (store-sample store-samples req))))

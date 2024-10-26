@@ -17,5 +17,4 @@
                 :sample-jvm-stats "0 * * * *"
                 :store-ingress-queue "*/1 * * * *"
 
-                :agent-vault-healthcheck "*/1 * * * *"
                 :agent-vault-update "*/1 * * * *"}}
