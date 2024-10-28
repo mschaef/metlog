@@ -29,7 +29,7 @@
   (when (not (re-find series-name-re (str series-name)))
     (throw (Exception. (str "Invalid data series name: " series-name)))))
 
-(defn- read-sample-data-request-body [ req ]
+(defn- read-request-body-data [ req ]
   (let [body (read-request-body req)]
     (if (map? body)
       body
@@ -46,7 +46,7 @@
 (defn store-series-data [ store-samples healthchecks req ]
   (try
     (let [{samples :samples
-           healthcheck-data :healthcheck} (read-sample-data-request-body req)]
+           healthcheck-data :healthcheck} (read-request-body-data req)]
       (when healthcheck-data
         (healthcheck-service/notice-healthcheck healthcheck-data healthchecks))
       (store-samples (validate-samples samples))

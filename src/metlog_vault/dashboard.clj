@@ -183,7 +183,6 @@
        [:th "IP Address"]
        [:th "Time Since Start"]
        [:th "Time Since Sample"]
-       [:th "Healthcheck Interval"]
        [:th "Pending Readings"]
        [:th "Sensor Polls"]
        [:th "Sensor Poll Errors"]
@@ -198,7 +197,6 @@
                  (render-duration (time-diff t (:start-time hc)))]
                 [:td
                  (render-duration (time-diff t (:current-time hc)))]
-                [:td (:healthcheck-interval hc)]
                 [:td (:pending-readings hc)]
                 [:td (:sensor-polls hc)]
                 [:td (:sensor-errors hc)]
