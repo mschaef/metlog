@@ -1,3 +1,9 @@
+;;; sensor-cloud.clj
+;;;
+;;; Cloud Sensor Definitions
+
+(defn directory-space-used [ dir ]
+  (apply + (map #(.length %) (file-seq (clojure.java.io/file dir)))))
 
 (defsensor mschaef-site-cpu {:poll-interval (minutes 1)}
   (.getSystemCpuLoad (java.lang.management.ManagementFactory/getOperatingSystemMXBean)))
@@ -93,8 +99,7 @@
 (defsensor "mschaef-rss-cloud" {:poll-interval (minutes 1)}
   (measure-http-get "http://www.mschaef.com/feed/rss"))
 
-(defn directory-space-used [ dir ]
-  (apply + (map #(.length %) (file-seq (clojure.java.io/file dir)))))
+;;; Application Disk Space Usage
 
 (defsensor space-used-toto {:poll-interval (seconds 30)}
   (directory-space-used "/var/lib/toto"))
@@ -104,3 +109,8 @@
 
 (defsensor space-used-metlog {:poll-interval (seconds 30)}
   (directory-space-used "/var/lib/metlog"))
+
+;;; Todo List Stats
+
+(defsensor "toto" {:poll-interval (minutes 1)}
+  (http-request-json "http://localhost:8088/item-counts"))
