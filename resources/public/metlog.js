@@ -49,7 +49,12 @@ function doPost(baseUrl, args, nextUrl) {
 /*** Utilities ***/
 
 function foreach_elem(selector, fn) {
-    Array.prototype.forEach.call(document.querySelectorAll(selector), function(el, i) { fn(el); });
+    Array.prototype.forEach.call(
+        document.querySelectorAll(selector),
+        function(el, i) {
+            fn(el);
+        }
+    );
 }
 
 /*** Query Window Parsing ***/
@@ -150,10 +155,10 @@ function replaceSeriesData(seriesName, segBeginT, segEndT) {
 
 function extendSeriesData(seriesName, segBeginT, segEndT) {
     if (segEndT < segBeginT) {
-        return;
+        return Promise.resolve();
     }
 
-    fetchSeriesData(seriesName, segBeginT, segEndT)
+    return fetchSeriesData(seriesName, segBeginT, segEndT)
         .then(( update ) => {
             seriesData[seriesName] = combineSeriesData(seriesData[seriesName], update);
         });
@@ -180,17 +185,24 @@ function updateSeriesData(seriesName, queryBeginT, queryEndT) {
        ) {
         replaceSeriesData(seriesName, queryBeginT, queryEndT);
     } else {
-        extendSeriesData(seriesName, queryBeginT, series.beginT);
-
-        var endT = Math.min(latestSampleTime(series), series.endT);
-        extendSeriesData(seriesName, endT, queryEndT);
+        extendSeriesData(seriesName, queryBeginT, series.beginT)
+            .then(() => {
+                var endT = Math.min(latestSampleTime(series), series.endT);
+                extendSeriesData(seriesName, endT, queryEndT);
+            });
     }
 }
 
 function updatePollData() {
     const now = Date.now();
 
+    const displaySeries = new Set(dashboard.map((plot) => plot['series-name']));
+
     for(var seriesName in seriesData) {
+        if (!displaySeries.has(seriesName)) {
+            continue;
+        }
+
         updateSeriesData(seriesName, now - queryWindowMsec, now);
     }
 }
