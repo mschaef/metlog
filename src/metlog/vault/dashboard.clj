@@ -1,9 +1,9 @@
-(ns metlog-vault.dashboard
+(ns metlog.vault.dashboard
   (:use compojure.core
         playbook.core
         playbook.web
         metlog.util
-        metlog-vault.util)
+        metlog.vault.util)
   (:require [taoensso.timbre :as log]
             [hiccup.page :as hiccup-page]
             [hiccup.form :as hiccup-form]
@@ -11,8 +11,8 @@
             [clojure.data.json :as json]
             [playbook.hashid :as hashid]
             [playbook.config :as config]
-            [metlog-vault.data :as data]
-            [metlog-vault.data-service :as data-service]))
+            [metlog.vault.data :as data]
+            [metlog.vault.data-service :as data-service]))
 
 (defn- resource [ path ]
   (str "/" (get-version) "/" path))

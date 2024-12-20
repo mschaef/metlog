@@ -1,4 +1,4 @@
-(ns metlog-vault.web
+(ns metlog.vault.web
   (:use playbook.core
         compojure.core
         sql-file.middleware
@@ -12,7 +12,7 @@
             [ring.middleware.json :as ring-json]
             [compojure.handler :as handler]
             [playbook.config :as config]
-            [metlog-vault.data :as data]))
+            [metlog.vault.data :as data]))
 
 (defn wrap-request-logging [ app ]
   (fn [req]

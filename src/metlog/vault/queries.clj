@@ -19,7 +19,7 @@
 ;;
 ;; You must not remove this notice, or any other, from this software.
 
-(ns metlog-vault.queries
+(ns metlog.vault.queries
   (:require [ yesql.core :refer [ defqueries ]]))
 
-(defqueries "metlog_vault/queries.sql")
+(defqueries "metlog/vault/queries.sql")

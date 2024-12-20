@@ -1,11 +1,11 @@
-(ns metlog-vault.data
+(ns metlog.vault.data
   (:use playbook.core
         compojure.core
         sql-file.middleware
         sql-file.sql-util)
   (:require [taoensso.timbre :as log]
             [clojure.java.jdbc :as jdbc]
-            [metlog-vault.queries :as query]
+            [metlog.vault.queries :as query]
             [clojure.data.json :as json]))
 
 (def sample-batch-size 200)

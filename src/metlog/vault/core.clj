@@ -1,17 +1,17 @@
- (ns metlog-vault.core
+ (ns metlog.vault.core
    (:use playbook.core
-         metlog-vault.util
+         metlog.vault.util
          compojure.core
          sql-file.middleware)
    (:require [taoensso.timbre :as log]
              [playbook.config :as config]
              [playbook.scheduler :as scheduler]
              [sql-file.core :as sql-file]
-             [metlog-vault.data :as data]
-             [metlog-vault.data-service :as data-service]
-             [metlog-vault.web :as web]
-             [metlog-vault.routes :as routes]
-             [metlog-vault.archiver :as archiver]))
+             [metlog.vault.data :as data]
+             [metlog.vault.data-service :as data-service]
+             [metlog.vault.web :as web]
+             [metlog.vault.routes :as routes]
+             [metlog.vault.archiver :as archiver]))
 
 (def jvm-runtime (java.lang.Runtime/getRuntime))
 

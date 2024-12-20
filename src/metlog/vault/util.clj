@@ -1,4 +1,4 @@
-(ns metlog-vault.util
+(ns metlog.vault.util
   (:use compojure.core)
   (:require [cognitect.transit :as transit]
             [clojure.data.json :as json]

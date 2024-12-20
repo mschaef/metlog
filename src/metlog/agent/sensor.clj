@@ -1,6 +1,6 @@
-(ns metlog-agent.sensor
+(ns metlog.agent.sensor
   (:use playbook.core
-        metlog-agent.core)
+        metlog.agent.core)
   (:require [taoensso.timbre :as log]
             [clojure.java.io :as jio]
             [clj-http.client :as http]

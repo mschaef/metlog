@@ -1,10 +1,10 @@
-(ns metlog-vault.archiver
+(ns metlog.vault.archiver
   (:use playbook.core
-        metlog-vault.util
+        metlog.vault.util
         sql-file.middleware)
   (:require [taoensso.timbre :as log]
             [playbook.config :as config]
-            [metlog-vault.data :as data]
+            [metlog.vault.data :as data]
             [playbook.scheduler :as scheduler]))
 
 (defn- archive-series [ series-id archive-cutoff-date ]

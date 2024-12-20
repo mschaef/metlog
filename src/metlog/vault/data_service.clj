@@ -1,15 +1,15 @@
-(ns metlog-vault.data-service
+(ns metlog.vault.data-service
   (:use compojure.core
         playbook.core
         metlog.util
-        metlog-vault.util)
+        metlog.vault.util)
   (:require [taoensso.timbre :as log]
             [compojure.route :as route]
             [ring.util.response :as ring]
             [clojure.edn :as edn]
             [clojure.data.json :as json]
-            [metlog-vault.data :as data]
-            [metlog-vault.healthcheck-service :as healthcheck-service]))
+            [metlog.vault.data :as data]
+            [metlog.vault.healthcheck-service :as healthcheck-service]))
 
 (defn make-sample [ series-name value ]
   {:t (java.util.Date.)

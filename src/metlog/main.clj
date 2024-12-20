@@ -5,9 +5,9 @@
             [playbook.config :as config]
             [taoensso.timbre :as log]
             [playbook.scheduler :as scheduler]
-            [metlog-agent.core :as agent]
-            [metlog-vault.core :as vault]
-            [metlog-agent.sensor :as sensor]))
+            [metlog.agent.core :as agent]
+            [metlog.vault.core :as vault]
+            [metlog.agent.sensor :as sensor]))
 
 (defmain [ & args ]
 

@@ -1,4 +1,4 @@
-(ns metlog-agent.core
+(ns metlog.agent.core
   (:use playbook.core
         metlog.util)
   (:require [taoensso.timbre :as log]
@@ -224,7 +224,7 @@
                  my-pool)))
 
 (defn- maybe-load-sensor-file [ filename ]
-  (binding [ *ns* (find-ns 'metlog-agent.sensor)]
+  (binding [ *ns* (find-ns 'metlog.agent.sensor)]
     (if (.exists (jio/as-file filename))
       (do
         (log/report "Loading sensor file:" filename "*ns*=" *ns*)
