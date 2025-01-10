@@ -143,24 +143,8 @@ function fetchSeriesData(seriesName, beginT, endT) {
         'begin-t' : beginT,
         'end-t' : endT
     })).then((response) => response.json())
-        .then((samples) => ({ samples, beginT, endT }));
-}
-
-function replaceSeriesData(seriesName, segBeginT, segEndT) {
-    fetchSeriesData(seriesName, segBeginT, segEndT)
-        .then(( series ) => {
-            seriesData[seriesName] = series;
-        });
-}
-
-function extendSeriesData(seriesName, segBeginT, segEndT) {
-    if (segEndT < segBeginT) {
-        return Promise.resolve();
-    }
-
-    return fetchSeriesData(seriesName, segBeginT, segEndT)
-        .then(( update ) => {
-            seriesData[seriesName] = combineSeriesData(seriesData[seriesName], update);
+        .then((samples) => {
+            return { samples, beginT, endT };
         });
 }
 
@@ -179,17 +163,23 @@ function updateSeriesData(seriesName, queryBeginT, queryEndT) {
         return;
     }
 
-    if (series.beginT > series.endT   // Empty series
-        || queryEndT < series.beginT  // Query fully before series
-        || queryBeginT > series.endT  // Query fully after series
-       ) {
-        replaceSeriesData(seriesName, queryBeginT, queryEndT);
-    } else {
-        extendSeriesData(seriesName, queryBeginT, series.beginT)
-            .then(() => {
-                var endT = Math.min(latestSampleTime(series), series.endT);
-                extendSeriesData(seriesName, endT, queryEndT);
+    // Empty series or series where we don't have old enough samples
+    // get completely replaced.
+    if (series.beginT > series.endT || queryBeginT < series.beginT)  {
+        fetchSeriesData(seriesName, queryBeginT, queryEndT)
+            .then(( series ) => {
+                seriesData[seriesName] = series;
             });
+
+    } else {
+        const latestKnownT = Math.min(latestSampleTime(series), series.endT);
+
+        if (queryEndT > latestKnownT) {
+            fetchSeriesData(seriesName, latestKnownT, queryEndT)
+                .then(( update ) => {
+                    seriesData[seriesName] = combineSeriesData(seriesData[seriesName], update);
+                });
+        }
     }
 }
 
