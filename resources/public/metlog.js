@@ -156,18 +156,22 @@ function latestSampleTime(seriesData) {
     }
 }
 
+let updatingSeries = {};
+
 function updateSeriesData(seriesName, queryBeginT, queryEndT) {
     const series = seriesData[seriesName];
 
-    if (!series) {
+    if (!series || updatingSeries[seriesName]) {
         return;
     }
 
     // Empty series or series where we don't have old enough samples
     // get completely replaced.
     if (series.beginT > series.endT || queryBeginT < series.beginT)  {
+        updatingSeries[seriesName] = true;
         fetchSeriesData(seriesName, queryBeginT, queryEndT)
             .then(( series ) => {
+                updatingSeries[seriesName] = false;
                 seriesData[seriesName] = series;
             });
 
@@ -175,8 +179,10 @@ function updateSeriesData(seriesName, queryBeginT, queryEndT) {
         const latestKnownT = Math.min(latestSampleTime(series), series.endT);
 
         if (queryEndT > latestKnownT) {
+            updatingSeries[seriesName] = true;
             fetchSeriesData(seriesName, latestKnownT, queryEndT)
                 .then(( update ) => {
+                    updatingSeries[seriesName] = false;
                     seriesData[seriesName] = combineSeriesData(seriesData[seriesName], update);
                 });
         }
