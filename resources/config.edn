@@ -3,7 +3,7 @@
  :development-mode false
  :mode #{:vault :agent}
  :vault {:http-port 8080
-         :http-thread-count 4
+         :http-thread-count 8
          :hot-storage-days 180}
  :agent {:name "default"
          :vault-url "http://metrics.mschaef.com"
