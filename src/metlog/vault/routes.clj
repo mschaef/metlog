@@ -21,9 +21,10 @@
    (context "/dashboard" []
      (dashboard/all-routes healthchecks))
 
-   (route/resources (str "/" (get-version)))
-
    (GET "/" []
      (dashboard/redirect-to-default-dashboard))
+
+   (route/resources (str "/" (get-version)))
+   (route/resources "/")
 
    (route/not-found "Resource Not Found")))
