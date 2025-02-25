@@ -5,10 +5,9 @@
         sql-file.sql-util)
   (:require [taoensso.timbre :as log]
             [clojure.java.jdbc :as jdbc]
-            [metlog.vault.queries :as query]
-            [clojure.data.json :as json]))
-
-(def sample-batch-size 200)
+            [clojure.data.json :as json]
+            [playbook.config :as config]
+            [metlog.vault.queries :as query]))
 
 (defn get-series-id [ series-name ]
   (scalar-result
@@ -72,7 +71,7 @@
         (swap! latest-sample-times assoc series-id t)))))
 
 (defn store-data-samples [ samples ]
-  (doseq [ sample-batch (partition-all sample-batch-size samples)]
+  (doseq [ sample-batch (partition-all (config/cval :vault :store-sample-batch-size) samples)]
     (log/info "Storing batch of" (count sample-batch) "samples.")
     (jdbc/insert-multi! (current-db-connection) :sample
                         [:series_id :t :val]

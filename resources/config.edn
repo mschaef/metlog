@@ -2,9 +2,12 @@
  :log-path "/var/log/metlog/metlog.log"
  :development-mode false
  :mode #{:vault :agent}
+
  :vault {:http-port 8080
          :http-thread-count 8
-         :hot-storage-days 180}
+         :hot-storage-days 180
+         :store-sample-batch-size 200}
+
  :agent {:name "default"
          :vault-url "http://metrics.mschaef.com"
          :vault-update-size-limit 200
