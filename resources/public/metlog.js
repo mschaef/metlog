@@ -333,12 +333,6 @@ function dataYRange(data, forceZero) {
     }
 }
 
-function restrictData(data, beginT, endT) {
-    return data.samples.filter((sample) => {
-        return (sample.t >= beginT && sample.t < endT);
-    });
-}
-
 function translateFn(fromRange, toMax, padding, flipped) {
     const scaleFactor = (toMax - padding * 2) / (fromRange.max - fromRange.min);
 
@@ -554,20 +548,20 @@ function findXGridTickInterval(w, range) {
     return X_TICK_INTERVALS[X_TICK_INTERVALS.length - 1];
 }
 
-function drawXGrid(ctx, w, h, xRange) {
-    const xInterval = findXGridTickInterval(w, xRange);
-    const tx = translateFn(xRange, w, 0);;
+function drawXGrid(ctx, w, h, plotXRange) {
+    const xInterval = findXGridTickInterval(w, plotXRange);
+    const tx = translateFn(plotXRange, w, 0);
 
     const tzOfs = new Date().getTimezoneOffset() * 60 * 1000;
 
     // tzOfs used to ensure that this correctly round the displayed X
     // intervals to intervals in the display time zone. ie: a 3 hour
     // interval should display as 3:00, 6:00, 9:00, ...
-    const minX = Math.floor((xRange.min + xInterval - tzOfs) / xInterval) * xInterval + tzOfs;
+    const minX = Math.floor((plotXRange.min + xInterval - tzOfs) / xInterval) * xInterval + tzOfs;
 
-    const gridLines = intervalMagnitude(xRange) / xInterval;
+    const gridLines = intervalMagnitude(plotXRange) / xInterval;
 
-    const maxXPos = tx(xRange.max);
+    const maxXPos = tx(plotXRange.max);
 
     for(var ii = 0; ii < gridLines; ii++) {
         const xVal = minX + ii * xInterval;
@@ -577,32 +571,49 @@ function drawXGrid(ctx, w, h, xRange) {
         drawXGridLine(ctx, h, x, xVal, x < (maxXPos - PIXELS_PER_X_LABEL));
     }
 
-    drawXMaxLabel(ctx, formatXLabel(xRange.max), maxXPos, h);
+    drawXMaxLabel(ctx, formatXLabel(plotXRange.max), maxXPos, h);
 }
 
-function drawYGrid(ctx, w, h, yRange, base2YAxis) {
-    const yInterval = findYGridTickInterval(h, yRange, base2YAxis);
-    const ty = translateFn(yRange, h, PLOT_Y_PADDING, true);
+function drawMissingQueryRange(ctx, w, h, plotXRange, dataXRange) {
+    preserveContext(ctx, () => {
+        const tx = translateFn(plotXRange, w, 0);
+
+        ctx.beginPath();
+        ctx.fillStyle = "#F0F0F0";
+
+        if (dataXRange.min > dataXRange.max) {
+            ctx.rect(0, 0, w, h);
+        } else if (dataXRange.max < plotXRange.max) {
+            ctx.rect(tx(dataXRange.max), 0, tx(plotXRange.max) - tx(dataXRange.max), h);
+        }
+
+        ctx.fill();
+    });
+}
+
+function drawYGrid(ctx, w, h, plotYRange, base2YAxis) {
+    const yInterval = findYGridTickInterval(h, plotYRange, base2YAxis);
+    const ty = translateFn(plotYRange, h, PLOT_Y_PADDING, true);
 
     let lineYs = [];
 
-    if (intervalContainsZero(yRange)) {
+    if (intervalContainsZero(plotYRange)) {
         lineYs.push(0);
 
         var y = yInterval;
-        while(y < yRange.max) {
+        while(y < plotYRange.max) {
             lineYs.push(y);
             y += yInterval;
         }
 
         y = -yInterval;
-        while(y > yRange.min) {
+        while(y > plotYRange.min) {
             lineYs.push(y);
             y -= yInterval;
         }
     } else {
-        var y = Math.ceil(yRange.min / yInterval) * yInterval;
-        while(y < yRange.max) {
+        var y = Math.ceil(plotYRange.min / yInterval) * yInterval;
+        while(y < plotYRange.max) {
             lineYs.push(y);
             y += yInterval;
         }
@@ -623,35 +634,39 @@ function drawYGrid(ctx, w, h, yRange, base2YAxis) {
     }
 
     if (needYMin) {
-        drawYLabel(ctx, formatYLabel(yRange.min, base2YAxis), h, "bottom");
+        drawYLabel(ctx, formatYLabel(plotYRange.min, base2YAxis), h, "bottom");
     }
 
     if (needYMax) {
-        drawYLabel(ctx, formatYLabel(yRange.max, base2YAxis), 0, "top");
+        drawYLabel(ctx, formatYLabel(plotYRange.max, base2YAxis), 0, "top");
     }
 }
 
-function drawSeries(ctx, w, h, beginT, endT, seriesDefn) {
+function drawSeries(ctx, w, h, plotBeginT, plotEndT, seriesDefn) {
     const series = seriesData[seriesDefn.seriesName];
 
     if (!series || !series.samples) {
         return;
     }
 
-    const samples = restrictData(seriesData[seriesDefn.seriesName], beginT, endT);
+    const data = seriesData[seriesDefn.seriesName];
 
-    if (!samples.length) {
-        return;
-    }
-
-    const yRange = dataYRange(samples, seriesDefn.forceZero);
+    const samples = data.samples.filter((sample) => {
+        return (sample.t >= plotBeginT && sample.t < plotEndT);
+    });
 
     preserveContext(ctx, () => {
         ctx.font = "12px Arial";
-        drawXGrid(ctx, w, h, interval(beginT, endT));
-        drawYGrid(ctx, w, h, yRange, seriesDefn.base2YAxis);
-        clipRect(ctx, 0, 0, w, h);
-        drawSeriesLine(ctx, samples, interval(beginT, endT), yRange, w, h, seriesDefn.drawPoints);
+
+        drawXGrid(ctx, w, h, interval(plotBeginT, plotEndT));
+        drawMissingQueryRange(ctx, w, h, interval(plotBeginT, plotEndT), interval(data.beginT, data.endT));
+
+        if (samples.length) {
+            const yRange = dataYRange(samples, seriesDefn.forceZero);
+            drawYGrid(ctx, w, h, yRange, seriesDefn.base2YAxis);
+            clipRect(ctx, 0, 0, w, h);
+            drawSeriesLine(ctx, samples, interval(plotBeginT, plotEndT), yRange, w, h, seriesDefn.drawPoints);
+        }
     });
 }
 
