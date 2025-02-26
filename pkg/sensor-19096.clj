@@ -27,15 +27,6 @@
 (defsensor "phl-basement-window-frame" {:poll-interval (minutes 1)}
   (read-w1-sensor-at-path "/sys/bus/w1/devices/28-0000068f415f/w1_slave"))
 
-(defsensor "phl-downstairs-humidity" {:poll-interval (minutes 1)}
-   (let [body (http-request-json "http://192.168.1.160/tstat/humidity")]
-     (and body
-        (ensure-number (get body :humidity false)))))
-
-(defsensor "phl-upstairs-humidity" {:poll-interval (minutes 1)}
-   (let [body (http-request-json "http://192.168.1.161/tstat/humidity")]
-     (and body
-        (ensure-number (get body :humidity false)))))
 
 (defn poll-ct-80 [ url ]
   (let [body (http-request-json url)]
@@ -50,14 +41,24 @@
 (defsensor "phl-downstairs" {:poll-interval (minutes 1)}
   (poll-ct-80 "http://192.168.1.160/tstat"))
 
+(defsensor "phl-downstairs-humidity" {:poll-interval (minutes 1)}
+   (let [body (http-request-json "http://192.168.1.160/tstat/humidity")]
+     (and body
+        (ensure-number (get body :humidity false)))))
+
 (defsensor "phl-upstairs" {:poll-interval (minutes 1)}
   (poll-ct-80 "http://192.168.1.161/tstat"))
 
-(defsensor "mschaef-main" {:poll-interval (minutes 30)}
-  (measure-http-get "https://www.mschaef.com"))
+(defsensor "phl-upstairs-humidity" {:poll-interval (minutes 1)}
+   (let [body (http-request-json "http://192.168.1.161/tstat/humidity")]
+     (and body
+        (ensure-number (get body :humidity false)))))
 
-(defsensor "mschaef-rss" {:poll-interval (minutes 30)}
-  (measure-http-get "https://www.mschaef.com/feed/rss"))
+(defsensor "mschaef-main-19096" {:poll-interval (minutes 1)}
+  (measure-http-get "https://mschaef.com"))
+
+(defsensor "mschaef-rss-19096" {:poll-interval (minutes 1)}
+  (measure-http-get "https://mschaef.com/feed/rss"))
 
 (defsensor "bandwidth-test-19096" {:poll-interval (minutes 30)}
   (measure-http-get "https://s3.amazonaws.com/bandwidth-test.mschaef.com/10-mib"))

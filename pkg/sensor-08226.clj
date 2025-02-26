@@ -2,7 +2,6 @@
 ;;
 ;; Custom sensor definitions go here
 
-
 (defn constrain-sensor-range [ sensor-val low high ]
   (and sensor-val
        (>= sensor-val low)
@@ -25,11 +24,11 @@
 (defsensor "oc-garage-temp" {:poll-interval (minutes 1)}
   (read-w1-sensor-at-path "/sys/bus/w1/devices/28-0000068a5286/w1_slave"))
 
-(defsensor "mschaef-main-08226" {:poll-interval (minutes 30)}
-  (measure-http-get "https://www.mschaef.com"))
+(defsensor "mschaef-main-08226" {:poll-interval (minutes 1)}
+  (measure-http-get "https://mschaef.com"))
 
-(defsensor "mschaef-rss-08226" {:poll-interval (minutes 30)}
-  (measure-http-get "https://www.mschaef.com/feed/rss"))
+(defsensor "mschaef-rss-08226" {:poll-interval (minutes 1)}
+  (measure-http-get "https://mschaef.com/feed/rss"))
 
 (defsensor "bandwidth-test-08226" {:poll-interval (minutes 30)}
   (measure-http-get "https://s3.amazonaws.com/bandwidth-test.mschaef.com/10-mib"))
