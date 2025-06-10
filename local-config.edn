@@ -6,4 +6,5 @@
          :vault-url "http://localhost:8080"
          :sensor-file "./sensor.clj"}
 
- :job-schedule {:data-archiver "*/5 * * * *" }}
+ :job-schedule {:data-archiver "*/5 * * * *"
+                :defragment-database "*/15 * * * *"}}

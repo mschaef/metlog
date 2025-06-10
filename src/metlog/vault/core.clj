@@ -60,6 +60,10 @@
     (log/info "Starting vault with config: " (config/cval :vault))
     (sql-file/with-pool [db-pool (db-conn-spec (config/cval))]
       (let [healthchecks (atom {})]
+        (scheduler/schedule-job
+         scheduler :defragment-database
+         #(with-db-connection db-pool
+            (sql-file/checkpoint-defragment (current-db-connection))))
         (archiver/start scheduler db-pool)
         (web/start-webserver db-pool
                              (routes/all-routes
