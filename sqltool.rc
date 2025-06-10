@@ -1,4 +1,4 @@
 urlid metlog
-url jdbc:hsqldb:~/personal/metlog/local-db/metlog-vault
+url jdbc:hsqldb:~/personal/metlog/local-db/metlog
 username sa
 password
