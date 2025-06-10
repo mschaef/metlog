@@ -3,9 +3,9 @@
         compojure.core
         sql-file.middleware
         [ring.middleware resource
-                         not-modified
-                         content-type
-                         browser-caching])
+         not-modified
+         content-type
+         browser-caching])
   (:require [taoensso.timbre :as log]
             [ring.adapter.jetty :as jetty]
             [ring.middleware.reload :as ring-reload]
@@ -14,7 +14,7 @@
             [playbook.config :as config]
             [metlog.vault.data :as data]))
 
-(defn wrap-request-logging [ app ]
+(defn wrap-request-logging [app]
   (fn [req]
     (log/trace 'REQ (:request-method req) (:uri req) (:params req))
     (let [begin-t (. System (nanoTime))
@@ -23,12 +23,12 @@
                  "-" (/ (- (. System (nanoTime)) begin-t) 1000000.0))
       resp)))
 
-(defn- wrap-dev-support [ handler dev-mode ]
+(defn- wrap-dev-support [handler dev-mode]
   (cond-> (wrap-request-logging handler)
     dev-mode (ring-reload/wrap-reload)))
 
-(defn wrap-request-thread-naming [ app ]
-  (fn [ req ]
+(defn wrap-request-thread-naming [app]
+  (fn [req]
     (let [thread (Thread/currentThread)
           initial-thread-name (.getName thread)]
       (try
@@ -37,7 +37,7 @@
         (finally
           (.setName thread initial-thread-name))))))
 
-(defn start-webserver [ db-pool routes ]
+(defn start-webserver [db-pool routes]
   (let [http-port (config/cval :vault :http-port)
         http-thread-count (config/cval :vault :http-thread-count)]
     (log/info "Starting Vault Webserver on port" http-port

@@ -5,21 +5,21 @@
             [ring.util.response :as ring]))
 
 (defn respond-success
-  ([ message details ]
+  ([message details]
    (ring/response
     (merge details {:message message :success true})))
 
-  ([ message ]
+  ([message]
    (respond-success message {}))
 
   ([]
    (respond-success "ok")))
 
 (defn respond-bad-request
-  ([ message details ]
+  ([message details]
    (ring/bad-request
     (merge details {:message message :success false})))
 
-  ([ message ]
+  ([message]
    (respond-bad-request message {})))
 

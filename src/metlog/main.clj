@@ -9,7 +9,7 @@
             [metlog.vault.core :as vault]
             [metlog.agent.sensor :as sensor]))
 
-(defmain [ & args ]
+(defmain [& args]
 
   (let [mode (config/cval :mode)
         scheduler (scheduler/start)]

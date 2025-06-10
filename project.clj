@@ -23,7 +23,10 @@
                   :exclusions [com.fasterxml.jackson.core/jackson-core]]
                  [com.mschaef/playbook "0.1.5"]]
 
-  :plugins [[lein-tar "3.3.0"]]
+  :plugins [[lein-tar "3.3.0"]
+            [dev.weavejester/lein-cljfmt "0.13.0"]]
+
+  :cljfmt {:load-config-file? true}
 
   :tar {:uberjar true
         :format :tar-gz

@@ -8,7 +8,7 @@
             [metlog.vault.healthcheck-service :as healthcheck-service]
             [metlog.vault.dashboard :as dashboard]))
 
-(defn all-routes [ store-samples healthchecks ]
+(defn all-routes [store-samples healthchecks]
   (routes
    (context "/agent" []
      (routes

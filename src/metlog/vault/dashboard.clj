@@ -14,11 +14,11 @@
             [metlog.vault.data :as data]
             [metlog.vault.data-service :as data-service]))
 
-(defn- resource [ path ]
+(defn- resource [path]
   (str "/" (get-version) "/" path))
 
-(defn- post-button [ attrs body ]
-  (let [{:keys [ target next-url ]} attrs]
+(defn- post-button [attrs body]
+  (let [{:keys [target next-url]} attrs]
     (hiccup-form/submit-button
      (cond-> {:onclick (if-let [next-url (:next-url attrs)]
                          (str "window._metlog.doPost('" target "'," (json/write-str (get attrs :args {})) ", '" next-url "')")
@@ -28,7 +28,7 @@
                                      :data-target target}))
      body)))
 
-(defn- render-standard-header [ attrs ]
+(defn- render-standard-header [attrs]
   (let [title (:title attrs)
         client-redirect-time (:client-redirect-time attrs)
         client-redirect (:client-redirect attrs)]
@@ -50,32 +50,32 @@
       (config/cval :app :name)
       (when title (str " - " title))]]))
 
-(defn- render-page [ attrs & contents ]
+(defn- render-page [attrs & contents]
   (hiccup-page/html5
    [:html
     (render-standard-header attrs)
-    [:body (when-let [ body-class (:body-class attrs)] 
+    [:body (when-let [body-class (:body-class attrs)]
              {:class body-class})
      contents]]))
 
-(defn dashboard-select [ dashboard-id ]
+(defn dashboard-select [dashboard-id]
   [:select {:id "select-dashboard" :name "select-dashboard"
             :onchange "window._metlog.onDashboardSelectChange(event)"}
    (hiccup-form/select-options
-    (map (fn [ dashboard-info ]
-           [ (:name dashboard-info) (hashid/encode :db (:dashboard_id dashboard-info))])
+    (map (fn [dashboard-info]
+           [(:name dashboard-info) (hashid/encode :db (:dashboard_id dashboard-info))])
          (data/get-dashboard-names))
     (hashid/encode :db dashboard-id))])
 
-(defn- series-select [ id ]
+(defn- series-select [id]
   [:select {:id id
             :name id}
    (hiccup-form/select-options
-    (map (fn [ series-name ]
-           [ series-name series-name ])
+    (map (fn [series-name]
+           [series-name series-name])
          (data/get-series-names)))])
 
-(defn- header [ dashboard-id query-window ]
+(defn- header [dashboard-id query-window]
   [:div.header
    [:span#app-name "Metlog"]
 
@@ -90,13 +90,13 @@
     "Agent Status"]
 
    [:div.header-element
-    (hiccup-form/text-field { :id "query-window" :maxlength "8" }
+    (hiccup-form/text-field {:id "query-window" :maxlength "8"}
                             "query-window" (or query-window "1d"))]])
 
-(defn- dashboard-link [ id & others ]
+(defn- dashboard-link [id & others]
   (apply str "/dashboard/" (hashid/encode :db id) others))
 
-(defn- add-series-pane [ id ]
+(defn- add-series-pane [id]
   [:div.series-pane
    [:div.series-pane-header
     [:span.series-name "Add Series"]]
@@ -124,8 +124,7 @@
                                   :onclick (str "window._metlog.onAddSeries(event)")}
                                  "Add Series")])]])
 
-
-(defn- normalize-series-defn [ series-defn ]
+(defn- normalize-series-defn [series-defn]
   (if (string? series-defn)
     {:series-name series-defn
      :force-zero false
@@ -133,9 +132,9 @@
      :draw-points false}
     series-defn))
 
-(defn- series-pane [ dashboard-id index series-defn ]
+(defn- series-pane [dashboard-id index series-defn]
   (let [series-defn (normalize-series-defn series-defn)
-        { :keys [ series-name force-zero ] } series-defn]
+        {:keys [series-name force-zero]} series-defn]
     [:div.series-pane
      [:div.series-pane-header
       [:span.series-name series-name
@@ -147,30 +146,30 @@
      [:div.tsplot-container
       [:canvas.series-plot {:data-series-defn (json/write-str series-defn)}]]]))
 
-(defn- get-dashboard [ id ]
-  (if-let [ dashboard (data/get-dashboard-by-id id)]
-    (if-let [ parsed (or (try-parse-json (:definition dashboard))
-                         [])]
+(defn- get-dashboard [id]
+  (if-let [dashboard (data/get-dashboard-by-id id)]
+    (if-let [parsed (or (try-parse-json (:definition dashboard))
+                        [])]
       (assoc dashboard :definition parsed))))
 
-(defn- render-duration [ msec ]
-  (let [ s (quot msec 1000) ]
+(defn- render-duration [msec]
+  (let [s (quot msec 1000)]
     (if (< s 60)
       (str s "s")
-      (let [ m (quot s 60) ]
+      (let [m (quot s 60)]
         (if (< m 60)
           (str m "m")
-          (let [ h (quot m 60) ]
+          (let [h (quot m 60)]
             (if (< h 48)
               (str h "h")
               (str (quot h 24) "d"))))))))
 
-(defn- time-diff [ t1 t2 ]
+(defn- time-diff [t1 t2]
   (- (.getTime t1)
      (.getTime t2)))
 
-(defn- render-healthcheck-display [ healthchecks ]
-  (let [ t (current-time) ]
+(defn- render-healthcheck-display [healthchecks]
+  (let [t (current-time)]
     (render-page
      {:client-redirect-time 5
       :title "Agent Status"
@@ -188,8 +187,8 @@
        [:th "Sensor Poll Errors"]
        [:th "Vault Posts"]
        [:th "Vault Post Errors"]]
-      (map (fn [ k ]
-             (let [ hc (get healthchecks k)]
+      (map (fn [k]
+             (let [hc (get healthchecks k)]
                [:tr
                 [:td (:name hc)]
                 [:td (:local-ip-address hc)]
@@ -207,61 +206,61 @@
           :data-turbo "false"}
       "Dashboard"])))
 
-(defn- render-dashboard [ id req ]
-  (when-let [ dashboard (get-dashboard id)]
-    (let [ definition (:definition dashboard)]
-      (render-page { :title (:name dashboard) }
-       [:script "var dashboard = " (json/write-str (:definition dashboard)) ";"]
-       [:div.dashboard
-        (header id (:query-window (:params req)))
-        [:div.series-list
-         (map-indexed (partial series-pane (:dashboard_id dashboard)) definition)
-         (add-series-pane id)]]))))
+(defn- render-dashboard [id req]
+  (when-let [dashboard (get-dashboard id)]
+    (let [definition (:definition dashboard)]
+      (render-page {:title (:name dashboard)}
+                   [:script "var dashboard = " (json/write-str (:definition dashboard)) ";"]
+                   [:div.dashboard
+                    (header id (:query-window (:params req)))
+                    [:div.series-list
+                     (map-indexed (partial series-pane (:dashboard_id dashboard)) definition)
+                     (add-series-pane id)]]))))
 
-(defn- update-dashboard [ dashboard-id req ]
-  (let [ new-definition (or (try-parse-json (:new-definition (:params req)))
-                            []) ]
+(defn- update-dashboard [dashboard-id req]
+  (let [new-definition (or (try-parse-json (:new-definition (:params req)))
+                           [])]
     (data/update-dashboard-definition dashboard-id new-definition)
     (respond-success)))
 
-(defn- ensure-dashboard-id-by-name [ dashboard-name ]
+(defn- ensure-dashboard-id-by-name [dashboard-name]
   (or
    (:dashboard_id
     (data/get-dashboard-by-name dashboard-name))
-     (data/insert-dashboard-definition dashboard-name [])))
+   (data/insert-dashboard-definition dashboard-name [])))
 
-(defn- redirect-to-dashboard [ id ]
+(defn- redirect-to-dashboard [id]
   (ring/redirect (dashboard-link id)))
 
 (defn redirect-to-default-dashboard []
   (redirect-to-dashboard
-   (if-let [ existing-dashboard (first (data/get-dashboard-names)) ]
+   (if-let [existing-dashboard (first (data/get-dashboard-names))]
      (:dashboard_id existing-dashboard)
      (ensure-dashboard-id-by-name "Dashboard"))))
 
-(defn- create-dashboard [ req ]
+(defn- create-dashboard [req]
   (let [dashboard-name (.trim (:dashboard-name (:params req)))]
     (when (> (count dashboard-name) 0)
-      (redirect-to-dashboard (ensure-dashboard-id-by-name dashboard-name )))))
+      (redirect-to-dashboard (ensure-dashboard-id-by-name dashboard-name)))))
 
-(defn- delete-dashboard [ dashboard-id ]
+(defn- delete-dashboard [dashboard-id]
   (data/delete-dashboard-by-id dashboard-id)
   (redirect-to-default-dashboard))
 
-(defn dashboard-routes [ dashboard-id ]
-  (when-let-route [ dashboard-id (hashid/decode :db dashboard-id) ]
-    (GET "/" req
-      (render-dashboard dashboard-id req))
+(defn dashboard-routes [dashboard-id]
+  (when-let-route [dashboard-id (hashid/decode :db dashboard-id)]
+                  (GET "/" req
+                    (render-dashboard dashboard-id req))
 
-    (POST "/" req
-      (update-dashboard dashboard-id req))
+                  (POST "/" req
+                    (update-dashboard dashboard-id req))
 
-    (POST "/delete" [ ]
-      (delete-dashboard dashboard-id))))
+                  (POST "/delete" []
+                    (delete-dashboard dashboard-id))))
 
-(defn all-routes [ healthchecks ]
+(defn all-routes [healthchecks]
   (routes
-   (context "/:dashboard-id" [ dashboard-id ]
+   (context "/:dashboard-id" [dashboard-id]
      (dashboard-routes dashboard-id))
 
    (GET "/healthchecks" []

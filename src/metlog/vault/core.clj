@@ -15,13 +15,13 @@
 
 (def jvm-runtime (java.lang.Runtime/getRuntime))
 
-(defn wrap-with-current-config [ f ]
-  (let [ config (config/cval) ]
+(defn wrap-with-current-config [f]
+  (let [config (config/cval)]
     #(config/with-config config
        (f))))
 
-(defn- queued-data-sink [ scheduler db-pool ]
-  (let [ sample-queue (java.util.concurrent.LinkedBlockingQueue.) ]
+(defn- queued-data-sink [scheduler db-pool]
+  (let [sample-queue (java.util.concurrent.LinkedBlockingQueue.)]
     (scheduler/schedule-job
      scheduler :sample-ingress-queue
      #(doto sample-queue
@@ -36,7 +36,7 @@
 
     (scheduler/schedule-job
      scheduler :store-ingress-queue
-     #(let [ snapshot (java.util.concurrent.LinkedBlockingQueue.) ]
+     #(let [snapshot (java.util.concurrent.LinkedBlockingQueue.)]
         (locking sample-queue
           (.drainTo sample-queue snapshot))
         (when (> (count snapshot) 0)
@@ -44,18 +44,18 @@
           (with-db-connection db-pool
             (data/store-data-samples-monotonic (seq snapshot))))))
 
-    (fn [ samples ]
+    (fn [samples]
       (log/debug "Enqueuing " (count samples) " samples for later storage.")
-      (doseq [ sample samples ]
+      (doseq [sample samples]
         (.add sample-queue sample)))))
 
-(defn- db-conn-spec [ config ]
+(defn- db-conn-spec [config]
   {:name (or (config/property "db.subname")
              (get-in config [:vault :db :subname] "metlog-vault"))
-   :schema-path [ "sql/" ]
-   :schemas [[ "metlog" 3 ]]})
+   :schema-path ["sql/"]
+   :schemas [["metlog" 3]]})
 
-(defn start-app [ scheduler ]
+(defn start-app [scheduler]
   (with-daemon-thread 'vault-webserver
     (log/info "Starting vault with config: " (config/cval :vault))
     (sql-file/with-pool [db-pool (db-conn-spec (config/cval))]

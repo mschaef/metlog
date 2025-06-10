@@ -8,10 +8,10 @@
             [clojure.edn :as edn]
             [metlog.vault.data :as data]))
 
-(defn notice-healthcheck [ healthcheck-data healthchecks ]
+(defn notice-healthcheck [healthcheck-data healthchecks]
   (swap! healthchecks assoc (:name healthcheck-data) healthcheck-data))
 
-(defn all-routes [ healthchecks ]
+(defn all-routes [healthchecks]
   (routes
    (POST "/healthcheck" req
      (notice-healthcheck (read-request-body req) healthchecks)

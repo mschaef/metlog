@@ -1,21 +1,27 @@
+.PHONY: help
+ help:	                                       ## Show list of available make targets
+	@cat Makefile | grep -e "^[a-zA-Z_\-]*: *.*## *" | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+
 .PHONY: run
-run:
+run:                                           ## Run the application
+	lein cljfmt check
 	lein run
 
-.PHONY: uberjar
-uberjar:
-	lein uberjar
-
-.PHONY: run-uberjar
-run-uberjar: uberjar
-	java -Dconf=local-config.edn -jar ./target/uberjar/metlog-standalone.jar
+.PHONY: format
+format:                                        ## Reformat Clojure source code
+	lein cljfmt fix
 
 .PHONY: package
-package:
+package:                                       ## Package a new release of the application
 	lein clean
+	lein compile
 	lein release patch
 
 .PHONY: clean
-clean:
+clean:                                         ## Clean the local build directory
 	lein clean
-	rm -f *~
+
+.PHONY: clean-all
+clean-all: clean                               ## Clean everything, including the local database state
+	rm -rfv local-db/*
