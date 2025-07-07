@@ -94,20 +94,20 @@
           :duration-msec (- (System/currentTimeMillis) begin-t)})))
 
 (defsensor "mschaef-main-cloud" {:poll-interval (minutes 1)}
-  (measure-http-get "http://www.mschaef.com"))
+  (measure-http-get "https://mschaef.com"))
 
 (defsensor "mschaef-rss-cloud" {:poll-interval (minutes 1)}
-  (measure-http-get "http://www.mschaef.com/feed/rss"))
+  (measure-http-get "https://mschaef.com/feed/rss"))
 
 ;;; Application Disk Space Usage
 
-(defsensor space-used-toto {:poll-interval (seconds 30)}
+(defsensor space-used-toto {:poll-interval (minutes 10)}
   (directory-space-used "/var/lib/toto"))
 
-(defsensor space-used-stocking {:poll-interval (seconds 30)}
+(defsensor space-used-stocking {:poll-interval (minutes 10)}
   (directory-space-used "/var/lib/stocking"))
 
-(defsensor space-used-metlog {:poll-interval (seconds 30)}
+(defsensor space-used-metlog {:poll-interval (minutes 10)}
   (directory-space-used "/var/lib/metlog"))
 
 ;;; Todo List Stats
