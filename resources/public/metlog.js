@@ -642,6 +642,16 @@ function drawYGrid(ctx, w, h, plotYRange, base2YAxis) {
     }
 }
 
+function relativeSamples(samples) {
+    if (samples.length == 0) {
+        return [];
+    }
+
+    const initial = samples[0].val;
+
+    return samples.map(s => ({t: s.t, val: s.val - initial}));
+}
+
 function drawSeries(ctx, w, h, plotBeginT, plotEndT, seriesDefn) {
     const series = seriesData[seriesDefn.seriesName];
 
@@ -662,10 +672,16 @@ function drawSeries(ctx, w, h, plotBeginT, plotEndT, seriesDefn) {
         drawMissingQueryRange(ctx, w, h, interval(plotBeginT, plotEndT), interval(data.beginT, data.endT));
 
         if (samples.length) {
-            const yRange = dataYRange(samples, seriesDefn.forceZero);
+            var displaySamples = samples;
+
+            if (seriesDefn.displayRelative) {
+                displaySamples = relativeSamples(samples); 
+            }
+
+            const yRange = dataYRange(displaySamples, seriesDefn.forceZero);
             drawYGrid(ctx, w, h, yRange, seriesDefn.base2YAxis);
             clipRect(ctx, 0, 0, w, h);
-            drawSeriesLine(ctx, samples, interval(plotBeginT, plotEndT), yRange, w, h, seriesDefn.drawPoints);
+            drawSeriesLine(ctx, displaySamples, interval(plotBeginT, plotEndT), yRange, w, h, seriesDefn.drawPoints);
         }
     });
 }
@@ -689,6 +705,7 @@ function canvasSeriesDefn(canvas) {
 
     return {
         seriesName: defn["series-name"],
+        displayRelative: !!defn["display-relative"],
         forceZero: !!defn["force-zero"],
         base2YAxis: !!defn["base-2-y-axis"],
         drawPoints: !!defn["draw-points"],
@@ -834,6 +851,7 @@ function onAddSeries(event) {
     const formData = new FormData(form);
 
     const seriesName = formData.get("series-name");
+    const displayRelative = formData.get("display-relative") === "Y";
     const forceZero = formData.get("force-zero") === "Y";
     const base2YAxis = formData.get("base-2-y-axis") === "Y";
     const drawPoints = formData.get("draw-points") === "Y";
@@ -841,6 +859,7 @@ function onAddSeries(event) {
     doPost(window.location.pathname, {
         "new-definition": JSON.stringify(dashboard.concat(({
             "series-name": seriesName,
+            "display-relative": displayRelative,
             "force-zero": forceZero,
             "base-2-y-axis": base2YAxis,
             "draw-points": drawPoints,

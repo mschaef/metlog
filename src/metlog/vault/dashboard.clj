@@ -108,8 +108,8 @@
       (series-select "series-name")]
 
      [:div
-      [:label {:for "force-zero"} "Force Zero:"]
-      (hiccup-form/check-box "force-zero" false "Y")]
+      [:label {:for "display-relative"} "Display Relative:"]
+      (hiccup-form/check-box "display-relative" false "Y")]
 
      [:div
       [:label {:for "base-2-y-axis"} "Base 2 Y-Axis:"]
@@ -134,12 +134,14 @@
 
 (defn- series-pane [dashboard-id index series-defn]
   (let [series-defn (normalize-series-defn series-defn)
-        {:keys [series-name force-zero]} series-defn]
+        {:keys [series-name force-zero display-relative]} series-defn]
     [:div.series-pane
      [:div.series-pane-header
       [:span.series-name series-name
        (when force-zero
-         [:span.pill "zero"])]
+         [:span.pill "zero"])
+       (when display-relative
+         [:span.pill "relative"])]
       (hiccup-form/submit-button {:class "close-button"
                                   :onclick (str "window._metlog.onDeleteSeries(" index ");")}
                                  "Close")]
