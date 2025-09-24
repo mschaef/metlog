@@ -212,22 +212,24 @@
           :data-turbo "false"}
       "Dashboard"])))
 
-(defn- render-dashboard [id req]
-  (when-let [dashboard (get-dashboard id)]
-    (let [definition (:definition dashboard)]
-      (render-page {:title (:name dashboard)}
-                   [:script "var dashboard = " (json/write-str (:definition dashboard)) ";"]
-                   [:div.dashboard
-                    (header id (:query-window (:params req)))
-                    [:div.series-list
-                     (map-indexed (partial series-pane (:dashboard_id dashboard)) definition)
-                     (add-series-pane id)]]))))
+(defn- render-dashboard [req]
+  (let [dashboard-id (-> req :params :dashboard-id)]
+    (when-let [dashboard (get-dashboard dashboard-id)]
+      (let [definition (:definition dashboard)]
+        (render-page {:title (:name dashboard)}
+                     [:script "var dashboard = " (json/write-str (:definition dashboard)) ";"]
+                     [:div.dashboard
+                      (header dashboard-id (:query-window (:params req)))
+                      [:div.series-list
+                       (map-indexed (partial series-pane (:dashboard_id dashboard)) definition)
+                       (add-series-pane dashboard-id)]])))))
 
-(defn- update-dashboard [dashboard-id req]
-  (let [new-definition (or (try-parse-json (:new-definition (:params req)))
-                           [])]
-    (data/update-dashboard-definition dashboard-id new-definition)
-    (respond-success)))
+(defn- update-dashboard [req]
+  (let [dashboard-id (-> req :params :dashboard-id)]
+    (let [new-definition (or (try-parse-json (:new-definition (:params req)))
+                             [])]
+      (data/update-dashboard-definition dashboard-id new-definition)
+      (respond-success))))
 
 (defn- ensure-dashboard-id-by-name [dashboard-name]
   (or
@@ -249,31 +251,38 @@
     (when (> (count dashboard-name) 0)
       (redirect-to-dashboard (ensure-dashboard-id-by-name dashboard-name)))))
 
-(defn- delete-dashboard [dashboard-id]
-  (data/delete-dashboard-by-id dashboard-id)
-  (redirect-to-default-dashboard))
+(defn- delete-dashboard [req]
+  (let [dashboard-id (-> req :params :dashboard-id)]
+    (data/delete-dashboard-by-id dashboard-id)
+    (redirect-to-default-dashboard)))
 
-(defn dashboard-routes [dashboard-id]
-  (when-let-route [dashboard-id (hashid/decode :db dashboard-id)]
-                  (GET "/" req
-                    (render-dashboard dashboard-id req))
+(defn- decode-dashboard-id [encoded-dashboard-id]
+  (hashid/decode :db encoded-dashboard-id))
 
-                  (POST "/" req
-                    (update-dashboard dashboard-id req))
+(defn dashboard-id-middleware [handler]
+  (fn [req]
+    (if-let [dashboard-id (decode-dashboard-id (-> req :params :encoded-dashboard-id))]
+      (handler (assoc-in req [:params :dashboard-id] dashboard-id))
+      nil)))
 
-                  (POST "/delete" []
-                    (delete-dashboard dashboard-id))))
+(defroutes dashboard-routes
+  (GET "/" req
+    (render-dashboard req))
+
+  (POST "/" req
+    (update-dashboard req))
+
+  (POST "/delete" req
+    (delete-dashboard req)))
 
 (defn all-routes [healthchecks]
   (routes
-   (context "/:dashboard-id" [dashboard-id]
-     (dashboard-routes dashboard-id))
+   (context "/:encoded-dashboard-id" []
+     (-> dashboard-routes
+         dashboard-id-middleware))
 
    (GET "/healthchecks" []
      (render-healthcheck-display @healthchecks))
-
-   (GET "/data/:series-name" {params :params}
-     (data-service/get-series-data params))
 
    (POST "/" req
      (create-dashboard req))))

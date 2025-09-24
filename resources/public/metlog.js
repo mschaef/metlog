@@ -139,7 +139,7 @@ function addPollSeries(seriesDefn) {
 }
 
 function fetchSeriesData(seriesName, beginT, endT) {
-    return fetch('/dashboard/data/' + seriesName + "?" + new URLSearchParams({
+    return fetch('/data/' + seriesName + "?" + new URLSearchParams({
         'begin-t' : beginT,
         'end-t' : endT
     })).then((response) => response.json())
