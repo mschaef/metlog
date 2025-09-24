@@ -112,6 +112,10 @@
       (hiccup-form/check-box "display-relative" false "Y")]
 
      [:div
+      [:label {:for "force-zero"} "Force Zero:"]
+      (hiccup-form/check-box "force-zero" false "Y")]
+
+     [:div
       [:label {:for "base-2-y-axis"} "Base 2 Y-Axis:"]
       (hiccup-form/check-box "base-2-y-axis" false "Y")]
 
