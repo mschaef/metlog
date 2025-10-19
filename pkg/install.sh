@@ -55,6 +55,7 @@ fi
 
 install -v --group=root --owner=root sensor-08226.clj /etc/${METLOG_SERVICE_NAME}/sensor-08226.clj
 install -v --group=root --owner=root sensor-19096.clj /etc/${METLOG_SERVICE_NAME}/sensor-19096.clj
+install -v --group=root --owner=root sensor-19096-vault.clj /etc/${METLOG_SERVICE_NAME}/sensor-19096-vault.clj
 install -v --group=root --owner=root sensor-cloud.clj /etc/${METLOG_SERVICE_NAME}/sensor-cloud.clj
 
 
