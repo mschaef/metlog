@@ -424,49 +424,49 @@ function formatXLabel(val) {
     return MM + "-" + dd + " " + hh + ":" + mm;
 }
 
-function formatYLabel(val, base2) {
+function formatYLabel(val, base2, intAxis) {
     var suffix = "";
     const mag = Math.abs(val);
 
     let precision = 0;
 
-    if (base2) {
-        if (mag >= 1024 * 1024 * 1024) {
-            suffix = "Gi";
-            val = val / (1024 * 1024 * 1024);
-        } else if (mag >= 1024 * 1024) {
-            suffix = "Mi";
-            val = val / (1024 * 1024);
-        } else if (mag >= 1024) {
-            suffix = "Ki";
-            val = val / 1024;
-        }
-    } else {
-        if (mag >= 1000000000) {
-            suffix = "G";
-            val = val / 1000000000;
-        } else if (mag >= 1000000) {
-            suffix = "M";
-            val = val / 1000000;
-        } else if (mag >= 1000) {
-            suffix = "K";
-            val = val / 1000;
-        }
+    if (!intAxis) {
+        if (base2) {
+            if (mag >= 1024 * 1024 * 1024) {
+                suffix = "Gi";
+                val = val / (1024 * 1024 * 1024);
+            } else if (mag >= 1024 * 1024) {
+                suffix = "Mi";
+                val = val / (1024 * 1024);
+            } else if (mag >= 1024) {
+                suffix = "Ki";
+                val = val / 1024;
+            }
+        } else {
+            if (mag >= 1000000000) {
+                suffix = "G";
+                val = val / 1000000000;
+            } else if (mag >= 1000000) {
+                suffix = "M";
+                val = val / 1000000;
+            } else if (mag >= 1000) {
+                suffix = "K";
+                val = val / 1000;
+            }
 
-        const mag2 = Math.abs(val);
+            const mag2 = Math.abs(val);
 
-        if (mag2 >= 100.0) {
-            precision = 1;
-        } else if (mag2 >= 10.0) {
-            precision = 2;
-        } else if (mag2 >= 1.0)  {
-            precision = 3;
-        } else if (mag2 > 0.0) {
-            precision = 4;
+            if (mag2 >= 100.0) {
+                precision = 1;
+            } else if (mag2 >= 10.0) {
+                precision = 2;
+            } else if (mag2 >= 1.0)  {
+                precision = 3;
+            } else if (mag2 > 0.0) {
+                precision = 4;
+            }
         }
     }
-
-
 
     return val.toFixed(precision) + suffix;
 }
@@ -527,9 +527,9 @@ function drawYLabel(ctx, text, y, baseline) {
     });
 }
 
-function drawYGridLine(ctx, w, y, value, emphasis, base2) {
+function drawYGridLine(ctx, w, y, value, emphasis, base2, intAxis) {
     preserveContext(ctx, () => {
-        drawYLabel(ctx, formatYLabel(value, base2), y, "middle");
+        drawYLabel(ctx, formatYLabel(value, base2, intAxis), y, "middle");
         setStrokeGrid(ctx, emphasis);
         drawLine(ctx, 0, y, w, y);
     });
@@ -591,7 +591,7 @@ function drawMissingQueryRange(ctx, w, h, plotXRange, dataXRange) {
     });
 }
 
-function drawYGrid(ctx, w, h, plotYRange, base2YAxis) {
+function drawYGrid(ctx, w, h, plotYRange, base2YAxis, intYAxis) {
     const yInterval = findYGridTickInterval(h, plotYRange, base2YAxis);
     const ty = translateFn(plotYRange, h, PLOT_Y_PADDING, true);
 
@@ -629,16 +629,16 @@ function drawYGrid(ctx, w, h, plotYRange, base2YAxis) {
             needYMax = needYMax && yPos > PIXELS_PER_Y_LABEL;
             needYMin = needYMin && yPos < h - PIXELS_PER_Y_LABEL;
 
-            drawYGridLine(ctx, w, pixelSnap(yPos), gy, gy == 0, base2YAxis);
+            drawYGridLine(ctx, w, pixelSnap(yPos), gy, gy == 0, base2YAxis, intYAxis);
         }
     }
 
     if (needYMin) {
-        drawYLabel(ctx, formatYLabel(plotYRange.min, base2YAxis), h, "bottom");
+        drawYLabel(ctx, formatYLabel(plotYRange.min, base2YAxis, intYAxis), h, "bottom");
     }
 
     if (needYMax) {
-        drawYLabel(ctx, formatYLabel(plotYRange.max, base2YAxis), 0, "top");
+        drawYLabel(ctx, formatYLabel(plotYRange.max, base2YAxis, intYAxis), 0, "top");
     }
 }
 
@@ -675,11 +675,11 @@ function drawSeries(ctx, w, h, plotBeginT, plotEndT, seriesDefn) {
             var displaySamples = samples;
 
             if (seriesDefn.displayRelative) {
-                displaySamples = relativeSamples(samples); 
+                displaySamples = relativeSamples(samples);
             }
 
             const yRange = dataYRange(displaySamples, seriesDefn.forceZero);
-            drawYGrid(ctx, w, h, yRange, seriesDefn.base2YAxis);
+            drawYGrid(ctx, w, h, yRange, seriesDefn.base2YAxis, seriesDefn.intYAxis);
             clipRect(ctx, 0, 0, w, h);
             drawSeriesLine(ctx, displaySamples, interval(plotBeginT, plotEndT), yRange, w, h, seriesDefn.drawPoints);
         }
@@ -708,6 +708,7 @@ function canvasSeriesDefn(canvas) {
         displayRelative: !!defn["display-relative"],
         forceZero: !!defn["force-zero"],
         base2YAxis: !!defn["base-2-y-axis"],
+        intYAxis: !!defn["int-y-axis"],
         drawPoints: !!defn["draw-points"],
     };
 }
@@ -854,6 +855,7 @@ function onAddSeries(event) {
     const displayRelative = formData.get("display-relative") === "Y";
     const forceZero = formData.get("force-zero") === "Y";
     const base2YAxis = formData.get("base-2-y-axis") === "Y";
+    const intYAxis = formData.get("int-y-axis") === "Y";
     const drawPoints = formData.get("draw-points") === "Y";
 
     doPost(window.location.pathname, {
@@ -862,6 +864,7 @@ function onAddSeries(event) {
             "display-relative": displayRelative,
             "force-zero": forceZero,
             "base-2-y-axis": base2YAxis,
+            "int-y-axis": intYAxis,
             "draw-points": drawPoints,
         })))
     });

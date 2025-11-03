@@ -120,6 +120,10 @@
       (hiccup-form/check-box "base-2-y-axis" false "Y")]
 
      [:div
+      [:label {:for "int-y-axis"} "Int Y-Axis:"]
+      (hiccup-form/check-box "int-y-axis" false "Y")]
+
+     [:div
       [:label {:for "draw-points"} "Draw Points:"]
       (hiccup-form/check-box "draw-points" false "Y")]
 
@@ -138,12 +142,14 @@
 
 (defn- series-pane [dashboard-id index series-defn]
   (let [series-defn (normalize-series-defn series-defn)
-        {:keys [series-name force-zero display-relative]} series-defn]
+        {:keys [series-name force-zero int-y-axis display-relative]} series-defn]
     [:div.series-pane
      [:div.series-pane-header
       [:span.series-name series-name
        (when force-zero
          [:span.pill "zero"])
+       (when int-y-axis
+         [:span.pill "integer"])
        (when display-relative
          [:span.pill "relative"])]
       (hiccup-form/submit-button {:class "close-button"
