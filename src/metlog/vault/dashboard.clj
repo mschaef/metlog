@@ -152,11 +152,14 @@
      [:div.tsplot-container
       [:canvas.series-plot {:data-series-defn (json/write-str series-defn)}]]]))
 
-(defn- get-dashboard [id]
-  (if-let [dashboard (data/get-dashboard-by-id id)]
-    (if-let [parsed (or (try-parse-json (:definition dashboard))
-                        [])]
-      (assoc dashboard :definition parsed))))
+(defn- get-dashboard [dashboard-id]
+  (if-let [dashboard (data/get-dashboard-by-id dashboard-id)]
+    (let [parsed (try-parse-json (:definition dashboard))]
+      (assoc dashboard :definition
+             (or parsed
+                 (do
+                   (log/warn "Invalid dashboard JSON, id: " dashboard-id "(" parsed ")")
+                   []))))))
 
 (defn- render-duration [msec]
   (let [s (quot msec 1000)]
@@ -225,11 +228,15 @@
                        (add-series-pane dashboard-id)]])))))
 
 (defn- update-dashboard [req]
-  (let [dashboard-id (-> req :params :dashboard-id)]
-    (let [new-definition (or (try-parse-json (:new-definition (:params req)))
-                             [])]
-      (data/update-dashboard-definition dashboard-id new-definition)
-      (respond-success))))
+  (let [{dashboard-id :dashboard-id
+         definition-text :new-definition} (:params req)]
+    (if-let [parsed-definition (try-parse-json definition-text)]
+      (do
+        (data/update-dashboard-definition dashboard-id parsed-definition)
+        (respond-success))
+      (do
+        (log/warn "Invalid incoming dashboard JSON, id: " dashboard-id "(" definition-text ")")
+        (respond-bad-request "Invalid dashboard JSON")))))
 
 (defn- ensure-dashboard-id-by-name [dashboard-name]
   (or
