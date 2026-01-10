@@ -230,6 +230,7 @@
 (defn- update-dashboard [req]
   (let [{dashboard-id :dashboard-id
          definition-text :new-definition} (:params req)]
+    (log/info "Updating dashboard definition, dashboard-id:" dashboard-id)
     (if-let [parsed-definition (try-parse-json definition-text)]
       (do
         (data/update-dashboard-definition dashboard-id parsed-definition)
