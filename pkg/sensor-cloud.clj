@@ -43,13 +43,16 @@
                     {:connections (:connections curr-val)
                      :accepted-per-sec (max 0 (/ (- (:reqs-accepted curr-val) (:reqs-accepted prev-val)) delta-t-sec))
                      :handled-per-sec (max 0 (/ (- (:reqs-handled curr-val) (:reqs-handled prev-val)) delta-t-sec))
-                     :reqs-per-sec (max 0 (/ (- (:reqs curr-val) (:reqs prev-val)) delta-t-sec))}))))
+                     :reqs-per-sec (max 0 (/ (- (:reqs curr-val) (:reqs prev-val)) delta-t-sec))
+                     :accepted-count (:reqs-accepted curr-val) 
+                     :handled-count (:reqs-handled curr-val)
+                     :reqs-count (:reqs curr-val)}))))
 
 
 ;;; USGS Data
 
-(defn get-usgs-data []
-  (if-let [data (http-request-json "https://waterservices.usgs.gov/nwis/iv/?site=01411320&format=json&period=P7D&indent=on")]
+(defn get-usgs-data [ url ]
+  (if-let [data (http-request-json url)]
     (get-in data [:value :timeSeries])))
 
 (defn get-usgs-value [ value ]
@@ -66,23 +69,29 @@
          (assoc sensor-reading :variable-id (:variable-id var-data)))
        (:values var-data)))
 
-(defn get-flat-usgs-data []
+(defn get-flat-usgs-data [ url ]
   (mapcat
    flatten-usgs-var
-   (map get-usgs-var (get-usgs-data))))
+   (map get-usgs-var (get-usgs-data url))))
 
-(def variable-names
+(def usgs-variable-names
   {45807042 :water-temp
    52333388 :water-level})
 
-(defn to-timestamped [ var ]
-  (timestamped-value (:t var) { (variable-names (:variable-id var)) (:val var)}))
-
-(defn get-usgs-sensor-data [ ]
-  (map to-timestamped (get-flat-usgs-data)))
+(defn get-usgs-sensor-data [ url ]
+  (map (fn [var]
+         (let [value (:val var)]
+           (when (> value -900000)
+             (timestamped-value (:t var)
+                                {(usgs-variable-names (:variable-id var))
+                                 value}))))
+       (get-flat-usgs-data url)))
 
 (defsensor usgs-oc-bay  {:poll-interval (minutes 60)}
-  (vec (get-usgs-sensor-data)))
+  (vec (get-usgs-sensor-data "https://waterservices.usgs.gov/nwis/iv/?site=01411320&format=json&period=P7D&indent=on")))
+
+(defsensor usgs-absecon-channel  {:poll-interval (minutes 60)}
+  (vec (get-usgs-sensor-data "https://waterservices.usgs.gov/nwis/iv/?site=01410600&format=json&period=P7D&indent=on")))
 
 ;;; Internet connectivity
 
@@ -101,16 +110,19 @@
 
 ;;; Application Disk Space Usage
 
-(defsensor space-used-toto {:poll-interval (minutes 10)}
+(defsensor space-used-toto {:poll-interval (seconds 30)}
   (directory-space-used "/var/lib/toto"))
 
-(defsensor space-used-stocking {:poll-interval (minutes 10)}
+(defsensor space-used-stocking {:poll-interval (seconds 30)}
   (directory-space-used "/var/lib/stocking"))
 
-(defsensor space-used-metlog {:poll-interval (minutes 10)}
+(defsensor space-used-metlog {:poll-interval (seconds 30)}
   (directory-space-used "/var/lib/metlog"))
 
 ;;; Todo List Stats
 
 (defsensor "toto" {:poll-interval (minutes 1)}
   (http-request-json "http://localhost:8088/item-counts"))
+
+(defsensor "main-todo" {:poll-interval (minutes 1)}
+  (http-request-json "http://localhost:8088/list/tldBeLD7e9/counts"))

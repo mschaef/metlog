@@ -81,42 +81,6 @@
 (defsensor timestamped {:poll-interval (seconds 10)}
   (timestamped-value (java.util.Date.) (Math/random)))
 
-(defn get-usgs-data []
-  (if-let [data (http-request-json "https://waterservices.usgs.gov/nwis/iv/?site=01411320&format=json&period=P1D&indent=on")]
-    (get-in data ["value" "timeSeries"])))
-
-(defn get-usgs-value [ value ]
-  {:t (time-coerce/to-date (time-format/parse (get value "dateTime")))
-   :val (ensure-number (get value "value"))})
-
-(defn get-usgs-var [ var-info ]
-  {:unit (get-in var-info [ "variable" "unit" "unitCode" ])
-   :variable-id (get-in var-info [ "variable" "variableCode" 0 "variableID"])
-   :values (map get-usgs-value (get-in var-info [ "values" 0 "value" ]))})
-
-(defn flatten-usgs-var [ var-data ]
-  (map (fn [ sensor-reading ]
-         (assoc sensor-reading :variable-id (:variable-id var-data)))
-       (:values var-data)))
-
-(defn get-flat-usgs-data []
-  (mapcat
-   flatten-usgs-var
-   (map get-usgs-var (get-usgs-data))))
-
-(def variable-names
-  {45807042 :water-temp
-   52333388 :water-level})
-
-(defn to-timestamped [ var ]
-  (timestamped-value (:t var) { (variable-names (:variable-id var)) (:val var)}))
-
-(defn get-usgs-sensor-data [ ]
-  (map to-timestamped (get-flat-usgs-data)))
-
-(defsensor usgs-oc-bay  {:poll-interval (minutes 60)}
-  (vec (get-usgs-sensor-data)))
-
 (defsensor failing-sensor {:poll-interval (seconds 15)}
   (if (> 0.5 (Math/random))
     (throw (Exception. "test failure"))
@@ -125,3 +89,48 @@
 (defsensor fx-btc-usd {:poll-interval (seconds 15)}
   (get-in (http-request-json "https://api.coindesk.com/v1/bpi/currentprice/usd.json")
           [:bpi :USD :rate_float]))
+
+
+;;; USGS Data
+
+(defn get-usgs-data [ url ]
+  (if-let [data (http-request-json url)]
+    (get-in data [:value :timeSeries])))
+
+(defn get-usgs-value [ value ]
+  {:t (time-coerce/to-date (time-format/parse (get value :dateTime)))
+   :val (ensure-number (get value :value))})
+
+(defn get-usgs-var [ var-info ]
+  {:unit (get-in var-info [ :variable :unit :unitCode ])
+   :variable-id (get-in var-info [ :variable :variableCode 0 :variableID ])
+   :values (map get-usgs-value (get-in var-info [ :values 0 :value ]))})
+
+(defn flatten-usgs-var [ var-data ]
+  (map (fn [ sensor-reading ]
+         (assoc sensor-reading :variable-id (:variable-id var-data)))
+       (:values var-data)))
+
+(defn get-flat-usgs-data [ url ]
+  (mapcat
+   flatten-usgs-var
+   (map get-usgs-var (get-usgs-data url))))
+
+(def usgs-variable-names
+  {45807042 :water-temp
+   52333388 :water-level})
+
+(defn get-usgs-sensor-data [ url ]
+  (map (fn [var]
+         (let [value (:val var)]
+           (when (> value -900000)
+             (timestamped-value (:t var)
+                                {(usgs-variable-names (:variable-id var))
+                                 value}))))
+       (get-flat-usgs-data url)))
+
+(defsensor usgs-oc-bay  {:poll-interval (minutes 15)}
+  (vec (get-usgs-sensor-data "https://waterservices.usgs.gov/nwis/iv/?site=01411320&format=json&period=P7D&indent=on")))
+
+(defsensor usgs-absecon-channel  {:poll-interval (minutes 15)}
+  (vec (get-usgs-sensor-data "https://waterservices.usgs.gov/nwis/iv/?site=01410600&format=json&period=P7D&indent=on")))

@@ -1,12 +1,9 @@
 * Backlog
-** The minimum and maximum Y values are always displayed.
 ** Add support for unit-conversion/scaling to series display.
 ** Y scale is displayed with units (count, byte, temp c, etc.)
 ** Memory based data cache in vault.
 ** Add multi-series-on-graph support
 ** JMX instruments can be easily added with definst form
-** Plots display with a spinner when there are pending queries
-** Plots display with a gray background when there is stale or missing data
 ** Plots display with a red background when the vault is down
 ** Plots load initial data with incremental query
 ** Reorder the plots on the dashboard with drag/drop
@@ -23,6 +20,10 @@
 ** Add theme switching through UI
 ** Remove series attr query from incremental data updates
 * Complete
+** DONE Plots display with a spinner when there are pending queries
+  Implemented this with a grey background.
+** DONE Plots display with a gray background when there is stale or missing data
+** DONE The minimum and maximum Y values are always displayed.
 ** DONE The maximum X value is always dispayed
 ** DONE Stop sending a list of all series to the dashboard.
 ** DONE Persistently store the dashboard's configuration
