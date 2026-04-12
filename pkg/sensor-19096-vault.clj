@@ -49,3 +49,20 @@
 
 (defsensor "bandwidth-test-19096-vault" {:poll-interval (minutes 30)}
   (measure-http-get "https://s3.amazonaws.com/bandwidth-test.mschaef.com/10-mib"))
+
+;;; Vault Status
+
+(defn directory-space-used [ dir ]
+  (apply + (map #(.length %) (file-seq (clojure.java.io/file dir)))))
+
+(defsensor shvaultphl-cpu {:poll-interval (minutes 1)}
+  (.getSystemCpuLoad (java.lang.management.ManagementFactory/getOperatingSystemMXBean)))
+
+(defsensor shvaultphl-free-disk-root {:poll-interval (minutes 1)}
+  (.getFreeSpace (java.io.File. "/")))
+
+(defsensor shvaultphl-free-disk-data {:poll-interval (minutes 1)}
+  (.getFreeSpace (java.io.File. "/data")))
+
+(defsensor shvaultphl-free-disk-data2 {:poll-interval (minutes 1)}
+  (.getFreeSpace (java.io.File. "/data2")))
