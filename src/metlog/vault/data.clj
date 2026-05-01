@@ -101,8 +101,8 @@
 (defn get-data-for-series-name [series-name begin-t end-t]
   (map #(assoc % :t (.getTime (:t %)))
        (query/get-data-for-series {:series_id (lookup-series-id series-name)
-                                   :begin_t begin-t
-                                   :end_t end-t}
+                                   :begin_t (java.sql.Timestamp. begin-t)
+                                   :end_t (java.sql.Timestamp. end-t)}
                                   {:connection (current-db-connection)})))
 
 ;;;; Dashboards

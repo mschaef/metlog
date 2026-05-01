@@ -3,7 +3,7 @@
 ;; Custom sensor definitions go here
 
 (defn measure-http-get [ url ]
-  (let [begin-t (System/currentTimpeMillis)
+  (let [begin-t (System/currentTimeMillis)
         body (http-request-text url)]
     (and body
          {:bytes (.length body)

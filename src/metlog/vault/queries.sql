@@ -17,8 +17,8 @@ SELECT MAX(t)
 SELECT sample.t, sample.val
   FROM sample
  WHERE series_id = :series_id
-   AND UNIX_MILLIS(t-session_timezone()) > :begin_t
-   AND UNIX_MILLIS(t-session_timezone()) < :end_t
+   AND t > :begin_t
+   AND t < :end_t
  ORDER BY t
 
 -- name: delete-old-samples!
