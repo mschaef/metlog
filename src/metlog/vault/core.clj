@@ -59,6 +59,10 @@
   (with-daemon-thread 'vault-webserver
     (log/info "Starting vault with config: " (config/cval :vault))
     (sql-file/with-pool [db-pool (db-conn-spec (config/cval))]
+      ;; Healthcheck state is intentionally in-memory only. Agents post frequently,
+      ;; so a missing entry after vault restart means the agent hasn't checked in yet
+      ;; — which is itself useful signal. Persistence would only matter with a larger
+      ;; number of agents where the baseline population needs to be remembered.
       (let [healthchecks (atom {})]
         (scheduler/schedule-job
          scheduler :defragment-database
