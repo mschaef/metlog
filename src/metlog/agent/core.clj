@@ -135,8 +135,6 @@
       (.drainTo sensor-result-queue snapshot snapshot-size-limit))
     (seq snapshot)))
 
-(def update-queue (java.util.concurrent.LinkedBlockingQueue.))
-
 (defn clean-readings [unclean]
   (map #(assoc % :val (double (:val %))) unclean))
 
@@ -161,16 +159,6 @@
           (count-inc! count-vault-post-error))
         success))))
 
-(defn- snapshot-to-update-queue []
-  (let [update-size-limit (config/cval :agent :vault-update-size-limit)]
-    (locking update-queue
-      (let [snapshot (take-result-queue-snapshot
-                      (min update-size-limit
-                           (- update-size-limit (.size update-queue))))]
-        (when snapshot
-          (.addAll update-queue snapshot))
-        snapshot))))
-
 (defn- capture-agent-health  [start-time]
   (log/info "Sending healthcheck")
   (locking sensor-result-queue
@@ -191,23 +179,16 @@
           :local-ip-address (get-local-ip-address)}
          agent-sensors)))))
 
-(defn- post-update [update-extras]
-  (locking update-queue
-    (let [has-samples? (not (.isEmpty update-queue))]
-      (post-to-vault (merge
-                      update-extras
-                      {:samples (clean-readings (seq update-queue))}))
-      (.clear update-queue)
-      has-samples?)))
-
 (defn- agent-vault-update [start-time]
   (log/info "Updating vault")
-  (loop [need-healthcheck? true]
-    (let [snapshot (snapshot-to-update-queue)]
-      (when (post-update (if need-healthcheck?
-                           {:healthcheck (capture-agent-health start-time)}
-                           {}))
-        (recur false)))))
+  (let [update-size-limit (config/cval :agent :vault-update-size-limit)]
+    (loop [need-healthcheck? true]
+      (let [batch (take-result-queue-snapshot update-size-limit)
+            extras (when need-healthcheck?
+                     {:healthcheck (capture-agent-health start-time)})]
+        (post-to-vault (merge extras {:samples (clean-readings (or batch []))}))
+        (when batch
+          (recur false))))))
 
 (defn wrap-with-current-config [f]
   (let [config (config/cval)]
