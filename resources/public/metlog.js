@@ -170,9 +170,11 @@ function updateSeriesData(seriesName, queryBeginT, queryEndT) {
     if (series.beginT > series.endT || queryBeginT < series.beginT)  {
         updatingSeries[seriesName] = true;
         fetchSeriesData(seriesName, queryBeginT, queryEndT)
-            .then(( series ) => {
-                updatingSeries[seriesName] = false;
+            .then((series) => {
                 seriesData[seriesName] = series;
+            })
+            .finally(() => {
+                updatingSeries[seriesName] = false;
             });
 
     } else {
@@ -181,9 +183,11 @@ function updateSeriesData(seriesName, queryBeginT, queryEndT) {
         if (queryEndT > latestKnownT) {
             updatingSeries[seriesName] = true;
             fetchSeriesData(seriesName, latestKnownT, queryEndT)
-                .then(( update ) => {
-                    updatingSeries[seriesName] = false;
+                .then((update) => {
                     seriesData[seriesName] = combineSeriesData(seriesData[seriesName], update);
+                })
+                .finally(() => {
+                    updatingSeries[seriesName] = false;
                 });
         }
     }
@@ -701,16 +705,18 @@ function drawPlot(ctx, w, h, beginT, endT, seriesDefn) {
 }
 
 function canvasSeriesDefn(canvas) {
-    const defn = JSON.parse(canvas.dataset.seriesDefn);
-
-    return {
-        seriesName: defn["series-name"],
-        displayRelative: !!defn["display-relative"],
-        forceZero: !!defn["force-zero"],
-        base2YAxis: !!defn["base-2-y-axis"],
-        intYAxis: !!defn["int-y-axis"],
-        drawPoints: !!defn["draw-points"],
-    };
+    if (!canvas._seriesDefn) {
+        const defn = JSON.parse(canvas.dataset.seriesDefn);
+        canvas._seriesDefn = {
+            seriesName: defn["series-name"],
+            displayRelative: !!defn["display-relative"],
+            forceZero: !!defn["force-zero"],
+            base2YAxis: !!defn["base-2-y-axis"],
+            intYAxis: !!defn["int-y-axis"],
+            drawPoints: !!defn["draw-points"],
+        };
+    }
+    return canvas._seriesDefn;
 }
 
 function updatePlot(canvas, beginT, endT)  {
