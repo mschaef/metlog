@@ -4,12 +4,12 @@ CREATE CACHED TABLE series (
 );
 
 CREATE CACHED TABLE sample (
-       series_id INTEGER NOT NULL REFERENCES series(series_id),       
+       series_id INTEGER NOT NULL,
        t TIMESTAMP NOT NULL,
        val DOUBLE NOT NULL
 );
 
-CREATE INDEX idx_sample_t ON sample(t);
+CREATE INDEX idx_sample_t ON sample(series_id, t);
 
 CREATE CACHED TABLE dual (
        x INTEGER
