@@ -305,7 +305,7 @@ function largestYRangeMagnitude(yRange) {
     }
 }
 
-function findYGridTickInterval(h, yRange, base2YAxis) {
+function findYGridTickInterval(h, yRange, base2YAxis, intYAxis) {
     const { t, mag } = largestYRangeMagnitude(yRange);
     const availPixels = h * t;
 
@@ -313,6 +313,10 @@ function findYGridTickInterval(h, yRange, base2YAxis) {
 
     for(var ii = 0; ii < yTickIntervals.length; ii++) {
         const interval = yTickIntervals[ii];
+
+        if (intYAxis && interval < 1.0) {
+            continue;
+        }
 
         if (PIXELS_PER_Y_LABEL * (mag / interval) < availPixels)  {
             return interval;
@@ -405,7 +409,7 @@ function drawMissingQueryRange(ctx, w, h, plotXRange, dataXRange) {
 }
 
 function drawYGrid(ctx, w, h, plotYRange, base2YAxis, intYAxis) {
-    const yInterval = findYGridTickInterval(h, plotYRange, base2YAxis);
+    const yInterval = findYGridTickInterval(h, plotYRange, base2YAxis, intYAxis);
     const ty = translateFn(plotYRange, h, PLOT_Y_PADDING, true);
 
     let lineYs = [];
