@@ -85,11 +85,25 @@
 ;;; samples, those older than the latest currently known in the
 ;;; database, are ignored. Useful for the USGS data, which is queried
 ;;; in 24 hours blocks, rather than streams of the latest samples.
+;;;
+;;; Each sample must be checked against the latest time *including*
+;;; the samples accepted earlier in the same batch, so this is an
+;;; eager, strictly sequential reduce. (A lazy filter evaluates its
+;;; predicate a 32-element chunk at a time, ahead of the latest-time
+;;; updates, which let duplicates within a batch through. Agents now
+;;; resend a batch when a post's response is lost, so those duplicates
+;;; can arrive in the same store cycle as the originals.)
 (defn store-data-samples-monotonic [samples]
-  (let [new-samples (filter #(.after (:t %) (get-series-latest-sample-time (:series_name %)))
+  (let [new-samples (reduce (fn [new-samples sample]
+                              (let [series-name (:series_name sample)
+                                    t (:t sample)]
+                                (if (.after t (get-series-latest-sample-time series-name))
+                                  (do
+                                    (check-latest-series-time series-name t)
+                                    (conj new-samples sample))
+                                  new-samples)))
+                            []
                             samples)]
-    (doseq [sample new-samples]
-      (check-latest-series-time (:series_name sample) (:t sample)))
     (store-data-samples new-samples)))
 
 (defn get-all-series []

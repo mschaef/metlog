@@ -155,18 +155,35 @@
     (doseq [ts-sensor-reading (->timestamped-readings (poll-sensor sensor-def))]
       (process-sensor-reading (:sensor-name sensor-def) ts-sensor-reading))))
 
-(defn take-result-queue-snapshot [snapshot-size-limit]
-  (let [snapshot (java.util.concurrent.LinkedBlockingQueue.)]
-    (locking sensor-result-queue
-      (log/trace "Taking snapshot queue with n:" (.size sensor-result-queue)
-                 ", limit:" snapshot-size-limit)
-      (.drainTo sensor-result-queue snapshot snapshot-size-limit))
-    (seq snapshot)))
+;;; Readings stay at the head of sensor-result-queue until the vault
+;;; has accepted them. A batch is peeked (copied, not removed), posted,
+;;; and only removed after a successful post. If a post fails, the
+;;; batch is still at the head of the queue, ahead of anything enqueued
+;;; since, so the next attempt sends the same readings in the same
+;;; order. This relies on there being a single consumer of the queue,
+;;; which agent-vault-update enforces with vault-update-lock.
+
+(defn- peek-result-queue-batch [batch-size-limit]
+  (locking sensor-result-queue
+    (log/trace "Peeking result queue with n:" (.size sensor-result-queue)
+               ", limit:" batch-size-limit)
+    (vec (take batch-size-limit (iterator-seq (.iterator sensor-result-queue))))))
+
+(defn- remove-result-queue-batch [batch]
+  (locking sensor-result-queue
+    (dotimes [_ (count batch)]
+      (.poll sensor-result-queue))))
 
 (defn clean-readings [unclean]
   (map #(assoc % :val (double (:val %))) unclean))
 
-(defn post-to-vault [data]
+(defn post-to-vault
+  "Post data to the vault. Returns :ok if the vault accepted it,
+  :rejected if the vault explicitly refused it (HTTP 400, which is how
+  the vault reports invalid inbound data), and :failed for anything
+  else (connection errors, timeouts, other HTTP statuses), which
+  should be retried later."
+  [data]
   (let [url (str (config/cval :agent :vault-url) "/agent/data")]
     (log/debug "Posting to vault at:" url)
     (count-inc! count-vault-post)
@@ -175,19 +192,26 @@
           (try
             (http/post url {:content-type "application/transit+json"
                             :body (pr-transit data)
+                            :throw-exceptions false
                             :connection-timeout (seconds (config/cval :agent :vault-connection-timeout-sec))
                             :socket-timeout (seconds (config/cval :agent :vault-socket-timeout-sec))})
             (catch Exception ex
-              ;; Pretend POST exceptions are HTTP errors
               (log/error (str "Error posting to vault at " url
                               " (" (.getMessage ex) ")"))
-              {:status 400}))]
-      (log/debug "Vault post response, status" (:status post-response)
+              nil))
+          status (:status post-response)
+          result (case status
+                   200 :ok
+                   400 :rejected
+                   :failed)]
+      (log/debug "Vault post response, status" status
                  "(" (- (System/currentTimeMillis) begin-t) "msec. )")
-      (let [success (= (:status post-response) 200)]
-        (when (not success)
-          (count-inc! count-vault-post-error))
-        success))))
+      (when (and post-response (not= result :ok))
+        (log/error "Vault post to" url "returned HTTP status" status
+                   (str "(" (:body post-response) ")")))
+      (when (not= result :ok)
+        (count-inc! count-vault-post-error))
+      result)))
 
 (defn- capture-agent-health  [start-time]
   (log/info "Sending healthcheck")
@@ -210,16 +234,45 @@
           :local-ip-address (get-local-ip-address)}
          agent-sensors)))))
 
-(defn- agent-vault-update [start-time]
-  (log/info "Updating vault")
+(def ^:private vault-update-lock (java.util.concurrent.locks.ReentrantLock.))
+
+(defn- agent-vault-update* [start-time]
   (let [update-size-limit (config/cval :agent :vault-update-size-limit)]
     (loop [need-healthcheck? true]
-      (let [batch (take-result-queue-snapshot update-size-limit)
-            extras (when need-healthcheck?
-                     {:healthcheck (capture-agent-health start-time)})]
-        (post-to-vault (merge extras {:samples (clean-readings (or batch []))}))
-        (when batch
-          (recur false))))))
+      (let [batch (peek-result-queue-batch update-size-limit)]
+        (when (or need-healthcheck? (seq batch))
+          (let [extras (when need-healthcheck?
+                         {:healthcheck (capture-agent-health start-time)})
+                result (post-to-vault (merge extras {:samples (clean-readings batch)}))]
+            (case result
+              :ok
+              (do
+                (remove-result-queue-batch batch)
+                (when (seq batch)
+                  (recur false)))
+
+              :rejected
+              (do
+                (log/error "Vault rejected batch, discarding" (count batch) "readings.")
+                (remove-result-queue-batch batch)
+                (when (seq batch)
+                  (recur false)))
+
+              :failed
+              (log/warn "Vault post failed, retaining" (.size sensor-result-queue)
+                        "pending readings for the next update."))))))))
+
+(defn- agent-vault-update [start-time]
+  ;; cron4j starts each run on its own thread, so a slow update (long
+  ;; backlog, timeouts) could overlap the next one. Only one update may
+  ;; consume the queue at a time; an overlapping run just skips.
+  (if (.tryLock vault-update-lock)
+    (try
+      (log/info "Updating vault")
+      (agent-vault-update* start-time)
+      (finally
+        (.unlock vault-update-lock)))
+    (log/warn "Previous vault update still running, skipping this one.")))
 
 (defn wrap-with-current-config [f]
   (let [config (config/cval)]
