@@ -13,6 +13,8 @@
          :vault-update-size-limit 200
          :vault-update-interval-sec 60
          :vault-healthcheck-interval-sec 60
+         :vault-connection-timeout-sec 15
+         :vault-socket-timeout-sec 30
          :sensor-file "/etc/metlog/config.clj"}
 
  :job-schedule {:data-archiver "0 22 * * *"

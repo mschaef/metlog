@@ -18,15 +18,23 @@
        (<= sensor-val high)
        sensor-val))
 
-(defn http-request-json [url]
-  (let [response (http/get url)]
-    (and (= 200 (:status response))
-         (try-parse-json (:body response)))))
+(defn http-request-json
+  "GET url and parse the body as JSON. opts are passed through to
+  clj-http, e.g. {:connection-timeout 10000 :socket-timeout 30000}."
+  ([url] (http-request-json url {}))
+  ([url opts]
+   (let [response (http/get url opts)]
+     (and (= 200 (:status response))
+          (try-parse-json (:body response))))))
 
-(defn http-request-text [url]
-  (let [response (http/get url)]
-    (and (= 200 (:status response))
-         (:body response))))
+(defn http-request-text
+  "GET url and return the body as text. opts are passed through to
+  clj-http, e.g. {:connection-timeout 10000 :socket-timeout 30000}."
+  ([url] (http-request-text url {}))
+  ([url opts]
+   (let [response (http/get url opts)]
+     (and (= 200 (:status response))
+          (:body response)))))
 
 (defn directory-space-used [dir]
   (apply + (map #(.length %) (file-seq (clojure.java.io/file dir)))))

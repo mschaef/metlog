@@ -39,6 +39,7 @@
 
 (def count-sensor-poll (atom 0))
 (def count-sensor-poll-error (atom 0))
+(def count-sensor-poll-timeout (atom 0))
 
 (defn- count-inc! [count]
   (swap! count inc))
@@ -88,10 +89,37 @@
            (merge (get current-sensor-defs sensor-name) {:sensor-name sensor-name}))
          (keys current-sensor-defs))))
 
+(defn- call-with-timeout
+  "Call f, waiting at most timeout-msec for it to return. A nil timeout
+  calls f directly, on the current thread. On timeout, the worker thread
+  is interrupted and a TimeoutException is thrown. Note that blocking
+  socket I/O generally ignores interrupts, so a sensor stuck in a read
+  may keep its worker thread until the read returns. The poller itself
+  is released either way."
+  [f timeout-msec]
+  (if (nil? timeout-msec)
+    (f)
+    (let [result (future (f))
+          val (try
+                (deref result timeout-msec ::timeout)
+                (catch java.util.concurrent.ExecutionException ex
+                  (throw (or (.getCause ex) ex))))]
+      (when (= val ::timeout)
+        (future-cancel result)
+        (throw (java.util.concurrent.TimeoutException.
+                (str "Timed out after " timeout-msec " msec."))))
+      val)))
+
 (defn poll-sensor [sensor-def]
   (try
     (count-inc! count-sensor-poll)
-    ((:sensor-fn sensor-def))
+    (call-with-timeout (:sensor-fn sensor-def) (:poll-timeout sensor-def))
+    (catch java.util.concurrent.TimeoutException ex
+      (count-inc! count-sensor-poll-error)
+      (count-inc! count-sensor-poll-timeout)
+      (log/error (str "Timeout polling sensor: " (:sensor-name sensor-def)
+                      " (" (.getMessage ex) ")"))
+      false)
     (catch Exception ex
       (count-inc! count-sensor-poll-error)
       (log/error (str "Error polling sensor: " (:sensor-name sensor-def)
@@ -146,7 +174,9 @@
           post-response
           (try
             (http/post url {:content-type "application/transit+json"
-                            :body (pr-transit data)})
+                            :body (pr-transit data)
+                            :connection-timeout (seconds (config/cval :agent :vault-connection-timeout-sec))
+                            :socket-timeout (seconds (config/cval :agent :vault-socket-timeout-sec))})
             (catch Exception ex
               ;; Pretend POST exceptions are HTTP errors
               (log/error (str "Error posting to vault at " url
@@ -167,6 +197,7 @@
             agent-sensors {:pending-readings pending-readings
                            :sensor-polls @count-sensor-poll
                            :sensor-errors @count-sensor-poll-error
+                           :sensor-timeouts @count-sensor-poll-timeout
                            :vault-posts @count-vault-post
                            :vault-errors @count-vault-post-error}]
         (process-sensor-reading (str "agent-" agent-name)

@@ -2,20 +2,26 @@
 ;;
 ;; Custom sensor definitions go here
 
+(def http-timeouts {:connection-timeout (seconds 15)   ; TCP connect
+                    :socket-timeout (seconds 30)})      ; max idle gap between reads
+
 (defn measure-http-get [ url ]
   (let [begin-t (System/currentTimeMillis)
-        body (http-request-text url)]
+        body (http-request-text url http-timeouts)]
     (and body
          {:bytes (.length body)
           :duration-msec (- (System/currentTimeMillis) begin-t)})))
 
-(defsensor "mschaef-main-19096-vault" {:poll-interval (minutes 1)}
+(defsensor "mschaef-main-19096-vault" {:poll-interval (minutes 1)
+                                       :poll-timeout (seconds 45)}
   (measure-http-get "https://mschaef.com"))
 
-(defsensor "mschaef-rss-19096-vault" {:poll-interval (minutes 1)}
+(defsensor "mschaef-rss-19096-vault" {:poll-interval (minutes 1)
+                                      :poll-timeout (seconds 45)}
   (measure-http-get "https://mschaef.com/feed/rss"))
 
-(defsensor "bandwidth-test-19096-vault" {:poll-interval (minutes 30)}
+(defsensor "bandwidth-test-19096-vault" {:poll-interval (minutes 30)
+                                         :poll-timeout (minutes 10)}
   (measure-http-get "https://s3.amazonaws.com/bandwidth-test.mschaef.com/10-mib"))
 
 ;;; Vault Status
