@@ -160,8 +160,9 @@
 ;;; and only removed after a successful post. If a post fails, the
 ;;; batch is still at the head of the queue, ahead of anything enqueued
 ;;; since, so the next attempt sends the same readings in the same
-;;; order. This relies on there being a single consumer of the queue,
-;;; which agent-vault-update enforces with vault-update-lock.
+;;; order. This relies on there being a single consumer of the queue:
+;;; agent-vault-update is the only code that removes readings, and
+;;; playbook's schedule-job never runs a job reentrantly.
 
 (defn- peek-result-queue-batch [batch-size-limit]
   (locking sensor-result-queue
@@ -234,9 +235,8 @@
           :local-ip-address (get-local-ip-address)}
          agent-sensors)))))
 
-(def ^:private vault-update-lock (java.util.concurrent.locks.ReentrantLock.))
-
-(defn- agent-vault-update* [start-time]
+(defn- agent-vault-update [start-time]
+  (log/info "Updating vault")
   (let [update-size-limit (config/cval :agent :vault-update-size-limit)]
     (loop [need-healthcheck? true]
       (let [batch (peek-result-queue-batch update-size-limit)]
@@ -261,18 +261,6 @@
               :failed
               (log/warn "Vault post failed, retaining" (.size sensor-result-queue)
                         "pending readings for the next update."))))))))
-
-(defn- agent-vault-update [start-time]
-  ;; cron4j starts each run on its own thread, so a slow update (long
-  ;; backlog, timeouts) could overlap the next one. Only one update may
-  ;; consume the queue at a time; an overlapping run just skips.
-  (if (.tryLock vault-update-lock)
-    (try
-      (log/info "Updating vault")
-      (agent-vault-update* start-time)
-      (finally
-        (.unlock vault-update-lock)))
-    (log/warn "Previous vault update still running, skipping this one.")))
 
 (defn wrap-with-current-config [f]
   (let [config (config/cval)]

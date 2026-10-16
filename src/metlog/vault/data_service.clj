@@ -35,13 +35,16 @@
       body
       {:samples body})))
 
-(defn- validate-samples [samples]
-  (map (fn [sample]
-         (validate-series-name (:series_name sample))
-         (when (nil? (:val sample))
-           (throw (Exception. (str "No data value in sample:" sample))))
-         sample)
-       samples))
+(defn- validate-samples
+  "Validate every sample before any are queued (mapv is eager), so a
+  rejected request (400) never leaves part of its batch queued."
+  [samples]
+  (mapv (fn [sample]
+          (validate-series-name (:series_name sample))
+          (when (nil? (:val sample))
+            (throw (Exception. (str "No data value in sample:" sample))))
+          sample)
+        samples))
 
 (defn store-series-data [store-samples healthchecks req]
   (try

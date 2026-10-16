@@ -36,13 +36,21 @@
 
     (scheduler/schedule-job
      scheduler :store-ingress-queue
-     #(let [snapshot (java.util.concurrent.LinkedBlockingQueue.)]
-        (locking sample-queue
-          (.drainTo sample-queue snapshot))
-        (when (> (count snapshot) 0)
+     ;; Samples stay in sample-queue until they've been stored. The
+     ;; job copies the queue, stores the copy, and only then removes
+     ;; that many samples from the head. If the store fails (e.g. no
+     ;; database connection available during CHECKPOINT DEFRAG), the
+     ;; samples are still queued, in order, for the next run. This is
+     ;; safe because this job is the queue's only consumer and
+     ;; schedule-job never runs a job reentrantly; producers only ever
+     ;; add to the tail.
+     #(let [snapshot (vec (iterator-seq (.iterator sample-queue)))]
+        (when (seq snapshot)
           (log/debug "Storing " (count snapshot) " samples.")
           (with-db-connection db-pool
-            (data/store-data-samples-monotonic (seq snapshot))))))
+            (data/store-data-samples-monotonic snapshot))
+          (dotimes [_ (count snapshot)]
+            (.poll sample-queue)))))
 
     (fn [samples]
       (log/debug "Enqueuing " (count samples) " samples for later storage.")

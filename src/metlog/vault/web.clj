@@ -37,6 +37,26 @@
         (finally
           (.setName thread initial-thread-name))))))
 
+;;; Agent ingest requests only queue samples and record healthchecks
+;;; in memory; they never touch the database. Opening a pooled
+;;; connection for them anyway means that when the pool is exhausted
+;;; (e.g. dashboard queries blocked behind CHECKPOINT DEFRAG), agents
+;;; can't deliver data. These requests skip the connection.
+(def ^:private ingest-uris #{"/data" "/agent/data" "/agent/healthcheck"})
+
+(defn- ingest-request? [req]
+  (and (= :post (:request-method req))
+       (let [uri (:uri req)]
+         (or (contains? ingest-uris uri)
+             (re-matches #"(/agent)?/sample/[^/]+" uri)))))
+
+(defn- wrap-db-connection-except-ingest [app db-pool]
+  (let [app-with-db (wrap-db-connection app db-pool)]
+    (fn [req]
+      (if (ingest-request? req)
+        (app req)
+        (app-with-db req)))))
+
 (defn start-webserver [db-pool routes]
   (let [http-port (config/cval :vault :http-port)
         http-thread-count (config/cval :vault :http-thread-count)]
@@ -46,7 +66,7 @@
                                       (wrap-content-type)
                                       (wrap-browser-caching {"text/javascript" 360000
                                                              "text/css" 360000})
-                                      (wrap-db-connection db-pool)
+                                      (wrap-db-connection-except-ingest db-pool)
                                       (wrap-not-modified)
                                       (config/wrap-config)
                                       (wrap-dev-support (config/cval :development-mode))

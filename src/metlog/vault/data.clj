@@ -70,41 +70,54 @@
       (if (.after t cached-latest-t)
         (swap! latest-sample-times assoc series-id t)))))
 
+(defn- insert-sample-batch [sample-batch]
+  (log/info "Storing batch of" (count sample-batch) "samples.")
+  ;; insert-multi! runs the batch in a single transaction, so a batch
+  ;; is stored completely or not at all.
+  (jdbc/insert-multi! (current-db-connection) :sample
+                      [:series_id :t :val]
+                      (map (fn [sample]
+                             [(intern-series-name (:series_name sample))
+                              (.toInstant (:t sample))
+                              (:val sample)])
+                           sample-batch)))
+
 (defn store-data-samples [samples]
   (doseq [sample-batch (partition-all (config/cval :vault :store-sample-batch-size) samples)]
-    (log/info "Storing batch of" (count sample-batch) "samples.")
-    (jdbc/insert-multi! (current-db-connection) :sample
-                        [:series_id :t :val]
-                        (map (fn [sample]
-                               [(intern-series-name (:series_name sample))
-                                (.toInstant (:t sample))
-                                (:val sample)])
-                             sample-batch))))
+    (insert-sample-batch sample-batch)))
 
 ;;; Monotonic store ensures that only new samples are stored. Existing
 ;;; samples, those older than the latest currently known in the
 ;;; database, are ignored. Useful for the USGS data, which is queried
-;;; in 24 hours blocks, rather than streams of the latest samples.
+;;; in 24 hours blocks, rather than streams of the latest samples, and
+;;; for agent batches that are resent after a lost response.
 ;;;
-;;; Each sample must be checked against the latest time *including*
-;;; the samples accepted earlier in the same batch, so this is an
-;;; eager, strictly sequential reduce. (A lazy filter evaluates its
-;;; predicate a 32-element chunk at a time, ahead of the latest-time
-;;; updates, which let duplicates within a batch through. Agents now
-;;; resend a batch when a post's response is lost, so those duplicates
-;;; can arrive in the same store cycle as the originals.)
+;;; Each sample is checked against the latest time *including* the
+;;; samples accepted earlier in the same call, so the filter is an
+;;; eager, strictly sequential reduce over a local map. (A lazy filter
+;;; evaluates its predicate a 32-element chunk at a time, ahead of the
+;;; latest-time updates, which let duplicates within a batch through.)
+;;;
+;;; The shared latest-sample-times cache only advances after each
+;;; batch has been committed. If an insert fails, the cache still
+;;; matches the database, so a retry of the same samples stores
+;;; whatever wasn't committed and skips whatever was.
 (defn store-data-samples-monotonic [samples]
-  (let [new-samples (reduce (fn [new-samples sample]
-                              (let [series-name (:series_name sample)
-                                    t (:t sample)]
-                                (if (.after t (get-series-latest-sample-time series-name))
-                                  (do
-                                    (check-latest-series-time series-name t)
-                                    (conj new-samples sample))
-                                  new-samples)))
-                            []
-                            samples)]
-    (store-data-samples new-samples)))
+  (let [[new-samples _]
+        (reduce (fn [[new-samples latest-t] sample]
+                  (let [series-name (:series_name sample)
+                        t (:t sample)
+                        prev-t (or (latest-t series-name)
+                                   (get-series-latest-sample-time series-name))]
+                    (if (.after t prev-t)
+                      [(conj new-samples sample) (assoc latest-t series-name t)]
+                      [new-samples latest-t])))
+                [[] {}]
+                samples)]
+    (doseq [sample-batch (partition-all (config/cval :vault :store-sample-batch-size) new-samples)]
+      (insert-sample-batch sample-batch)
+      (doseq [sample sample-batch]
+        (check-latest-series-time (:series_name sample) (:t sample))))))
 
 (defn get-all-series []
   (query/get-all-series {} {:connection (current-db-connection)}))
