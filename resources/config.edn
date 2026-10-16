@@ -6,7 +6,12 @@
  :vault {:http-port 8080
          :http-thread-count 8
          :hot-storage-days 180
-         :store-sample-batch-size 200}
+         :store-sample-batch-size 200
+         ;; Pool sized for http-thread-count plus background jobs
+         ;; (store, archiver, defragment), so requests don't queue for
+         ;; connections in normal operation.
+         :db {:pool-size 12
+              :connection-timeout-sec 5}}
 
  :agent {:name "default"
          :vault-url "http://metrics.mschaef.com"
