@@ -54,6 +54,13 @@
                {:connection (current-db-connection)}))]
     t))
 
+(defn query-series-earliest-sample-before [series-id archive-time]
+  (scalar-result
+   (query/get-series-earliest-sample-before
+    {:series_id series-id
+     :archive_time archive-time}
+    {:connection (current-db-connection)})))
+
 (defn get-series-latest-sample-time [series-name]
   (let [series-id (intern-series-name series-name)]
     (if-let [latest-t (@latest-sample-times series-id)]

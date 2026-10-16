@@ -7,11 +7,18 @@
          :http-thread-count 8
          :hot-storage-days 180
          :store-sample-batch-size 200
-         ;; Pool sized for http-thread-count plus background jobs
-         ;; (store, archiver, defragment), so requests don't queue for
-         ;; connections in normal operation.
-         :db {:pool-size 12
-              :connection-timeout-sec 5}}
+         ;; Keep the pool smaller than http-thread-count. Requests that
+         ;; wait on the database (e.g. behind a long archiver transaction
+         ;; or a defrag) can then tie up at most pool-size HTTP threads;
+         ;; the rest stay free for requests that don't use the database
+         ;; (static resources, agent ingest), and requests beyond the
+         ;; pool fail after connection-timeout-sec rather than hanging.
+         :db {:pool-size 6
+              :connection-timeout-sec 5}
+         ;; The archiver moves samples to cold storage in transactions
+         ;; covering at most this much time per series, so it never
+         ;; holds locks on the sample table for long.
+         :archive-chunk-hours 24}
 
  :agent {:name "default"
          :vault-url "http://metrics.mschaef.com"

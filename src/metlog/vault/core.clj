@@ -62,7 +62,7 @@
              (get-in config [:vault :db :subname] "metlog-vault"))
    :schema-path ["sql/"]
    :schemas [["metlog" 3]]
-   :pool-size (get-in config [:vault :db :pool-size] 12)
+   :pool-size (get-in config [:vault :db :pool-size] 6)
    ;; How long a request waits for a free connection before failing,
    ;; e.g. while CHECKPOINT DEFRAG blocks the database.
    :pool {:connection-timeout (* 1000 (get-in config [:vault :db :connection-timeout-sec] 5))}})

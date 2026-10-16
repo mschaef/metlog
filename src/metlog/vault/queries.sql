@@ -13,6 +13,12 @@ SELECT MAX(t)
   FROM sample
  WHERE series_id=:series_id
 
+-- name: get-series-earliest-sample-before
+SELECT MIN(t)
+  FROM sample
+ WHERE series_id=:series_id
+   AND t<:archive_time
+
 -- name: get-data-for-series
 SELECT sample.t, sample.val
   FROM sample
