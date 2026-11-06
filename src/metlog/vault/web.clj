@@ -1,7 +1,7 @@
 (ns metlog.vault.web
   (:use playbook.core
         compojure.core
-        metlog.vault.db-middleware
+        sql-file.middleware
         [ring.middleware resource
          not-modified
          content-type
@@ -12,7 +12,7 @@
             [ring.middleware.json :as ring-json]
             [compojure.handler :as handler]
             [playbook.config :as config]
-            [metlog.vault.data :as data]))
+            [playbook.db :as db]))
 
 (defn wrap-request-logging [app]
   (fn [req]
@@ -37,7 +37,20 @@
         (finally
           (.setName thread initial-thread-name))))))
 
-(defn start-webserver [db-pool routes]
+(defn- wrap-config
+  "Carry the configuration in effect when the handler is built over to
+  the request threads, which don't otherwise see its binding. (Same as
+  ectcommon.site.web's; playbook 0.2 no longer has wrap-config.)"
+  [app]
+  (let [config (config/cval)]
+    (fn [req]
+      (config/with-config config
+        (app req)))))
+
+(defn start-webserver
+  "Run the vault's web server, with routes, until it stops. Needs the
+  vault's database open (see playbook.db/with-database)."
+  [routes]
   (let [http-port (config/cval :vault :http-port)
         http-thread-count (config/cval :vault :http-thread-count)]
     (log/info "Starting Vault Webserver on port" http-port
@@ -46,9 +59,9 @@
                                       (wrap-content-type)
                                       (wrap-browser-caching {"text/javascript" 360000
                                                              "text/css" 360000})
-                                      (wrap-lazy-db-connection db-pool)
+                                      (wrap-db-connection (db/pool))
                                       (wrap-not-modified)
-                                      (config/wrap-config)
+                                      (wrap-config)
                                       (wrap-dev-support (config/cval :development-mode))
                                       (ring-json/wrap-json-response)
                                       (handler/site)

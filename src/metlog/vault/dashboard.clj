@@ -1,7 +1,6 @@
 (ns metlog.vault.dashboard
   (:use compojure.core
         playbook.core
-        playbook.web
         metlog.util
         metlog.vault.util)
   (:require [taoensso.timbre :as log]
@@ -9,7 +8,7 @@
             [hiccup.form :as hiccup-form]
             [ring.util.response :as ring]
             [clojure.data.json :as json]
-            [playbook.hashid :as hashid]
+            [metlog.vault.hashid :as hashid]
             [playbook.config :as config]
             [metlog.vault.data :as data]
             [metlog.vault.data-service :as data-service]))

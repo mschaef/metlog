@@ -1,7 +1,7 @@
 {:mode #{:vault :agent}
  :log-path "/var/log/metlog/metlog.log"
- :vault {:http-port 8080
-         :db {:subname "/var/lib/metlog/metlog"}}
+ :db {:subname "/var/lib/metlog/metlog"}
+ :vault {:http-port 8080}
  :agent {:name "cloud"
          :vault-url "http://localhost:8080"
          :sensor-file "/etc/metlog/sensor.clj"}}

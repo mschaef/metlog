@@ -9,7 +9,7 @@
             [clj-time.format :as time-format]
             [clj-time.coerce :as time-coerce]
             [playbook.config :as config]
-            [playbook.scheduler :as scheduler]))
+            [playbook.service :as service]))
 
 (defn- get-local-ip-address []
   (try
@@ -262,16 +262,11 @@
               (log/warn "Vault post failed, retaining" (.size sensor-result-queue)
                         "pending readings for the next update."))))))))
 
-(defn wrap-with-current-config [f]
-  (let [config (config/cval)]
-    #(config/with-config config
-       (f))))
-
 (defn- start-sensor-polls []
   (doseq [[poll-interval sensors] (group-by :poll-interval (all-sensors))]
     (log/info "Scheduling poll job @" poll-interval "msec. for" (map :sensor-name sensors))
     (at-at/every poll-interval
-                 (wrap-with-current-config
+                 (config/wrap-with-current-config
                   #(with-exception-barrier (str "poller-" poll-interval)
                      (poll-sensors sensors)))
                  my-pool)))
@@ -285,11 +280,14 @@
         (load-file filename))
       (log/error "Cannot find sensor file: " filename))))
 
-(defn start-app [scheduler]
+(defn start-app
+  "Start the agent: its sensor polls, and the job that posts readings
+  to the vault. Returns once they're started; they keep running in the
+  background. Needs no database."
+  []
   (let [start-time (current-time)]
     (log/info "Starting agent with config: " (config/cval :agent))
     (maybe-load-sensor-file (:sensor-file (config/cval :agent)))
-    (start-sensor-polls)
-    (scheduler/schedule-job scheduler :agent-vault-update
-                            #(agent-vault-update start-time))
+    (service/with-service {:jobs {:agent-vault-update #(agent-vault-update start-time)}}
+      (start-sensor-polls))
     (log/info "Agent started.")))

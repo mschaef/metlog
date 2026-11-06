@@ -1,8 +1,6 @@
 (ns metlog.vault.data
   (:use playbook.core
-        compojure.core
-        sql-file.middleware
-        sql-file.sql-util)
+        sql-file.middleware)
   (:require [taoensso.timbre :as log]
             [clojure.java.jdbc :as jdbc]
             [clojure.data.json :as json]
@@ -10,14 +8,10 @@
             [metlog.vault.queries :as query]))
 
 (defn get-series-id [series-name]
-  (scalar-result
-   (query/get-series-id {:series_name series-name}
-                        {:connection (current-db-connection)})))
+  (query/get-series-id {:series_name series-name}))
 
 (defn add-series-name [series-name]
-  (:series_id (first
-               (jdbc/insert! (current-db-connection) :series
-                             {:series_name series-name}))))
+  (:series_id (query/add-series<! {:series_name series-name})))
 
 (def intern-series-name
   (memoize
@@ -39,27 +33,18 @@
 
 (defn delete-old-samples [series-id archive-time]
   (query/delete-old-samples! {:series_id series-id
-                              :archive_time archive-time}
-                             {:connection (current-db-connection)}))
+                              :archive_time archive-time}))
 
 (defn archive-old-samples [series-id archive-time]
   (query/archive-old-samples! {:series_id series-id
-                               :archive_time archive-time}
-                              {:connection (current-db-connection)}))
+                               :archive_time archive-time}))
 
 (defn query-series-latest-sample-time [series-id]
-  (if-let [t (scalar-result
-              (query/get-series-latest-sample-time
-               {:series_id series-id}
-               {:connection (current-db-connection)}))]
-    t))
+  (query/get-series-latest-sample-time {:series_id series-id}))
 
 (defn query-series-earliest-sample-before [series-id archive-time]
-  (scalar-result
-   (query/get-series-earliest-sample-before
-    {:series_id series-id
-     :archive_time archive-time}
-    {:connection (current-db-connection)})))
+  (query/get-series-earliest-sample-before {:series_id series-id
+                                            :archive_time archive-time}))
 
 (defn get-series-latest-sample-time [series-name]
   (let [series-id (intern-series-name series-name)]
@@ -79,8 +64,9 @@
 
 (defn- insert-sample-batch [sample-batch]
   (log/info "Storing batch of" (count sample-batch) "samples.")
-  ;; insert-multi! runs the batch in a single transaction, so a batch
-  ;; is stored completely or not at all.
+  ;; Stays on jdbc rather than yesql: insert-multi! sends the whole
+  ;; batch as one batched prepared statement, in a single transaction,
+  ;; so a batch is stored completely or not at all.
   (jdbc/insert-multi! (current-db-connection) :sample
                       [:series_id :t :val]
                       (map (fn [sample]
@@ -127,7 +113,7 @@
         (check-latest-series-time (:series_name sample) (:t sample))))))
 
 (defn get-all-series []
-  (query/get-all-series {} {:connection (current-db-connection)}))
+  (query/get-all-series))
 
 (defn get-series-names []
   (map :series_name (get-all-series)))
@@ -136,38 +122,27 @@
   (map #(assoc % :t (.getTime (:t %)))
        (query/get-data-for-series {:series_id (lookup-series-id series-name)
                                    :begin_t (java.sql.Timestamp. begin-t)
-                                   :end_t (java.sql.Timestamp. end-t)}
-                                  {:connection (current-db-connection)})))
+                                   :end_t (java.sql.Timestamp. end-t)})))
 
 ;;;; Dashboards
 
 (defn get-dashboard-names []
-  (query/get-dashboard-names {} {:connection (current-db-connection)}))
+  (query/get-dashboard-names))
 
 (defn get-dashboard-by-name [dashboard-name]
-  (first
-   (query/get-dashboard-by-name {:name dashboard-name}
-                                {:connection (current-db-connection)})))
+  (query/get-dashboard-by-name {:name dashboard-name}))
 
 (defn get-dashboard-by-id [dashboard-id]
-  (first
-   (query/get-dashboard-by-id {:id dashboard-id}
-                              {:connection (current-db-connection)})))
+  (query/get-dashboard-by-id {:id dashboard-id}))
 
 (defn insert-dashboard-definition [name definition]
-  (:dashboard_id
-   (first
-    (jdbc/insert! (current-db-connection) :dashboard
-                  {:name name
-                   :definition (json/write-str definition)}))))
+  (:dashboard_id (query/add-dashboard<! {:name name
+                                         :definition (json/write-str definition)})))
 
 (defn update-dashboard-definition [id definition]
-  (jdbc/update! (current-db-connection) :dashboard
-                {:definition (json/write-str definition)}
-                ["dashboard_id = ?" id]))
+  (query/update-dashboard-definition! {:id id
+                                       :definition (json/write-str definition)}))
 
 (defn delete-dashboard-by-id [id]
-  (jdbc/delete! (current-db-connection)
-                :dashboard
-                ["dashboard_id = ?" id]))
+  (query/delete-dashboard! {:id id}))
 

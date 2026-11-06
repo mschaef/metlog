@@ -6,8 +6,8 @@
 
   :dependencies [[org.clojure/clojure "1.12.1"]
                  [overtone/at-at "1.4.65"]
-                 [com.mschaef/sql-file "0.4.13"]
-                 [yesql "0.5.4"]
+                 [com.mschaef/sql-file "0.6.3"]
+                 [yesql "0.6.0-alpha2"]
                  [ring/ring-jetty-adapter "1.14.1"]
                  [ring/ring-devel "1.14.1"]
                  [ring/ring-codec "1.3.0"]
@@ -21,7 +21,9 @@
                  [clj-time "0.15.2"]
                  [clj-http "3.13.0"
                   :exclusions [com.fasterxml.jackson.core/jackson-core]]
-                 [com.mschaef/playbook "0.1.5"]]
+                 [com.mschaef/playbook "0.2.4"]
+                 ;; Formerly brought in by playbook (playbook.hashid).
+                 [jstrutz/hashids "1.0.1"]]
 
   :plugins [[lein-tar "3.3.0"]
             [dev.weavejester/lein-cljfmt "0.13.0"]]

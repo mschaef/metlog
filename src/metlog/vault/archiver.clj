@@ -4,8 +4,7 @@
         sql-file.middleware)
   (:require [taoensso.timbre :as log]
             [playbook.config :as config]
-            [metlog.vault.data :as data]
-            [playbook.scheduler :as scheduler]))
+            [metlog.vault.data :as data]))
 
 (defn- archive-chunk [series-id chunk-end]
   (with-db-transaction
@@ -29,17 +28,15 @@
           (recur (inc chunk-count)))
         chunk-count))))
 
-(defn- archive-job [db-pool]
+(defn archive-job
+  "The :data-archiver job. Runs with the vault's database connection
+  (see playbook.db/job-wrapper)."
+  []
   (let [archive-cutoff-date (add-days (current-time) (- (config/cval :vault :hot-storage-days)))
         chunk-msec (* 3600 1000 (config/cval :vault :archive-chunk-hours))]
     (log/info "Archive job running with cutoff:" archive-cutoff-date)
-    (with-db-connection db-pool
-      (doseq [series (data/get-all-series)]
-        (let [chunk-count (archive-series (:series_id series) archive-cutoff-date chunk-msec)]
-          (when (> chunk-count 0)
-            (log/info "Archived series" (:series_name series) "in" chunk-count "chunk(s)")))))
+    (doseq [series (data/get-all-series)]
+      (let [chunk-count (archive-series (:series_id series) archive-cutoff-date chunk-msec)]
+        (when (> chunk-count 0)
+          (log/info "Archived series" (:series_name series) "in" chunk-count "chunk(s)"))))
     (log/info "Archive job complete")))
-
-(defn start [scheduler db-pool]
-  (scheduler/schedule-job scheduler :data-archiver
-                          (partial archive-job db-pool)))

@@ -20,6 +20,8 @@
 ;; You must not remove this notice, or any other, from this software.
 
 (ns metlog.vault.queries
-  (:require [yesql.core :refer [defqueries]]))
+  (:require [yesql.core :refer [defqueries]]
+            [playbook.db :as db]))
 
-(defqueries "metlog/vault/queries.sql")
+(defqueries "metlog/vault/queries.sql"
+  {:middleware db/query-middleware})
