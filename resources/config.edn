@@ -36,7 +36,7 @@
          :vault-socket-timeout-sec 30
          :sensor-file "/etc/metlog/config.clj"}
 
- :job-schedule {:data-archiver "0 22 * * *"
+ :job-schedule {:data-archiver "0 21 * * *"
                 :defragment-database "0 23 * * *"
                 :sample-ingress-queue "*/1 * * * *"
                 :sample-jvm-stats "0 * * * *"
