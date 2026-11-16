@@ -461,6 +461,21 @@ function drawYGrid(ctx, w, h, plotYRange, base2YAxis, intYAxis) {
 
 /*** Series Rendering ***/
 
+function rateSamples(samples) {
+    let rates = [];
+
+    for(var ii = 1; ii < samples.length; ii++) {
+        let deltaTSec = (samples[ii].t - samples[ii - 1].t) / 1000.0;
+
+        rates.push({
+            t: samples[ii].t,
+            val: (samples[ii].val - samples[ii - 1].val) / deltaTSec
+        });
+    }
+
+    return rates;
+}
+
 function relativeSamples(samples) {
     if (samples.length == 0) {
         return [];
@@ -491,8 +506,12 @@ function drawSeries(ctx, w, h, plotBeginT, plotEndT, seriesDefn) {
         if (samples.length) {
             var displaySamples = samples;
 
+            if (seriesDefn.displayRate) {
+                displaySamples = rateSamples(displaySamples);
+            }
+
             if (seriesDefn.displayRelative) {
-                displaySamples = relativeSamples(samples);
+                displaySamples = relativeSamples(displaySamples);
             }
 
             const yRange = dataYRange(displaySamples, seriesDefn.forceZero);
@@ -524,6 +543,7 @@ export function canvasSeriesDefn(canvas) {
         const defn = JSON.parse(canvas.dataset.seriesDefn);
         canvas._seriesDefn = {
             seriesName: defn["series-name"],
+            displayRate: !!defn["display-rate"],
             displayRelative: !!defn["display-relative"],
             forceZero: !!defn["force-zero"],
             base2YAxis: !!defn["base-2-y-axis"],

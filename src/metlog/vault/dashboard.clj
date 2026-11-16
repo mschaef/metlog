@@ -107,6 +107,10 @@
       (series-select "series-name")]
 
      [:div
+      [:label {:for "display-rate"} "Display Rate:"]
+      (hiccup-form/check-box "display-rate" false "Y")]
+
+     [:div
       [:label {:for "display-relative"} "Display Relative:"]
       (hiccup-form/check-box "display-relative" false "Y")]
 
@@ -141,7 +145,7 @@
 
 (defn- series-pane [dashboard-id index series-defn]
   (let [series-defn (normalize-series-defn series-defn)
-        {:keys [series-name force-zero int-y-axis display-relative]} series-defn]
+        {:keys [series-name force-zero int-y-axis display-rate display-relative]} series-defn]
     [:div.series-pane
      [:div.series-pane-header
       [:span.series-name series-name
@@ -149,6 +153,8 @@
          [:span.pill "zero"])
        (when int-y-axis
          [:span.pill "integer"])
+       (when display-rate
+         [:span.pill "n/sec"])
        (when display-relative
          [:span.pill "relative"])]
       (hiccup-form/submit-button {:class "close-button"

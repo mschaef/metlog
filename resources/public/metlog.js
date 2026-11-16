@@ -199,6 +199,7 @@ function onAddSeries(event) {
     const formData = new FormData(form);
 
     const seriesName = formData.get("series-name");
+    const displayRate = formData.get("display-rate") === "Y";
     const displayRelative = formData.get("display-relative") === "Y";
     const forceZero = formData.get("force-zero") === "Y";
     const base2YAxis = formData.get("base-2-y-axis") === "Y";
@@ -208,6 +209,7 @@ function onAddSeries(event) {
     doPost(window.location.pathname, {
         "new-definition": JSON.stringify(dashboard.concat(({
             "series-name": seriesName,
+            "display-rate": displayRate,
             "display-relative": displayRelative,
             "force-zero": forceZero,
             "base-2-y-axis": base2YAxis,

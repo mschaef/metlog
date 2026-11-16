@@ -126,3 +126,8 @@
 
 (defsensor "main-todo" {:poll-interval (minutes 1)}
   (http-request-json "http://localhost:8088/list/tldBeLD7e9/counts"))
+
+;;; Stocking stats
+
+(defsensor "stocking" {:poll-interval (minutes 1)}
+  (http-request-json "http://localhost:8085/stocking-counts"))
